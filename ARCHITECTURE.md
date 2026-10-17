@@ -6,7 +6,9 @@ Oct 17, 2026 · @Allosun
 
 `dart-multiplatform-forge` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-**Statut du document : DRAFT.** Il passe en REVIEW après la phase A (vérification de la documentation officielle), puis en APPROVED sur validation explicite de l'utilisateur.
+**Statut du document : REVIEW.** Les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) y sont intégrées, avec les recommandations du §7 retenues par défaut (D1 à D9). Il passe en APPROVED sur validation explicite de l'utilisateur.
+
+Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.296.
 
 Principes directeurs :
 
@@ -24,7 +26,7 @@ La v0.1 couvre le cycle minimal : créer un projet, développer une fonctionnali
 
 | Version | Skills | Agents | Hooks / autres | Critère de sortie |
 | --- | --- | --- | --- | --- |
-| v0.1 | bootstrap-project, create-feature (TDD intégré), git-workflow, recover-session | flutter-architect, test-engineer, code-reviewer | guard-destructive, format-dart, checkpoint-reminder ; template settings.json | Projet démo créé + 1 feature en TDD + commit sur branche + reprise réussie |
+| v0.1 | bootstrap-project, create-feature (TDD intégré), git-workflow, recover-session | flutter-architect, test-engineer, code-reviewer | guard-destructive, agent-scope-guard, format-dart, checkpoint-reminder ; template settings.json | Projet démo créé + 1 feature en TDD + commit sur branche + reprise réussie |
 | v0.2 | github-workflow, debug-project | devops-engineer | secret-scan avant commit ; template CI Flutter | PR ouverte sur dépôt de test avec CI verte |
 | v0.3 | update-project, adopt-existing-project | product-architect | détection de divergences docs/code | Mise à jour d'un lot de dépendances avec rapport avant/après |
 | v0.4 | release-project, optimize-usage | ui-ux-engineer | matrice plateformes en CI | Build de release Android + Web vérifié |
@@ -64,6 +66,7 @@ dart-multiplatform-forge/
 │   ├── hooks.json
 │   └── scripts/
 │       ├── guard-destructive.sh
+│       ├── agent-scope-guard.sh
 │       ├── format-dart.sh
 │       ├── checkpoint-reminder.sh
 │       └── secret-scan.sh            # (v0.2)
@@ -81,43 +84,61 @@ dart-multiplatform-forge/
 │   ├── INSTALLATION.md
 │   ├── USER_GUIDE.md
 │   ├── SECURITY.md
-│   └── TROUBLESHOOTING.md
+│   ├── TROUBLESHOOTING.md
+│   └── PHASE_A_REPORT.md        # audit de la doc officielle (phase A)
+├── ARCHITECTURE.md              # ce document
+├── PROGRESS.md                  # suivi de développement du plugin
 ├── README.md
 ├── CHANGELOG.md
-└── LICENSE                      # MIT par défaut
+└── LICENSE                      # MIT
 ```
 
-Les skills et hooks référencent les fichiers du plugin via la variable `${CLAUDE_PLUGIN_ROOT}`, jamais par chemin absolu.
+Les skills et hooks référencent les fichiers du plugin via la variable `${CLAUDE_PLUGIN_ROOT}`, jamais par chemin absolu :
+
+- dans `hooks.json`, elle est substituée dans `command` et `args`, et exportée dans l'environnement du script ;
+- dans un `SKILL.md` ou un agent, elle est substituée dans le corps Markdown au chargement, si bien que Claude reçoit un chemin absolu ;
+- elle n'existe **pas** dans l'environnement des commandes Bash de Claude, ni dans les fichiers annexes lus par `Read` : ces fichiers (gabarits de `reference/doc-templates/`) ne la contiennent donc pas.
+
+La racine du plugin change à chaque mise à jour d'une installation distante : aucun état n'y est écrit. L'état vit dans `<projet>/.forge/`.
+
+Pas de `CLAUDE.md` à la racine du plugin : il ne serait pas chargé, et déclenche un avertissement du validateur.
 
 ## Manifeste et distribution
 
-Le plugin est distribué par une marketplace locale (le dossier lui-même), puis par un dépôt GitHub une fois stable. Les champs exacts sont à confirmer en phase A contre la doc officielle de la version installée.
+Le plugin est distribué par une marketplace locale (le dossier lui-même), puis par un dépôt GitHub une fois stable. Champs vérifiés en phase A (rapport, §3.1).
 
-`.claude-plugin/plugin.json` (forme attendue) :
+`.claude-plugin/plugin.json` :
 
 ```json
 {
   "name": "dart-multiplatform-forge",
   "version": "0.1.0",
   "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery.",
-  "author": { "name": "<your-name>" },
+  "author": { "name": "Allosun" },
   "license": "MIT",
   "keywords": ["flutter", "dart", "tdd", "git"]
 }
 ```
 
-`.claude-plugin/marketplace.json` déclare une marketplace contenant ce seul plugin, avec `source` pointant vers la racine.
+- Seul `name` est obligatoire, mais l'absence de `version`, `description` ou `author` produit un avertissement, donc un échec de `claude plugin validate --strict`.
+- Un champ inconnu est retiré au chargement et signalé.
+- `homepage` n'est ajouté qu'avec le dépôt GitHub : une URL invalide empêche le chargement du plugin.
+- `version` est ignorée pour une marketplace locale, dont le plugin est lu sur place.
 
-Cycle de vie (commandes à vérifier en phase A) :
+`.claude-plugin/marketplace.json` déclare la marketplace `dart-multiplatform-forge` (propriétaire `Allosun`), qui contient ce seul plugin. L'entrée s'écrit `"source": "./"`, avec le même `name` que `plugin.json`, sans répéter `version`.
 
-| Étape | Commande dans Claude Code |
-| --- | --- |
-| Test sans installation | `claude --plugin-dir ./dart-multiplatform-forge` |
-| Ajouter la marketplace | `/plugin marketplace add ./dart-multiplatform-forge` |
-| Installer | `/plugin install dart-multiplatform-forge@<marketplace-name>` |
-| Mettre à jour | `/plugin marketplace update <marketplace-name>` puis réinstaller |
-| Désinstaller | `/plugin uninstall dart-multiplatform-forge` |
-| Valider le manifeste | `claude plugin validate <chemin>` si disponible |
+Cycle de vie (vérifié en phase A, rapport §3.2). `/plugin` n'existe qu'en session interactive ; les commandes `claude plugin …` sont leurs équivalents scriptables.
+
+| Étape | En session | En shell |
+| --- | --- | --- |
+| Test sans installation | — | `claude --plugin-dir <chemin>` (plugin `@inline`, pour la session seule) |
+| Ajouter la marketplace | `/plugin marketplace add <chemin>` | `claude plugin marketplace add <chemin> [--scope user\|project\|local]` |
+| Installer | `/plugin install dart-multiplatform-forge@dart-multiplatform-forge` | `claude plugin install dart-multiplatform-forge@dart-multiplatform-forge [-s user\|project\|local]` |
+| Mettre à jour (marketplace locale) | `/reload-plugins` : le plugin est lu sur place, rien à réinstaller | redémarrer la session |
+| Mettre à jour (marketplace GitHub, plus tard) | — | `claude plugin marketplace update dart-multiplatform-forge`, puis `claude plugin update dart-multiplatform-forge@dart-multiplatform-forge` |
+| Désinstaller | `/plugin uninstall dart-multiplatform-forge` | `claude plugin uninstall dart-multiplatform-forge@dart-multiplatform-forge [-s …]` ; `claude plugin marketplace remove dart-multiplatform-forge` retire aussi la marketplace |
+| Valider | — | `claude plugin validate . --strict` (0 réussi, 1 échec, 2 erreur du validateur) |
+| Inventaire et coût | — | `claude plugin details dart-multiplatform-forge` |
 
 Versionnage SemVer : patch pour une correction de consigne, minor pour un skill ou agent ajouté, major pour un changement de format de `.forge/` qui casse la reprise.
 
@@ -131,6 +152,8 @@ Règles de délégation :
 
 - Un agent n'est lancé que si sa tâche est autonome et que son rapport évite au moins autant de lectures qu'il en coûte ; sinon la session principale fait le travail.
 - Les agents s'exécutent l'un après l'autre sur un même dépôt. Un parallélisme éventuel passe par des worktrees Git séparés, jamais sur les mêmes fichiers.
+- En session interactive, un sous-agent tourne en arrière-plan par défaut : son rapport arrive par notification, au tour suivant. La session principale attend ce rapport avant l'étape qui en dépend, et n'écrit rien en parallèle.
+- Un agent ne liste jamais `Agent` dans ses outils : il ne peut donc pas lancer d'autre agent. `AskUserQuestion` ne lui est jamais offert.
 - Le code-reviewer ne reçoit que le diff et les exigences, pas le raisonnement de l'implémentation, pour que sa relecture reste indépendante.
 - Chaque rapport d'agent est vérifié par la session principale (commandes relancées si besoin) avant d'être présenté comme un fait.
 
@@ -138,16 +161,31 @@ Règles de délégation :
 
 Chaque agent est un fichier Markdown avec frontmatter (`name`, `description`, `tools`, `model`) et un corps d'instructions en anglais. La restriction d'outils dans le frontmatter est ce qui rend un agent réellement « lecture seule » ; une consigne seule ne suffit pas.
 
+Ce que le frontmatter peut et ne peut pas exprimer (vérifié en phase A, rapport §3.3) :
+
+- `tools` est une liste de noms d'outils ; omis, l'agent hérite de **tous** les outils. Un motif du type `Bash(git diff *)` n'y est pas documenté, et `disallowedTools: Bash(…)` retire Bash en entier : la liste blanche Bash par agent ne s'exprime donc pas ici.
+- `permissionMode`, `hooks` et `mcpServers` sont ignorés pour un agent de plugin.
+- Un frontmatter illisible se charge « avec tous les champs ignorés », donc avec tous les outils, sans message. Le test statique du frontmatter est strict pour cette raison.
+
+Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par le hook **agent-scope-guard**, qui reçoit `agent_type` (`dart-multiplatform-forge:<agent>`).
+
+« Git en lecture » désigne `git status`, `git log`, `git diff`, `git show`, `git ls-files`, `git rev-parse` et `git branch --show-current`.
+
+| Agent | Version | `tools` (frontmatter) | Limites imposées par agent-scope-guard | `model` | Reçoit | Rend |
+| --- | --- | --- | --- | --- | --- | --- |
+| flutter-architect | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `docs/` ; Bash limité à `flutter --version`, `dart --version`, `dart pub deps`, `flutter pub deps`, et git en lecture | `inherit` | Besoin, code existant, PRD | TRD, décisions ADR dans DECISIONS.md, liste de dépendances justifiées |
+| test-engineer | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `test/` et `integration_test/` ; Bash limité à `flutter test`, `dart test`, et git en lecture | `sonnet` | Critères d'acceptation, plan de la feature | Tests écrits, sortie brute de l'exécution ROUGE, liste des cas limites |
+| code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne |
+
+Les agents v0.2+ du tableau ci-dessous suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
+
 | Agent | Version | Outils autorisés | Reçoit | Rend |
 | --- | --- | --- | --- | --- |
-| flutter-architect | v0.1 | Read, Grep, Glob, Bash (lecture : `flutter --version`, `dart pub deps`), Write limité à `docs/` | Besoin, code existant, PRD | TRD, décisions ADR dans DECISIONS.md, liste de dépendances justifiées |
-| test-engineer | v0.1 | Read, Grep, Glob, Write/Edit limités à `test/` et `integration_test/`, Bash (`flutter test`) | Critères d'acceptation, plan de la feature | Tests écrits, sortie brute de l'exécution ROUGE, liste des cas limites |
-| code-reviewer | v0.1 | Read, Grep, Glob, Bash (`git diff`, `git log`, `flutter analyze`) — aucune écriture | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne |
 | devops-engineer | v0.2 | Read, Grep, Glob, Write limité à `.github/`, Bash (`gh`, `git`, `flutter build`) | Plateformes cibles, état CI | Workflow CI, rapport de build par plateforme |
 | product-architect | v0.3 | Read, Write limité à `docs/product/` | Description du besoin | PRD, critères d'acceptation numérotés (AC-xxx) |
 | ui-ux-engineer | v0.4 | Read, Write limité à `docs/design/` et `lib/ui/` | PRD, APPFLOW | Spécification UI, états d'erreur, points d'accessibilité |
 
-Les limites d'écriture « par dossier » ne sont pas exprimables dans le frontmatter : elles sont portées par la consigne de l'agent et vérifiées par le reviewer. À vérifier en phase A si une restriction plus fine existe.
+Deux couches se complètent : agent-scope-guard refuse l'appel d'outil hors périmètre ; le code-reviewer compare ensuite `git diff --name-only` au périmètre déclaré, car une commande Bash autorisée (`flutter test`) peut encore produire des fichiers.
 
 Chaque agent termine par un rapport au format fixe : `STATUS` (done / blocked / partial), `FILES_CHANGED`, `COMMANDS_RUN` avec code de sortie, `OPEN_QUESTIONS`.
 
@@ -170,23 +208,39 @@ Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/dart-multiplatfor
 
 Règle commune : un skill ne déclare jamais une étape réussie sans la sortie de la commande correspondante. Après deux échecs identiques d'une même commande, il s'arrête, écrit le checkpoint et expose le blocage au lieu de réessayer.
 
+Points de validation : le skill pose sa question **en texte**, écrit le checkpoint, puis termine son tour et attend la réponse. `AskUserQuestion` n'est pas offert en mode `-p` sans hôte de permission ; poser la question en texte donne le même comportement en interactif et en headless.
+
+Frontmatter retenu : `name`, `description` (qui dit précisément quand charger le skill), et `argument-hint` quand le skill prend un argument. `allowed-tools` n'est pas utilisé : il accorde des outils sans invite et ne restreint rien ; les permissions restent dans le `settings.json` du projet, seule source. Un `SKILL.md` reste sous 500 lignes, car son contenu reste en contexte aux tours suivants.
+
 ## Hooks et garde-fous
 
 Les hooks sont déclarés dans `hooks/hooks.json` et exécutent des scripts bash courts, testables avec une entrée JSON simulée. Un hook ne lance jamais la suite de tests complète et n'accorde jamais une permission : il peut seulement bloquer ou compléter.
 
+Règles de mise en œuvre (vérifiées en phase A, rapport §3.5) :
+
+- **Bloquer** : `exit 2`, la raison sur stderr, transmise à Claude. Un `exit 1` est une erreur **non bloquante** : la commande passe.
+- **Fail-closed** : le script sort en 2 sur toute erreur interne (`jq` absent, JSON illisible), **et** le hook déclare `"onFailure": "block"`, qui couvre aussi un script introuvable, un plantage et un dépassement de délai. Ce champ exige Claude Code 2.1.295 ou plus.
+- **Fail-open** : le script sort toujours en 0, et le hook déclare `"onFailure": "continue"`.
+- **Forme exec** : `"command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<script>.sh"]`. Sans shell, ni guillemets, ni bit exécutable, ni shebang ne comptent ; cela règle aussi l'absence de `/bin/bash` sous NixOS. Les scripts gardent `#!/usr/bin/env bash` pour être lancés directement par les tests.
+- **Portée** : les hooks d'un plugin se déclenchent dans **toutes** les sessions où il est activé, sous-agents compris. Chaque hook reste donc inerte hors de son contexte : fichier `.dart`, présence de `.forge/`, agent du plugin.
+- **Entrée** : `tool_input.command` pour Bash, PowerShell et Monitor (un appel Monitor en mode WebSocket porte `ws` à la place, et passe) ; `tool_input.file_path`, toujours absolu, pour Write et Edit ; `tool_input.notebook_path` pour NotebookEdit.
+
 | Hook | Événement | Filtre | Comportement | En cas d'erreur du script |
 | --- | --- | --- | --- | --- |
-| guard-destructive | PreToolUse | Bash | Bloque `git reset --hard`, `git clean -f*`, `git push --force` / `-f` / `--force-with-lease`, `git branch -D`, `git checkout -- .`, `rm -rf` hors `build/`, `gh repo delete`, `gh repo edit --visibility`, `gh pr merge`, `flutter pub publish` ; renvoie la raison à Claude | Bloque (fail-closed) |
-| format-dart | PostToolUse | Edit, Write | Si le fichier finit par `.dart` et que `dart` est dans le PATH : `dart format <fichier>` | Ignore silencieusement (fail-open) |
-| checkpoint-reminder | Stop | — | Si `.forge/checkpoint.md` est plus ancien que le dernier commit ou les fichiers modifiés, rappelle de le mettre à jour | Ignore |
+| guard-destructive | PreToolUse | `Bash\|PowerShell\|Monitor` | Bloque `git reset --hard` ; `git clean` avec `-f`/`--force` ; `git push` avec `-f`, `--force`, `--force-with-lease` ou `--force-if-includes` à n'importe quelle position, ou une refspec `+ref` ; `git branch -D` et `--delete --force` ; `git checkout -- <chemin>` et `git checkout .` ; `git restore` hors `--staged` seul ; `git stash drop` et `git stash clear` ; `rm` récursif et forcé (`-rf`, `-fr`, `-Rf`, `-r -f`, `--recursive --force`) hors `build/` ; `gh repo delete` ; `gh repo edit` avec `--visibility` ; `gh pr merge` ; `flutter pub publish` et `dart pub publish`. Renvoie la raison à Claude | Bloque (fail-closed) |
+| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des trois agents du plugin. Pour eux, refuse toute écriture hors des dossiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée | Bloque (fail-closed) |
+| format-dart | PostToolUse | `Edit\|Write` | Si le fichier finit par `.dart` et que `dart` est dans le PATH : `dart format <fichier>` | Ignore silencieusement (fail-open) |
+| checkpoint-reminder | Stop | — | Inerte sans `.forge/checkpoint.md`, ou si `stop_hook_active` est vrai. Si le checkpoint est plus ancien que le dernier commit ou qu'un fichier modifié non commité, renvoie `hookSpecificOutput.additionalContext` : Claude reprend une fois pour le mettre à jour | Ignore (`onFailure` est sans effet sur `Stop`) |
 | secret-scan (v0.2) | PreToolUse | Bash contenant `git commit` | `gitleaks protect --staged` si installé, sinon regex sur `git diff --cached` (clés AWS, `-----BEGIN`, `ghp_`, `sk-`, `AIza`, fichiers `.env`, `*.jks`, `key.properties`) | Bloque |
 | protect-sensitive (v0.2) | PreToolUse | Edit, Write | Demande confirmation avant modification de `android/key.properties`, `*.keystore`, `ios/Runner/*.entitlements`, `.github/workflows/*`, `.forge/config.yaml` | Bloque |
 
-Le guard-destructive analyse la commande par motifs : il peut être contourné par une formulation exotique. C'est un filet de sécurité, pas une garantie ; les règles `deny` du `settings.json` de projet forment la seconde couche. Toute levée ponctuelle se fait par l'utilisateur, jamais par Claude qui réécrirait la commande.
+Le guard-destructive analyse la commande par motifs : il peut être contourné par une formulation exotique. C'est un filet de sécurité, pas une garantie ; les règles `deny` du `settings.json` de projet forment la seconde couche. Toute levée ponctuelle se fait par l'utilisateur, jamais par Claude qui réécrirait la commande : une commande tapée par l'utilisateur avec le préfixe `!` s'exécute sans appel d'outil, donc sans passer par `PreToolUse` (déduit de la doc, à confirmer en phase F).
+
+En portée d'installation `user`, les hooks protègent tous les projets de l'utilisateur, pas seulement les projets générés.
 
 ## Sécurité et permissions
 
-La sécurité repose sur trois couches indépendantes : les règles de permission de Claude Code, les hooks du plugin, et les préautorisations du projet. Un plugin ne peut pas, à ma connaissance, imposer de règles `allow`/`deny` ; il les propose et l'utilisateur les installe (à confirmer en phase A).
+La sécurité repose sur trois couches indépendantes : les règles de permission de Claude Code, les hooks du plugin, et les préautorisations du projet. Un plugin ne peut pas imposer de règles `allow`/`deny` (vérifié en phase A, rapport §3.7) : le `settings.json` d'un plugin n'applique que `agent` et `subagentStatusLine`. Le plugin propose donc les règles, et l'utilisateur les installe.
 
 **Couche 1 — `templates/project-settings.json`**, copié dans `<projet>/.claude/settings.json` par bootstrap-project après accord :
 
@@ -194,25 +248,37 @@ La sécurité repose sur trois couches indépendantes : les règles de permissio
 {
   "permissions": {
     "allow": [
-      "Bash(flutter test:*)", "Bash(flutter analyze:*)", "Bash(dart format:*)",
-      "Bash(flutter pub get)", "Bash(git status)", "Bash(git diff:*)",
-      "Bash(git log:*)", "Bash(git add:*)", "Bash(git switch:*)"
+      "Bash(flutter test *)", "Bash(flutter analyze *)", "Bash(dart format *)",
+      "Bash(flutter pub get)", "Bash(git status)", "Bash(git diff *)",
+      "Bash(git log *)", "Bash(git add *)", "Bash(git switch *)"
     ],
     "ask": [
-      "Bash(git commit:*)", "Bash(git push:*)", "Bash(gh pr create:*)",
-      "Bash(flutter pub upgrade:*)"
+      "Bash(git add -A*)", "Bash(git add .)", "Bash(git add --all*)",
+      "Bash(git commit *)", "Bash(git push *)", "Bash(gh pr create *)",
+      "Bash(flutter pub upgrade *)"
     ],
     "deny": [
-      "Bash(git reset --hard:*)", "Bash(git clean:*)", "Bash(git push --force:*)",
-      "Bash(gh repo delete:*)", "Bash(gh pr merge:*)", "Read(./.env)", "Read(./**/key.properties)"
+      "Bash(git reset --hard*)", "Bash(git clean *)",
+      "Bash(git push --force*)", "Bash(git push * --force*)",
+      "Bash(git push -f*)", "Bash(git push * -f*)", "Bash(git push * +*)",
+      "Bash(git branch -D *)", "Bash(gh repo delete *)", "Bash(gh pr merge *)",
+      "Bash(dart pub publish*)", "Bash(flutter pub publish*)",
+      "Read(./.env)", "Read(./.env.*)", "Read(./**/key.properties)",
+      "Edit(./.forge/config.yaml)"
     ]
   }
 }
 ```
 
+- La forme `Bash(x *)`, avec espace, est celle de la doc et de la boîte de dialogue ; `Bash(x:*)` en est l'équivalent ancien.
+- L'ordre d'évaluation est `deny`, puis `ask`, puis `allow`, la première règle qui correspond l'emporte : les `ask` sur `git add -A` priment donc sur `allow` `git add *`.
+- Les règles de fichiers s'écrivent `Edit(…)`, qui couvre tous les outils d'écriture ; une règle `Write(…)` ne protège rien.
+- Les `allow` d'un projet ne s'appliquent qu'**après acceptation de la confiance du workspace** ; `deny` et `ask` s'appliquent toujours.
+- Une règle Bash ne couvre que la forme écrite (`git -C . push` échappe à `Bash(git push *)`) : le hook reste la couche qui analyse la commande.
+
 **Couche 2 — hooks** (section précédente), actifs dès l'installation du plugin.
 
-**Couche 3 — `<projet>/.forge/config.yaml`**, lu par chaque skill avant une action externe. Toute clé absente vaut `false`. Seul l'utilisateur la modifie ; le hook protect-sensitive bloque son édition par Claude.
+**Couche 3 — `<projet>/.forge/config.yaml`**, lu par chaque skill avant une action externe. Toute clé absente vaut `false`. Seul l'utilisateur la modifie : dès la v0.1, la règle `deny` `Edit(./.forge/config.yaml)` de la couche 1 en bloque l'édition par Claude ; le hook protect-sensitive (v0.2) ajoutera la même protection hors projet configuré. bootstrap-project crée le fichier une seule fois, avant d'installer `.claude/settings.json`.
 
 ```yaml
 schema_version: 1
@@ -332,8 +398,8 @@ Le cycle rouge-vert-refactor reste dans la session principale ; le test-engineer
 3. **Risques et dépendances** : nouveau package, impact plateforme, migration de données.
 4. **Plan** : fichiers touchés, tests prévus, dépendances. **Validation utilisateur** si le périmètre, l'architecture ou une dépendance change.
 5. **Branche** : `feature/<ac-id>-<slug>` via git-workflow.
-6. **Tests d'abord** : le test-engineer écrit les tests liés aux AC.
-7. **ROUGE** : `flutter test <fichiers ciblés>`. L'échec doit porter sur l'assertion attendue, pas sur une erreur de compilation sans rapport. Sortie consignée.
+6. **Tests d'abord** : le test-engineer écrit les tests liés aux AC, les lance, et rapporte la sortie ROUGE brute. La session principale **attend son rapport** (il arrive par notification en session interactive) et n'écrit rien en parallèle.
+7. **ROUGE** : la session principale relance elle-même `flutter test <fichiers ciblés>` pour consigner la preuve, selon la règle du rapport vérifié. L'échec doit porter sur l'assertion attendue, pas sur une erreur de compilation sans rapport. Sortie consignée.
 8. **Implémentation minimale** dans la session principale.
 9. **VERT** : mêmes tests ciblés, tous passent. Sinon retour à 8, au plus trois itérations avant d'exposer le blocage.
 10. **Refactor** sans changement de comportement.
@@ -377,7 +443,9 @@ Sur une machine Linux, seuls Android, Web et Linux desktop se compilent localeme
 | macOS | Non | Non | Runner macOS GitHub Actions | idem |
 | Windows | Non | Non | Runner Windows GitHub Actions | idem |
 
-Coût CI à signaler à l'utilisateur : les minutes GitHub Actions sont gratuites pour les dépôts publics ; pour les dépôts privés, le quota gratuit est limité et les minutes macOS sont décomptées avec un multiplicateur élevé (chiffres exacts à vérifier en phase A).
+Coût CI à signaler à l'utilisateur (vérifié le 2026-10-17, rapport §4) : les minutes GitHub Actions sont gratuites pour les dépôts publics sur runners standard. Pour les dépôts privés, le quota inclus est de 2 000 min/mois (Free), 3 000 (Pro, Team), 50 000 (Enterprise Cloud). Tarifs au-delà : Linux 2 cœurs 0,006 $/min, Windows 0,010 $, macOS 0,062 $, soit environ 10 fois Linux. La doc ne publie plus de table de multiplicateurs : le décompte exact du quota inclus pour macOS reste **non vérifié**.
+
+Sur la machine de développement du plugin, seul Linux desktop est vérifiable (Chrome absent, SDK Android incomplet) : `platforms.enabled` garde `[android, web, linux]` par défaut, mais la démo de validation se fait en `linux` seul.
 
 Règles :
 
@@ -393,18 +461,26 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 
 | Fichier | Vérifie |
 | --- | --- |
-| static/test\_manifest.sh | `plugin.json` est du JSON valide, champs requis présents, `name` en kebab-case, version SemVer |
-| static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible, `name` et `description` non vides ; le reviewer n'a ni Write ni Edit |
-| static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` |
-| static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean ou suppression |
-| hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée |
+| static/test\_manifest.sh | `plugin.json` et `marketplace.json` sont du JSON valide, champs requis présents, `name` en kebab-case et identique dans les deux, version SemVer, `source` vaut `./` |
+| static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; aucun agent ne liste `Agent` |
+| static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec |
+| static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean ou suppression ; les `deny` attendus sont présents ; aucune règle `Write(…)` |
+| hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée, `jq` absent bloqué, appel `Monitor` couvert |
+| hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des trois agents ; commandes composées refusées ; erreurs internes bloquantes |
 | hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |
-| hooks/test\_checkpoint\_reminder.sh | Rappel émis quand le checkpoint est plus ancien que les fichiers modifiés |
-| static/test\_tdd\_skill.sh | `create-feature/SKILL.md` contient les étapes ROUGE et VERT, chacune avec une commande et la consigne de consigner sa sortie |
+| hooks/test\_checkpoint\_reminder.sh | Rappel émis quand le checkpoint est plus ancien que les fichiers modifiés ; silence si `stop_hook_active`, sans `.forge/`, ou checkpoint à jour |
+| static/test\_tdd\_skill.sh | `create-feature/SKILL.md` contient les 15 étapes, dont ROUGE et VERT, chacune avec une commande et la consigne de consigner sa sortie |
 
-La CLI fournit peut-être un validateur de plugin intégré ; s'il existe, il est ajouté à `run-all.sh` (phase A).
+`run-all.sh` lance aussi `claude plugin validate . --strict` : local, déterministe, sans quota. Comme ce validateur ne voit ni un script de hook absent ni, de façon fiable, un frontmatter d'agent cassé, les tests statiques ci-dessus restent nécessaires.
 
-**Scénarios comportementaux** (`tests/scenarios/*.md`, exécutés en mode headless avec le plugin chargé depuis son dossier, ou à la main) :
+Outillage de développement : les skills de `plugin-dev` (installé depuis `claude-plugins-official`, antérieur à la doc courante) servent d'aide-mémoire ; en cas de conflit, la doc officielle et `claude plugin validate` priment. Les agents sont rédigés directement, puis relus une fois par l'agent `skill-reviewer`.
+
+**Scénarios comportementaux** (`tests/scenarios/*.md`, exécutés en mode headless avec le plugin chargé depuis son dossier, ou à la main). Mode d'exécution, vérifié en phase A (rapport §3.8) :
+
+- `claude -p --plugin-dir <plugin> --output-format stream-json`, **sans `--bare`**, qui exigerait une clé API payante ; l'événement `system/init` liste `plugins` et `plugin_errors`, ce qui prouve le chargement. L'éventuelle obligation d'ajouter `--verbose` et l'existence de `--max-turns` en 2.1.296 sont à confirmer en phase F ;
+- `--permission-mode dontAsk` avec `--allowedTools` explicite, car `-p` ignore les `allow` d'un projet non approuvé ;
+- points de validation sur plusieurs tours : `--session-id <uuid>`, puis `--resume <uuid> "<réponse>"` ;
+- pas de `claude plugin eval` en v0.1 : coût multiplié, et bac à sable incompatible avec Flutter sur cette machine.
 
 1. **Bootstrap** dans un dossier temporaire : projet créé, `flutter test` vert, docs socle en DRAFT, `.forge/` présent.
 2. **Feature TDD** : checkpoint montrant ROUGE puis VERT avec sorties de commande.
@@ -415,27 +491,27 @@ La CLI fournit peut-être un validateur de plugin intégré ; s'il existe, il es
 
 Le rapport de test du plugin sépare trois colonnes : exécuté automatiquement, vérifié manuellement, bloqué (raison). Les scénarios GitHub utilisent un dépôt de test privé jetable, créé uniquement avec accord.
 
-## Points à vérifier en phase A et risques
+## Points vérifiés en phase A et risques
 
-Ce document a été rédigé sans consulter la documentation de la version installée ; les points ci-dessous doivent être confirmés avant toute implémentation, et le document corrigé en conséquence.
+Ces points ont été vérifiés en phase A contre la documentation officielle (2026-10-17, Claude Code 2.1.296) ; le détail et les sources sont dans `docs/PHASE_A_REPORT.md`, §3 et §4.
 
-À vérifier contre la doc officielle Claude Code :
+- [x] Champs exacts et obligatoires de `plugin.json` et `marketplace.json` — confirmé, avec précisions
+- [x] Commandes `/plugin …`, option `--plugin-dir`, existence de `claude plugin validate` — confirmé ; « mettre à jour » infirmé pour une marketplace locale (lue sur place)
+- [x] Frontmatter des agents — champs et syntaxe de `tools` confirmés ; restriction de Bash par motif **infirmée**, remplacée par agent-scope-guard
+- [x] Frontmatter des skills et règles de chargement automatique — confirmé
+- [x] Format de `hooks.json`, événements, entrée JSON, codes de sortie — confirmé ; seul l'exit 2 bloque, fail-closed par `onFailure: "block"`
+- [x] Disponibilité de `${CLAUDE_PLUGIN_ROOT}` dans les hooks et les skills — confirmé, absente des commandes Bash de Claude et des fichiers annexes
+- [x] Un plugin peut-il fournir des règles de permission ? — confirmé : non
+- [x] Exécution headless avec un plugin chargé — confirmé par la doc ; exécution en phase F
 
-- [ ] Champs exacts et obligatoires de `plugin.json` et `marketplace.json`
-- [ ] Commandes `/plugin …`, option `--plugin-dir`, existence de `claude plugin validate`
-- [ ] Frontmatter des agents : champs supportés, syntaxe de `tools`, possibilité de restreindre Bash par motif
-- [ ] Frontmatter des skills et règles de chargement automatique
-- [ ] Format de `hooks.json`, noms d'événements, format d'entrée JSON et codes de sortie pour bloquer
-- [ ] Disponibilité de `${CLAUDE_PLUGIN_ROOT}` dans les hooks et les skills
-- [ ] Un plugin peut-il fournir des règles de permission ? (hypothèse retenue : non)
-- [ ] Exécution headless avec un plugin chargé, pour les scénarios
-
-À vérifier côté outils : version Flutter stable courante, sous-commandes `gh` utilisées, quotas GitHub Actions et multiplicateur macOS.
+Côté outils : Flutter stable courant 3.47.7 (installé : 3.44.3) ; sous-commandes `gh` vérifiées par `--help` ; quotas GitHub Actions ci-dessus, multiplicateur macOS non vérifié.
 
 | Risque | Effet | Parade |
 | --- | --- | --- |
 | Le guard-destructive est contourné par une syntaxe imprévue | Commande destructive exécutée | Deuxième couche `deny` ; tests à motifs larges ; revue du hook à chaque version |
-| Les consignes d'écriture « par dossier » des agents ne sont pas respectées | Fichiers modifiés hors périmètre | Le reviewer compare `git diff --name-only` au périmètre déclaré |
+| Les consignes d'écriture « par dossier » des agents ne sont pas respectées | Fichiers modifiés hors périmètre | agent-scope-guard refuse l'appel d'outil ; le reviewer compare `git diff --name-only` au périmètre déclaré |
+| Un frontmatter d'agent illisible | L'agent reçoit tous les outils, sans message | Test statique strict du frontmatter dans `run-all.sh` |
+| Un hook qui plante laisse passer | Garde-fou inopérant | `exit 2` sur erreur interne et `onFailure: "block"` ; tests d'erreur interne |
 | Checkpoint non mis à jour | Reprise sur un état faux | Hook checkpoint-reminder ; recover-session croise avec Git |
 | Documentation trop lourde pour un débutant | Abandon du workflow | Socle de quatre documents, optionnels à la demande |
 | Coût en quota des agents | Session coupée en plein cycle | TDD en session principale ; agents aux jalons seulement |
