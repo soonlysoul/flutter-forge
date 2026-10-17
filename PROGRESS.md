@@ -5,7 +5,7 @@ Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log -
 
 ## État courant
 
-**Phase C — terminée.** Phase D à venir.
+**Phases B à E et F.1 — terminées.** Phase G (docs) en cours ; F.2 attend votre accord.
 
 Décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7) : le questionnaire a été refusé, puis la consigne « continue » donnée. Les recommandations du §7 sont donc appliquées **par défaut**, et chacune reste révisable :
 
@@ -96,6 +96,64 @@ Limites relevées en revue, à documenter dans SECURITY.md (phase G) :
 - racine = `CLAUDE_PROJECT_DIR`, donc le dossier de lancement.
 
 Testé sous bash 5.2 seulement ; bash 3.2 (macOS) non vérifié.
+
+## Phase D — Agents, skills, gabarits — terminée
+
+TDD : les tests statiques ont été écrits d'abord, et ont échoué sur l'absence des fichiers. L'auto-test de l'analyseur strict passait déjà : 7 frontmatters cassés rejetés.
+
+Fichiers :
+
+- `agents/{flutter-architect,test-engineer,code-reviewer}.md`
+- `skills/{bootstrap-project,create-feature,git-workflow,recover-session}/SKILL.md`
+- `skills/bootstrap-project/reference/doc-templates/{PRD,TRD,IMPLEMENTATION_PLAN,DECISIONS,CLAUDE}.md`
+- `templates/{project-settings.json,forge-config.yaml,checkpoint.md}`
+- `tests/static/test_{frontmatter,tdd_skill,settings_template}.sh`
+- volet skills de `tests/static/test_paths.sh`
+
+Constats :
+
+- **`argument-hint: [app-name]` est une liste YAML**, pas une chaîne : le test strict l'a refusé, et les trois valeurs sont désormais citées.
+- **Validateur officiel** : même en `--strict` sur `agents/`, il **accepte** un frontmatter invalide (`description: Use when: …`, `[unclosed`, `---` jamais refermé). Sonde : exit 0 dans les trois cas. `test_frontmatter.sh` est donc la seule barrière.
+- **Un premier essai de sonde était faux** : un dossier qui ne s'appelle pas `agents/` est validé comme un plugin, et échoue faute de manifeste. Il a été refait avec des dossiers `agents/`.
+- **`test_tdd_skill`** comparait en tenant compte de la casse (« Wait » ≠ « wait ») : le test a été corrigé, pas le contenu.
+
+Revue `plugin-dev:skill-reviewer` (une passe, lecture seule) : 2 constats bloquants, 10 importants et 8 mineurs. Chacun a été vérifié sur les fichiers avant correction.
+
+- **B1** : un projet créé dans un sous-dossier a pour racine de hooks le dossier parent, si bien que les agents ne peuvent ni écrire ni lancer `flutter test`. Correctif : bootstrap crée de préférence dans le dossier courant, rédige lui-même le TRD sinon, et demande une nouvelle session à la racine. create-feature vérifie `${CLAUDE_PROJECT_DIR}`.
+- **B2** : rien n'est commité avant l'étape 15, donc la revue portait sur un diff vide. Correctif : indexation explicite, puis revue de `git diff --cached <base>`.
+- **Importants** :
+  - descriptions limitées aux projets ayant `.forge/` ;
+  - checkpoint ignoré à l'étape 1 et à la création de branche ;
+  - tests ROUGE déjà verts : arrêt ;
+  - PRD et TRD doivent être APPROVED ;
+  - dépendance ajoutée et plateformes vérifiées dès l'étape 4 ;
+  - étapes 11 et 12 relancées après les corrections de revue, arrêt si un constat bloquant subsiste ;
+  - `restore --staged` autorisé, et `git rm --cached` prévu avant le premier commit ;
+  - un TRD APPROVED modifié repasse en DRAFT, et un nouvel ADR est `proposed` ;
+  - appareil fourni pour `integration_test/`, sinon tests classés bloqués.
+- **Écart assumé** (constat 5) : l'ordre des étapes 13 et 14 d'ARCHITECTURE.md est gardé. Le reviewer liste désormais les docs à mettre à jour (`DOCS_TO_UPDATE`), au lieu de les signaler comme constats.
+- **Tests** : 9 assertions ajoutées d'abord (ROUGE : 9 échecs), puis corrections (VERT).
+
+## Phase E — Tests déterministes — terminée
+
+- `tests/static/test_manifest.sh`. ROUGE par mutation : une copie aux manifestes faussés échoue sur exactement les 6 propriétés mutées. Puis 14/14 sur le vrai plugin.
+- `tests/run-all.sh` : 9 suites, puis `claude plugin validate --strict` sur `.`, `.claude-plugin/plugin.json`, `agents` et `skills`.
+- `tests/scenarios/` : README, scénarios 01 à 05, et `headless.sh`, qui refuse de tourner sans `FORGE_ALLOW_QUOTA=1` ou depuis le dossier du plugin. Les deux refus ont été vérifiés, exit 2.
+
+| Commande | Résultat |
+| --- | --- |
+| `bash tests/run-all.sh` | exit 0 — 13 réussis (9 suites, 500 assertions, 4 validations), 0 échoué, 0 bloqué |
+
+## Phase F.1 — Validation sans quota — faite
+
+| Commande | Résultat |
+| --- | --- |
+| `flutter create --org com.example --project-name demo_probe --platforms linux …` (scratchpad) | exit 0 |
+| `flutter test` (projet jetable) | exit 0 — 1 test réussi |
+| `flutter analyze` (projet jetable) | exit 0 — aucun problème |
+| guard-destructive sur `git reset --hard` dans ce dépôt réel, fichier modifié non commité | exit 2, raison claire ; empreinte du fichier inchangée |
+| `claude --plugin-dir . plugin details dart-multiplatform-forge` | exit 0 — `@inline`, 4 skills, 3 agents, hooks sur 3 événements ; ~848 jetons permanents |
+| Projets de `~/.claude.json` avant / après | 36 / 36 |
 
 ## Phases suivantes
 - [ ] D — Agents, skills, gabarits, revue `skill-reviewer`, commit

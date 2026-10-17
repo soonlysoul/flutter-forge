@@ -1,0 +1,16 @@
+# dart-multiplatform-forge project configuration. Edited by the user only.
+# A missing key counts as false. Once .claude/settings.json is installed, its deny rule
+# Edit(./.forge/config.yaml) stops Claude from changing this file.
+schema_version: 1
+project:
+  default_branch: main
+  branch_prefix: feature/
+authorizations:
+  push_feature_branches: false
+  open_pull_requests: false
+  update_own_pull_requests: false
+  create_remote_repo: false     # always re-confirmed: name, visibility, owner
+  merge: false                  # ignored: merging always needs explicit approval
+  publish_release: false        # ignored: publishing always needs explicit approval
+platforms:
+  enabled: [android, web, linux]

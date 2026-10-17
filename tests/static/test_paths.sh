@@ -63,4 +63,38 @@ else
   pass "no /bin/bash under hooks/ (absent on NixOS)"
 fi
 
+echo "# skills, agents and templates"
+shopt -s nullglob
+substituted=("$PLUGIN_ROOT"/skills/*/SKILL.md "$PLUGIN_ROOT"/agents/*.md)
+annexes=()
+while IFS= read -r -d '' file; do annexes+=("$file"); done \
+  < <(find "$PLUGIN_ROOT/templates" "$PLUGIN_ROOT/skills" -type f ! -name SKILL.md -print0 2>/dev/null)
+
+((${#substituted[@]} > 0)) && pass "skills and agents found (${#substituted[@]})" || fail "skills and agents found"
+
+cited=$(cat "${substituted[@]}" /dev/null | grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/[A-Za-z0-9_./-]*[A-Za-z0-9_/-]' | sort -u)
+while IFS= read -r ref; do
+  [[ -n $ref ]] || continue
+  [[ -e $PLUGIN_ROOT/${ref#'${CLAUDE_PLUGIN_ROOT}/'} ]] && pass "cited path exists: $ref" || fail "cited path exists: $ref"
+done <<<"$cited"
+
+for file in "$PLUGIN_ROOT"/skills/bootstrap-project/reference/doc-templates/{PRD,TRD,IMPLEMENTATION_PLAN,DECISIONS}.md \
+  "$PLUGIN_ROOT"/templates/{project-settings.json,forge-config.yaml,checkpoint.md}; do
+  rel=${file#"$PLUGIN_ROOT"/}
+  [[ -f $file ]] && pass "$rel exists" || fail "$rel exists"
+done
+
+for file in ${annexes[@]+"${annexes[@]}"}; do
+  rel=${file#"$PLUGIN_ROOT"/}
+  grep -qF "\${CLAUDE_PLUGIN_ROOT}/$rel" "${substituted[@]}" /dev/null \
+    && pass "$rel is cited through \${CLAUDE_PLUGIN_ROOT}" || fail "$rel is cited through \${CLAUDE_PLUGIN_ROOT}"
+  grep -qF '${CLAUDE_PLUGIN_ROOT}' "$file" \
+    && fail "$rel does not contain \${CLAUDE_PLUGIN_ROOT} (annexes are not substituted)" \
+    || pass "$rel does not contain \${CLAUDE_PLUGIN_ROOT} (annexes are not substituted)"
+done
+
+personal=$(grep -rnE '/home/|/Users/|/nix/store/' "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null)
+[[ -z $personal ]] && pass "no absolute personal or store path in the plugin" || fail "no absolute personal or store path in the plugin" "$personal"
+shopt -u nullglob
+
 finish

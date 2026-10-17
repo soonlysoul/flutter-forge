@@ -154,6 +154,7 @@ Règles de délégation :
 - Les agents s'exécutent l'un après l'autre sur un même dépôt. Un parallélisme éventuel passe par des worktrees Git séparés, jamais sur les mêmes fichiers.
 - En session interactive, un sous-agent tourne en arrière-plan par défaut : son rapport arrive par notification, au tour suivant. La session principale attend ce rapport avant l'étape qui en dépend, et n'écrit rien en parallèle.
 - Un agent ne liste jamais `Agent` dans ses outils : il ne peut donc pas lancer d'autre agent. `AskUserQuestion` ne lui est jamais offert.
+- La racine du projet, pour les hooks comme pour les règles de permission, est le dossier où la session a été lancée (`CLAUDE_PROJECT_DIR`). bootstrap-project crée donc de préférence le projet dans le dossier courant, s'il est vide. S'il le crée dans un sous-dossier, il rédige lui-même le TRD, et create-feature exige une nouvelle session ouverte à la racine du projet.
 - Le code-reviewer ne reçoit que le diff et les exigences, pas le raisonnement de l'implémentation, pour que sa relecture reste indépendante.
 - Chaque rapport d'agent est vérifié par la session principale (commandes relancées si besoin) avant d'être présenté comme un fait.
 
@@ -394,18 +395,18 @@ Choix techniques par défaut, révisables par le flutter-architect avec une entr
 Le cycle rouge-vert-refactor reste dans la session principale ; le test-engineer conçoit les tests et le code-reviewer relit à la fin. Chaque étape cochée dans le checkpoint s'accompagne de la commande lancée et de son code de sortie.
 
 1. **État du dépôt** : `git status`, branche courante, changements non commités. S'il y en a, les préserver et demander s'il faut les committer, les mettre de côté sur une branche ou s'arrêter. Pas de `git stash` silencieux.
-2. **Contexte** : lire PRD, TRD et l'entrée du plan pour la feature ; lister les critères d'acceptation (AC-xxx) visés.
+2. **Contexte** : lire PRD, TRD et l'entrée du plan pour la feature ; lister les critères d'acceptation (AC-xxx) visés. Si le PRD ou le TRD n'est pas APPROVED, s'arrêter et demander l'approbation.
 3. **Risques et dépendances** : nouveau package, impact plateforme, migration de données.
-4. **Plan** : fichiers touchés, tests prévus, dépendances. **Validation utilisateur** si le périmètre, l'architecture ou une dépendance change.
+4. **Plan** : fichiers touchés, tests prévus, dépendances. **Validation utilisateur** si le périmètre, l'architecture ou une dépendance change. Après validation, un nouvel AC est écrit dans le PRD, et une dépendance approuvée est ajoutée (`flutter pub add`) avant tout test qui l'importe, puis ses plateformes sont vérifiées dans son `pubspec.yaml` résolu.
 5. **Branche** : `feature/<ac-id>-<slug>` via git-workflow.
 6. **Tests d'abord** : le test-engineer écrit les tests liés aux AC, les lance, et rapporte la sortie ROUGE brute. La session principale **attend son rapport** (il arrive par notification en session interactive) et n'écrit rien en parallèle.
-7. **ROUGE** : la session principale relance elle-même `flutter test <fichiers ciblés>` pour consigner la preuve, selon la règle du rapport vérifié. L'échec doit porter sur l'assertion attendue, pas sur une erreur de compilation sans rapport. Sortie consignée.
+7. **ROUGE** : la session principale relance elle-même `flutter test <fichiers ciblés>` pour consigner la preuve, selon la règle du rapport vérifié. L'échec doit porter sur l'assertion attendue, pas sur une erreur de compilation sans rapport. Sortie consignée. Des tests qui passent déjà arrêtent le workflow : le comportement existe peut-être, ou les tests ne le testent pas.
 8. **Implémentation minimale** dans la session principale.
 9. **VERT** : mêmes tests ciblés, tous passent. Sinon retour à 8, au plus trois itérations avant d'exposer le blocage.
 10. **Refactor** sans changement de comportement.
 11. **Re-test ciblé** puis, à ce jalon seulement, `flutter test` complet.
 12. **Qualité** : `dart format --set-exit-if-changed .` et `flutter analyze` ; zéro erreur, avertissements listés.
-13. **Revue** : code-reviewer sur `git diff <base>...HEAD` ; les constats bloquants sont corrigés et relus.
+13. **Revue** : rien n'est encore commité, donc les fichiers de la feature sont indexés, puis le code-reviewer relit `git diff --cached <base>`. Les constats bloquants sont corrigés, les étapes 11 et 12 relancées, et les corrections relues une fois ; un constat bloquant qui subsiste arrête le workflow. Le reviewer liste aussi les mises à jour de docs attendues, traitées à l'étape 14.
 14. **Docs** : plan, DECISIONS et traçabilité mis à jour ; signalement de toute divergence avec le code.
 15. **Commit** préparé par git-workflow, puis rapport final.
 

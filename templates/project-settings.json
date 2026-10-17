@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter test *)",
+      "Bash(flutter analyze *)",
+      "Bash(dart format *)",
+      "Bash(flutter pub get)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git switch *)"
+    ],
+    "ask": [
+      "Bash(git add -A*)",
+      "Bash(git add .)",
+      "Bash(git add --all*)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(flutter pub upgrade *)"
+    ],
+    "deny": [
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(git push * +*)",
+      "Bash(git branch -D *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh pr merge *)",
+      "Bash(dart pub publish*)",
+      "Bash(flutter pub publish*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/key.properties)",
+      "Edit(./.forge/config.yaml)"
+    ]
+  }
+}
