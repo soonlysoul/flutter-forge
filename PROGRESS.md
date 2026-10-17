@@ -1,6 +1,6 @@
 # PROGRESS — dart-multiplatform-forge v0.1
 
-Dernière mise à jour : 2026-10-18T00:30+02:00
+Dernière mise à jour : 2026-10-18T01:40+02:00
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
 ## État courant
@@ -155,9 +155,15 @@ Revue `plugin-dev:skill-reviewer` (une passe, lecture seule) : 2 constats bloqua
 | `claude --plugin-dir . plugin details dart-multiplatform-forge` | exit 0 — `@inline`, 4 skills, 3 agents, hooks sur 3 événements ; ~848 jetons permanents |
 | Projets de `~/.claude.json` avant / après | 36 / 36 |
 
+## Phase G — Documentation — rédigée, à compléter après F.2
+
+- `README.md`, `docs/{INSTALLATION,USER_GUIDE,SECURITY,TROUBLESHOOTING}.md`, `CHANGELOG.md` (0.1.0), en français.
+- Commandes vérifiées par `--help` avant d'être citées : `plugin install|uninstall -s/--scope`, `marketplace add --scope`, `marketplace remove`, `plugin disable|enable`, `plugin details`.
+- Liens relatifs des docs : vérifiés, aucun cassé.
+
 ## Phases suivantes
-- [ ] D — Agents, skills, gabarits, revue `skill-reviewer`, commit
-- [ ] E — `tests/run-all.sh` au vert, commit
-- [ ] F.1 — Validation sans quota (`flutter create`/`test` jetable, `plugin details`, scénario 4 au niveau du hook)
+- [x] D — Agents, skills, gabarits, revue `skill-reviewer`, commit (`f1f3e2b`)
+- [x] E — `tests/run-all.sh` au vert, commit (`5e3fe7f`)
+- [x] F.1 — Validation sans quota (`flutter create`/`test` jetable, `plugin details`, scénario 4 au niveau du hook)
 - [ ] F.2 — Scénarios headless 1 à 5 : **attend votre accord** (quota), et D8
-- [ ] G — Docs FR, CHANGELOG 0.1.0, commit final
+- [ ] G — Compléter les docs avec les résultats de F.2, puis commit final
