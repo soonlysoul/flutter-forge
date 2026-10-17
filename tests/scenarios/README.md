@@ -1,0 +1,62 @@
+# Behavioural scenarios — v0.1
+
+These scenarios need a Claude Code session and **consume the subscription quota**. They are never
+run by `tests/run-all.sh`. Run them only after the user agreed, with an estimate of the sessions
+and turns, and record each result as passed, failed, blocked (reason) or not run.
+
+| # | Scenario | Sessions | Depends on |
+| --- | --- | --- | --- |
+| 1 | [Bootstrap](01-bootstrap.md) | 3 headless turns | — |
+| 2 | [Feature in TDD](02-feature-tdd.md) | 2–3 turns | the project of scenario 1 |
+| 3 | [Preservation of uncommitted work](03-preservation.md) | 1 turn | the project of scenario 1 |
+| 4 | [Blocking `git reset --hard`](04-blocking.md) | 1 turn | — |
+| 5 | [Recovery after an interruption](05-recovery.md) | 1 turn | the project of scenario 2 |
+
+Scenario 6 of ARCHITECTURE.md (existing repository) belongs to adopt-existing-project, v0.3.
+
+## Common setup
+
+```bash
+PLUGIN=<absolute path of this plugin checkout>
+WORK=$(mktemp -d)            # always outside the plugin directory
+export FORGE_ALLOW_QUOTA=1   # only after the user agreed
+H="$PLUGIN/tests/scenarios/headless.sh"
+```
+
+`headless.sh <workdir> <session-uuid> <new|resume> <transcript.jsonl> <prompt> <allowed tool>...`
+runs one turn with `claude -p --plugin-dir "$PLUGIN" --output-format stream-json --verbose
+--include-hook-events --permission-mode dontAsk`, then prints:
+
+- the `system/init` event's `plugins` and `plugin_errors`: the proof that the plugin is loaded;
+- the `result` event (field names not verified on 2.1.296: an absent field prints `null`).
+
+A multi-turn scenario reuses one session: the first turn uses `new` with a fresh `uuidgen`, the
+next ones `resume` with the same id.
+
+Allowed tools used by the scenarios (`$TOOLS`):
+
+```bash
+TOOLS=(Read Write Edit Glob Grep Skill Agent "Bash(flutter *)" "Bash(dart *)" "Bash(git *)" "Bash(jq *)" "Bash(ls *)" "Bash(mkdir *)" "Bash(touch *)")
+```
+
+`Bash(git *)` deliberately allows every git command at the permission layer, so that scenario 4
+proves the hook blocks on its own.
+
+## Evidence to keep
+
+For every turn: the transcript (`.jsonl`), and after the scenario `git status --short`,
+`git log --oneline`, `.forge/checkpoint.md`. Useful queries:
+
+```bash
+jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | "\(.name) \(.input.command // .input.file_path // .input.skill // .input.subagent_type // "")"' run.jsonl
+jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result" and (.content | tostring | test("dart-multiplatform-forge"))) | .content' run.jsonl
+```
+
+## Points to confirm along the way
+
+- whether a plugin skill can be invoked as `/dart-multiplatform-forge:<skill> <args>` in a `-p`
+  prompt; if not, name the skill in plain words ("Use the bootstrap-project skill to …") and say so
+  in the result;
+- whether `stream-json` really requires `--verbose` in print mode;
+- whether `--max-turns` exists in 2.1.296 (documented online, absent from `claude --help`);
+- whether a command typed by the user with the `!` prefix escapes `PreToolUse` (interactive only).

@@ -1,7 +1,8 @@
 # Shared helpers for the deterministic test suite: bash + jq, no network, no Claude session.
 # Source it from a test file, set SUITE, call the assertions, end with `finish`.
 
-PLUGIN_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# FORGE_PLUGIN_ROOT points a test at a mutated copy of the plugin, to prove it fails there.
+PLUGIN_ROOT=${FORGE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
 SCRIPTS="$PLUGIN_ROOT/hooks/scripts"
 PASS=0 FAIL=0 SKIP=0
 
