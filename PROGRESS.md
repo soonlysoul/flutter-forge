@@ -1,64 +1,52 @@
 # PROGRESS — dart-multiplatform-forge v0.1
 
-Dernière mise à jour : 2026-10-17T18:46+02:00
-Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `docs/PHASE_A_REPORT.md` §7.
+Dernière mise à jour : 2026-10-17T19:20+02:00
+Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
 ## État courant
 
-**Phase A — terminée. En attente de votre approbation (décisions D1 à D9).**
-Aucune phase B à G n'est commencée ; aucun dépôt git n'est initialisé.
+**Phase B — terminée.** Phase C en cours.
 
-## Phase A — Audit et vérification
+Décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7) : le questionnaire a été refusé, puis la consigne « continue » donnée. Les recommandations du §7 sont donc appliquées **par défaut**, et chacune reste révisable :
 
-- [x] A.1 Versions des outils et état des plateformes
-- [x] A.2 Doc officielle : 8 points traités un par un, plus les vérifications côté outils
-- [x] A.3 Rapport `docs/PHASE_A_REPORT.md`
-- [ ] A.4 Approbation utilisateur ← **prochaine action**
+| # | Retenu |
+| --- | --- |
+| D1 | Corrections E1–E19 reportées dans ARCHITECTURE.md (statut REVIEW, pas APPROVED) |
+| D2 | `agent-scope-guard` ajouté à la v0.1 |
+| D3 | checkpoint-reminder fait reprendre Claude une fois (`additionalContext`) |
+| D4 | guard étendu à `git restore` (hors `--staged`), `git stash drop`/`clear` |
+| D5 | Auteur, propriétaire et titulaire MIT : `Allosun` ; marketplace `dart-multiplatform-forge` |
+| D6 | Dépôt initialisé sur place, `~/Documents/claude-plugin/App` (rien déplacé) |
+| D7 | `inherit` pour flutter-architect, `sonnet` pour test-engineer et code-reviewer |
+| D8 | **Non tranché** : ne concerne que la phase F avec quota, qui attend votre accord |
+| D9 | Rédaction directe des agents, puis `skill-reviewer` en fin de phase D |
 
-### Fichiers créés
+## Phase A — Audit et vérification — terminée
 
-- `docs/PHASE_A_REPORT.md`
-- `PROGRESS.md`
+Rapport : `docs/PHASE_A_REPORT.md`. Détail des commandes de la phase A : historique git de ce fichier (commit `70895b6`).
 
-Hors projet : une sonde jetable dans le scratchpad de session (`…/scratchpad/probe/`), plus des copies de la doc dans `…/scratchpad/docs-cc/`, `…/scratchpad/gh-billing/` et `…/scratchpad/flutter-releases/`.
+## Phase B — Squelette — terminée
 
-### Commandes lancées
+- [x] B.1 `git init -b main` ; commit de l'état audité (`70895b6`)
+- [x] B.2 Corrections E1–E19 dans ARCHITECTURE.md, statut → REVIEW (`036a162`)
+- [x] B.3 `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `LICENSE`, `.gitignore`
+- [x] B.4 Validation stricte
+- [x] B.5 Commit `chore: scaffold plugin skeleton`
 
 | Commande | Résultat |
 | --- | --- |
-| `claude --version` | exit 0 — 2.1.296 |
-| `flutter --version` | exit 0 — 3.44.3 stable |
-| `dart --version` | exit 0 — 3.12.2 |
-| `git --version` | exit 0 — 2.50.1 |
-| `gh --version` | exit 0 — 2.72.0 |
-| `jq --version` | exit 0 — 1.7.1 |
-| `gitleaks version` | non exécuté — binaire absent |
-| `claude --help`, `claude plugin <sous-commande> --help` (×11) | exit 0 |
-| `claude plugin list --json`, `claude plugin marketplace list` | sortie obtenue, code non relevé |
-| `curl` doc Claude Code (llms.txt + 28 pages) | HTTP 200 |
-| `flutter doctor -v` | exit 0 — 2 catégories en anomalie (Android, Chrome) |
-| `gh … --help`, `dart format --help`, `dart pub publish --help`, `flutter {test,create} --help` | sorties obtenues, codes non relevés |
-| `flutter pub publish --help` | « No pubspec.yaml file found » (attendu hors projet), code non relevé |
-| `curl` index des versions Flutter, `jq` | HTTP 200, exit 0 — stable courant 3.47.7 |
-| `curl` doc GitHub Actions billing (×3) | HTTP 200 |
-| Sonde : `claude plugin validate <sonde>` | exit 0 |
-| Sonde : `… --strict --json` | exit 0 (`success: true`) |
-| Sonde avec défauts : `claude plugin validate` | exit 0 (avertissements) |
-| Sonde avec défauts : `… --strict` | exit 1 |
-| Sonde, plugin seul / `agents/` / `skills/` | exit 0 / 0 / 0 |
-| `claude --help \| grep -c -- --max-turns` | 0 occurrence |
-| Commande de nettoyage de la sonde (`rm -rf`) | **refusée** par le système de permissions, non relancée |
+| `git init -b main` | exit 0 |
+| `claude plugin validate . --strict` | exit 0 — ne valide **que** `marketplace.json` |
+| `claude plugin validate . --strict --json` | exit 0, `success: true`, `contents: []` |
+| `claude plugin validate .claude-plugin/plugin.json --strict` | exit 0 |
 
-## Prochaine action
+Correction du rapport de phase A, §3.2 : avec la racine `.`, le validateur ne contrôle que la marketplace. `plugin.json` doit être visé explicitement, d'où deux validations dans `run-all.sh`.
 
-1. Vous : répondre aux décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7).
-2. Moi, après accord : phase B, étape 1 — reporter les corrections retenues dans `ARCHITECTURE.md` (statut → REVIEW), puis `git init -b main` et le squelette.
+## Phases suivantes
 
-## Phases suivantes (plan ajusté, détail au §6 du rapport)
-
-- [ ] B — Squelette, manifestes, LICENSE, `claude plugin validate . --strict`, commit
-- [ ] C — Hooks et leurs tests (rouge/vert), commit
-- [ ] D — Agents, skills, gabarits, commit
+- [ ] C — Hooks et leurs tests (rouge puis vert), commit
+- [ ] D — Agents, skills, gabarits, revue `skill-reviewer`, commit
 - [ ] E — `tests/run-all.sh` au vert, commit
-- [ ] F — Validation réelle : d'abord sans quota, puis scénarios headless **après votre accord**
+- [ ] F.1 — Validation sans quota (`flutter create`/`test` jetable, `plugin details`, scénario 4 au niveau du hook)
+- [ ] F.2 — Scénarios headless 1 à 5 : **attend votre accord** (quota), et D8
 - [ ] G — Docs FR, CHANGELOG 0.1.0, commit final

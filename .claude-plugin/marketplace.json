@@ -1,0 +1,14 @@
+{
+  "name": "dart-multiplatform-forge",
+  "description": "Local marketplace for the dart-multiplatform-forge Claude Code plugin.",
+  "owner": {
+    "name": "Allosun"
+  },
+  "plugins": [
+    {
+      "name": "dart-multiplatform-forge",
+      "source": "./",
+      "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery."
+    }
+  ]
+}
