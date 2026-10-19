@@ -6,7 +6,7 @@ Oct 17, 2026 · @Allosun
 
 `dart-multiplatform-forge` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-**Statut du document : REVIEW.** Les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) y sont intégrées, avec les recommandations du §7 retenues par défaut (D1 à D9). Il passe en APPROVED sur validation explicite de l'utilisateur.
+**Statut du document : APPROVED** le 2026-10-19, par l'utilisateur (« clôture la v1 »), à la clôture de la v0.1.0. Les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) y sont intégrées, avec les recommandations du §7 retenues par défaut (D1 à D9). Toute modification le repasse en REVIEW.
 
 Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.296.
 

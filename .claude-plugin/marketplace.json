@@ -2,7 +2,7 @@
   "name": "dart-multiplatform-forge",
   "description": "Local marketplace for the dart-multiplatform-forge Claude Code plugin.",
   "owner": {
-    "name": "Allosun"
+    "name": "Soon"
   },
   "plugins": [
     {
