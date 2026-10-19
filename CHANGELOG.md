@@ -2,6 +2,18 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/) : correctif pour une consigne, mineure pour un skill ou un agent ajouté, majeure pour un changement de format de `.forge/` qui casse la reprise.
 
+## [0.1.1] — 2026-10-19
+
+### Modifié
+
+- Le plugin s'appelle désormais `flutter-forge` (ex-`dart-multiplatform-forge`). Les commandes deviennent `/flutter-forge:<skill>`, les agents `flutter-forge:<agent>`. Le format de `.forge/` ne change pas.
+- Auteur et titulaire de la licence MIT : `Soon`.
+
+### Ajouté
+
+- Publication dans le dépôt public `soonlysoul/flutter-forge` ; `homepage` et `repository` dans `plugin.json`.
+- Installation sur tout appareil depuis la marketplace `soon` (`soonlysoul/claude-plugins`) : `claude plugin install flutter-forge@soon`.
+
 ## [0.1.0] — 2026-10-19
 
 Première version : créer un projet, développer une fonctionnalité en TDD, committer proprement, reprendre après une interruption.

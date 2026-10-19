@@ -17,23 +17,36 @@ Vérifier : `claude --version`, `jq --version`, `git --version`, `flutter --vers
 ## Essayer sans installer
 
 ```bash
-claude --plugin-dir /chemin/vers/dart-multiplatform-forge
+claude --plugin-dir /chemin/vers/flutter-forge
 ```
 
-Le plugin vaut pour cette session seulement et apparaît comme `dart-multiplatform-forge@inline`. Après une modification de ses fichiers : `/reload-plugins`.
+Le plugin vaut pour cette session seulement et apparaît comme `flutter-forge@inline`. Après une modification de ses fichiers : `/reload-plugins`.
 
-## Installer depuis la marketplace locale
+## Installer sur un appareil
 
-Le dossier du plugin est aussi une marketplace, nommée `dart-multiplatform-forge`.
+Le plugin est publié dans le dépôt public [`soonlysoul/flutter-forge`](https://github.com/soonlysoul/flutter-forge) et proposé par la marketplace `soon`, elle-même dans le dépôt public [`soonlysoul/claude-plugins`](https://github.com/soonlysoul/claude-plugins). Aucun compte GitHub n'est nécessaire.
 
 En shell :
 
 ```bash
-claude plugin marketplace add /chemin/vers/dart-multiplatform-forge
-claude plugin install dart-multiplatform-forge@dart-multiplatform-forge --scope user
+claude plugin marketplace add soonlysoul/claude-plugins
+claude plugin install flutter-forge@soon --scope user
 ```
 
-En session : `/plugin marketplace add /chemin/vers/dart-multiplatform-forge`, puis `/plugin install dart-multiplatform-forge@dart-multiplatform-forge`, et confirmer dans le panneau.
+En session : `/plugin marketplace add soonlysoul/claude-plugins`, puis `/plugin install flutter-forge@soon`, et confirmer dans le panneau.
+
+**Appareil sans clé SSH GitHub.** Claude Code essaie d'abord SSH pour un dépôt GitHub. Exportez `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` (par exemple dans le profil du shell) pour passer directement par HTTPS : sans cette variable, l'installation depuis `/plugin` et les mises à jour échouent sur un tel appareil, même si `claude plugin install` en shell réussit.
+
+## Installer depuis la marketplace locale (développement)
+
+Le dossier du plugin est aussi une marketplace, nommée `flutter-forge`. Le plugin y est lu sur place : chaque modification s'applique sans réinstaller.
+
+```bash
+claude plugin marketplace add /chemin/vers/flutter-forge
+claude plugin install flutter-forge@flutter-forge --scope user
+```
+
+N'ajoutez pas les deux marketplaces, `soon` et `flutter-forge`, sur la même machine : le plugin y serait installé deux fois, avec ses hooks en double.
 
 ### Choisir la portée
 
@@ -48,7 +61,7 @@ Les hooks restent inertes hors de leur contexte : `format-dart` ne touche que le
 ## Vérifier l'installation
 
 ```bash
-claude plugin details dart-multiplatform-forge
+claude plugin details flutter-forge
 ```
 
 Attendu : 4 skills, 3 agents, des hooks sur `PreToolUse`, `PostToolUse` et `Stop`, environ 850 jetons ajoutés à chaque session.
@@ -70,15 +83,15 @@ bootstrap-project propose d'installer des règles de permission dans `<projet>/.
 ## Mettre à jour
 
 - **Marketplace locale** : le plugin est lu sur place. Une modification de ses fichiers s'applique à la session suivante, ou tout de suite par `/reload-plugins`. Rien à réinstaller, et `version` n'y change rien.
-- **Marketplace GitHub** (plus tard) : `claude plugin marketplace update dart-multiplatform-forge`, puis `claude plugin update dart-multiplatform-forge@dart-multiplatform-forge`.
+- **Marketplace `soon`** : `claude plugin marketplace update soon`, puis `claude plugin update flutter-forge@soon`. Un appareil ne reçoit une nouvelle copie que si la `version` du plugin a changé. Pour ne plus y penser : `/plugin` → Marketplaces → `soon` → *Enable auto-update*.
 
 ## Désinstaller
 
 ```bash
-claude plugin uninstall dart-multiplatform-forge@dart-multiplatform-forge --scope user
-claude plugin marketplace remove dart-multiplatform-forge     # retire aussi la marketplace et ses plugins
+claude plugin uninstall flutter-forge@soon --scope user
+claude plugin marketplace remove soon     # retire aussi la marketplace et ses plugins
 ```
 
-En session : `/plugin uninstall dart-multiplatform-forge`.
+En session : `/plugin uninstall flutter-forge`.
 
 Les projets générés gardent leurs fichiers (`.forge/`, `.claude/settings.json`, docs) : ils vous appartiennent.

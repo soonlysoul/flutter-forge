@@ -16,7 +16,7 @@ Quand un workflow a besoin de vous, il pose sa question **en texte**, écrit le 
 Lancez Claude Code **dans un dossier vide** destiné au projet : ce dossier sert de racine aux hooks et aux règles de permission (`CLAUDE_PROJECT_DIR`). Si le projet est créé dans un sous-dossier, il faudra ouvrir une nouvelle session dans ce sous-dossier avant `create-feature`.
 
 ```
-/dart-multiplatform-forge:bootstrap-project mon_app
+/flutter-forge:bootstrap-project mon_app
 ```
 
 1. Vérifie `flutter`, `git` et `jq`, et ce que la machine peut compiler.
@@ -34,7 +34,7 @@ Trois états distincts par plateforme : activée (dossier présent), compilée (
 ## Développer une fonctionnalité — `create-feature`
 
 ```
-/dart-multiplatform-forge:create-feature AC-001
+/flutter-forge:create-feature AC-001
 ```
 
 | # | Étape | Ce qui se passe |
@@ -65,7 +65,7 @@ Trois états distincts par plateforme : activée (dossier présent), compilée (
 ## Reprendre — `recover-session`
 
 ```
-/dart-multiplatform-forge:recover-session
+/flutter-forge:recover-session
 ```
 
 Lit le checkpoint, le compare au dépôt (`HEAD`, branche, fichiers modifiés), signale les incohérences, relance seulement le test de la dernière étape, puis présente un résumé de dix lignes au plus et la prochaine étape. Il ne modifie rien avant votre accord.

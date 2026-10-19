@@ -1,11 +1,13 @@
-# PROGRESS — dart-multiplatform-forge v0.1
+# PROGRESS — flutter-forge v0.1
 
-Dernière mise à jour : 2026-10-19T10:45+02:00
+Dernière mise à jour : 2026-10-19
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
 ## État courant
 
 **v0.1.0 clôturée le 2026-10-19** (« clôture la v1 ») : phases A à G faites, rapport final dans `docs/V0.1_REPORT.md`, ARCHITECTURE.md en APPROVED, tag local `v0.1.0`. Suite déterministe verte à la clôture : 502 assertions, 4 validations. Prochaine étape : la v0.2 (github-workflow, debug-project, devops-engineer, secret-scan), qui ne démarre que sur votre demande.
+
+**v0.1.1 publiée le 2026-10-19** : le plugin s'appelle désormais `flutter-forge` (ex-`dart-multiplatform-forge`), auteur `Soon`. Il est publié dans le dépôt public `soonlysoul/flutter-forge` et s'installe sur tout appareil depuis la marketplace `soon` (dépôt public `soonlysoul/claude-plugins`) : `claude plugin install flutter-forge@soon`. Voir D10.
 
 Décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7) : le questionnaire a été refusé, puis la consigne « continue » donnée. Les recommandations du §7 sont donc appliquées **par défaut**, et chacune reste révisable :
 
@@ -15,11 +17,12 @@ Décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7) : le questionnaire a été re
 | D2 | `agent-scope-guard` ajouté à la v0.1 |
 | D3 | checkpoint-reminder fait reprendre Claude une fois (`additionalContext`) |
 | D4 | guard étendu à `git restore` (hors `--staged`), `git stash drop`/`clear` |
-| D5 | Auteur et titulaire MIT : `Allosun` ; propriétaire de la marketplace : `Soon` (votre modification du 2026-10-19) ; marketplace `dart-multiplatform-forge` |
+| D5 | *(remplacée par D10)* Auteur et titulaire MIT : `Allosun` ; propriétaire de la marketplace : `Soon` (votre modification du 2026-10-19) ; marketplace `dart-multiplatform-forge` |
 | D6 | Dépôt initialisé sur place, `~/Documents/claude-plugin/App` (rien déplacé) |
 | D7 | `inherit` pour flutter-architect, `sonnet` pour test-engineer et code-reviewer |
 | D8 | Profil `~/.claude`, celui de cette session : vous avez validé la phase F.2 le 2026-10-19 sans désigner d'autre compte |
 | D9 | Rédaction directe des agents, puis `skill-reviewer` en fin de phase D |
+| D10 | 2026-10-19, à votre demande : nom `flutter-forge` ; auteur et titulaire MIT `Soon` ; dépôts **publics** ; catalogue séparé `soonlysoul/claude-plugins` (marketplace `soon`) qui référence `soonlysoul/flutter-forge` en source `github` ; `version` dans `plugin.json` seulement, augmentée à chaque release. Les rapports datés (`PHASE_A_REPORT`, `V0.1_REPORT`) gardent l'ancien nom. |
 
 ## Phase A — Audit et vérification — terminée
 

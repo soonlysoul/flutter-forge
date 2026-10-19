@@ -1,8 +1,8 @@
-# dart-multiplatform-forge
+# flutter-forge
 
 Plugin Claude Code qui encadre la création et la maintenance d'applications Flutter et Dart : des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-Version **0.1.0**. Claude Code **2.1.295 ou plus** requis.
+Version **0.1.1**. Claude Code **2.1.295 ou plus** requis.
 
 ## Ce que fait la v0.1
 
@@ -26,10 +26,14 @@ Le cycle minimal : créer un projet, développer une fonctionnalité en TDD, com
 
 Prérequis : Claude Code ≥ 2.1.295, `git`, `jq`, Flutter (canal stable).
 
+Sur chaque appareil, depuis la marketplace publique `soon` :
+
 ```bash
-claude plugin marketplace add /chemin/vers/dart-multiplatform-forge
-claude plugin install dart-multiplatform-forge@dart-multiplatform-forge
+claude plugin marketplace add soonlysoul/claude-plugins
+claude plugin install flutter-forge@soon --scope user
 ```
+
+Sans clé SSH GitHub sur l'appareil, exportez d'abord `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` (voir [Installation](docs/INSTALLATION.md#installer-sur-un-appareil)).
 
 Puis créez un dossier vide pour le projet, ouvrez Claude Code **dans ce dossier**, et lancez :
 
@@ -38,12 +42,12 @@ mkdir mon_app && cd mon_app && claude
 ```
 
 ```
-/dart-multiplatform-forge:bootstrap-project mon_app
+/flutter-forge:bootstrap-project mon_app
 ```
 
 Le dossier où la session est lancée sert de racine du projet aux hooks et aux règles de permission.
 
-Pour l'essayer sans l'installer : `claude --plugin-dir /chemin/vers/dart-multiplatform-forge`.
+Pour l'essayer sans l'installer, depuis une copie du dépôt : `claude --plugin-dir /chemin/vers/flutter-forge`.
 
 ## Documentation
 

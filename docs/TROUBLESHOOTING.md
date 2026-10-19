@@ -3,17 +3,17 @@
 Premier réflexe, depuis le dossier du plugin :
 
 ```bash
-claude plugin details dart-multiplatform-forge   # le plugin est-il chargé, avec ses composants ?
+claude plugin details flutter-forge   # le plugin est-il chargé, avec ses composants ?
 bash tests/run-all.sh                            # ses fichiers sont-ils intacts ?
 ```
 
 ## Toutes les commandes shell sont bloquées
 
-**Symptôme** : chaque commande Bash échoue avec `Blocked by dart-multiplatform-forge (guard-destructive): jq is required…`.
+**Symptôme** : chaque commande Bash échoue avec `Blocked by flutter-forge (guard-destructive): jq is required…`.
 
 **Cause** : `jq` est absent du `PATH` de Claude Code. Le guard est fail-closed : sans `jq`, il ne peut pas lire la commande, donc il la refuse.
 
-**Solution** : installer `jq` (sous NixOS, par la configuration système ou Home Manager), puis relancer la session. Pour débloquer en urgence, désactiver le plugin depuis un terminal : `claude plugin disable dart-multiplatform-forge@dart-multiplatform-forge`, puis `claude plugin enable …` une fois `jq` installé.
+**Solution** : installer `jq` (sous NixOS, par la configuration système ou Home Manager), puis relancer la session. Pour débloquer en urgence, désactiver le plugin depuis un terminal : `claude plugin disable flutter-forge@soon` (`@flutter-forge` pour la marketplace locale), puis `claude plugin enable …` une fois `jq` installé.
 
 ## « hook error … failed; blocking because onFailure is "block" »
 
@@ -36,7 +36,7 @@ Claude ne doit jamais reformuler une commande bloquée pour la faire passer. S'i
 
 ## Les agents ne peuvent ni écrire ni lancer `flutter test`
 
-**Symptôme** : `Blocked by dart-multiplatform-forge (agent-scope-guard): test-engineer may only write under: test/, integration_test/` pour un fichier qui est pourtant sous `test/`.
+**Symptôme** : `Blocked by flutter-forge (agent-scope-guard): test-engineer may only write under: test/, integration_test/` pour un fichier qui est pourtant sous `test/`.
 
 **Cause** : la session a été lancée ailleurs qu'à la racine du projet, par exemple dans le dossier parent. Les hooks prennent le dossier de lancement (`CLAUDE_PROJECT_DIR`) comme racine.
 
@@ -59,7 +59,7 @@ Claude ne doit jamais reformuler une commande bloquée pour la faire passer. S'i
 **Solution** : lancer vous-même la commande de copie que le skill affiche, depuis la racine du projet :
 
 ```bash
-mkdir -p .claude && cp /chemin/vers/dart-multiplatform-forge/templates/project-settings.json .claude/settings.json
+mkdir -p .claude && cp <dossier du plugin>/templates/project-settings.json .claude/settings.json
 ```
 
 Tant que ce n'est pas fait, aucune règle du projet ne s'applique, y compris la protection de `.forge/config.yaml`.
