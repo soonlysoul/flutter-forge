@@ -1,9 +1,9 @@
 # <App name> — conventions for Claude
 
-This project uses the flutter-forge plugin.
+This project uses the plugin-flutter plugin.
 
 - Talk to the user in <language>. Code, identifiers and file contents stay in English.
-- Workflows: `/flutter-forge:create-feature` for any feature (TDD), `/flutter-forge:git-workflow` for branches and commits, `/flutter-forge:recover-session` to resume interrupted work.
+- Workflows: `/plugin-flutter:create-feature` for any feature (TDD), `/plugin-flutter:git-workflow` for branches and commits, `/plugin-flutter:recover-session` to resume interrupted work.
 - State lives on disk: `.forge/checkpoint.md`, updated after each completed step, and the Git history. Never rely on what a previous session remembers.
 - `.forge/config.yaml` is edited by the user only.
 - Layout: feature-first under `lib/features/<feature>/{data,domain,presentation}`; tests mirror `lib/` under `test/`.

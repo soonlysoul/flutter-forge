@@ -1,6 +1,6 @@
 ---
 name: git-workflow
-description: Branch, stage, commit and inspect diffs safely in a flutter-forge project — named branches, explicit staging, atomic Conventional Commits, diff summaries, push of a work branch only when preauthorized. Use when the user or another workflow needs a branch, a commit, a diff summary or a push in a project that has a .forge/ directory.
+description: Branch, stage, commit and inspect diffs safely in a plugin-flutter project — named branches, explicit staging, atomic Conventional Commits, diff summaries, push of a work branch only when preauthorized. Use when the user or another workflow needs a branch, a commit, a diff summary or a push in a project that has a .forge/ directory.
 argument-hint: "[branch | commit | diff | push]"
 ---
 

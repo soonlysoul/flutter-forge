@@ -20,7 +20,7 @@ on a new acceptance criterion:
 
 ```bash
 SID=$(uuidgen)
-"$H" "$Q" "$SID" new "$WORK/s5-1.jsonl" "/flutter-forge:recover-session" "${TOOLS[@]}"
+"$H" "$Q" "$SID" new "$WORK/s5-1.jsonl" "/plugin-flutter:recover-session" "${TOOLS[@]}"
 ```
 
 ## Checks

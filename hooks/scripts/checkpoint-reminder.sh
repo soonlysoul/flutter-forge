@@ -38,6 +38,6 @@ else
 fi
 [[ -n $reason ]] || exit 0
 
-message="flutter-forge: .forge/checkpoint.md is out of date: $reason. Update it now with the completed steps (command and exit code), the test results, the next action and any blocker. Then stop; do not start new work."
+message="plugin-flutter: .forge/checkpoint.md is out of date: $reason. Update it now with the completed steps (command and exit code), the test results, the next action and any blocker. Then stop; do not start new work."
 jq -nc --arg m "$message" '{hookSpecificOutput: {hookEventName: "Stop", additionalContext: $m}}'
 exit 0

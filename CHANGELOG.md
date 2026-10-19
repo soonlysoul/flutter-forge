@@ -2,6 +2,14 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/) : correctif pour une consigne, mineure pour un skill ou un agent ajouté, majeure pour un changement de format de `.forge/` qui casse la reprise.
 
+## [0.1.2] — 2026-10-19
+
+### Modifié
+
+- Le plugin s'appelle désormais `plugin-flutter` (ex-`flutter-forge`). Les commandes deviennent `/plugin-flutter:<skill>`, les agents `plugin-flutter:<agent>`. Le format de `.forge/` ne change pas.
+- Le dépôt devient `soonlysoul/plugin-flutter` ; GitHub redirige l'ancienne adresse.
+- Depuis la 0.1.1, sur chaque appareil : `claude plugin marketplace update soon`, `claude plugin uninstall flutter-forge@soon`, puis `claude plugin install plugin-flutter@soon`. Le `CLAUDE.md` d'un projet déjà créé cite encore `/flutter-forge:…` : à corriger à la main.
+
 ## [0.1.1] — 2026-10-19
 
 ### Modifié

@@ -1,6 +1,6 @@
 ---
 name: bootstrap-project
-description: Create a new Flutter app with flutter-forge — validated name, package id and platforms, flutter create, Git, the four base documents in DRAFT, the .forge/ state directory, proposed permission rules and a green base test. Use when the user wants to start a new Flutter application from scratch; not for a project that already exists.
+description: Create a new Flutter app with plugin-flutter — validated name, package id and platforms, flutter create, Git, the four base documents in DRAFT, the .forge/ state directory, proposed permission rules and a green base test. Use when the user wants to start a new Flutter application from scratch; not for a project that already exists.
 argument-hint: "[app-name]"
 ---
 
@@ -98,11 +98,11 @@ Run `flutter pub get`, then `flutter test`: exit code 0 is required. Then `flutt
 
 ## Step 9 — First commit
 
-Through the git-workflow skill: show `git status`, stage the files explicitly, and propose the message `chore: bootstrap <name> with flutter-forge`. The commit asks for confirmation.
+Through the git-workflow skill: show `git status`, stage the files explicitly, and propose the message `chore: bootstrap <name> with plugin-flutter`. The commit asks for confirmation.
 
 ## Step 10 — Report
 
 - Path of the project, platforms enabled, built and tested.
 - Documents and their status.
 - Tests in four categories, each with its command: passed, failed, blocked (reason), not run; "none" for an empty category.
-- Next step: `/flutter-forge:create-feature AC-001`. If the project is in a subdirectory, first start a new Claude Code session in it (`cd <directory> && claude`): the hooks and the permission rules use the session's launch directory as the project root.
+- Next step: `/plugin-flutter:create-feature AC-001`. If the project is in a subdirectory, first start a new Claude Code session in it (`cd <directory> && claude`): the hooks and the permission rules use the session's launch directory as the project root.

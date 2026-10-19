@@ -1,10 +1,10 @@
-# Architecture — Flutter Forge
+# Architecture — plugin-flutter
 
 Oct 17, 2026 · @Soon
 
 ## Vue d'ensemble
 
-`flutter-forge` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
+`plugin-flutter` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
 **Statut du document : APPROVED** le 2026-10-19, par l'utilisateur (« clôture la v1 »), à la clôture de la v0.1.0. Les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) y sont intégrées, avec les recommandations du §7 retenues par défaut (D1 à D9). Toute modification le repasse en REVIEW.
 
@@ -38,7 +38,7 @@ La v0.1 couvre le cycle minimal : créer un projet, développer une fonctionnali
 Les composants sont à la racine du plugin ; seul le manifeste vit dans `.claude-plugin/`. Les éléments marqués (v0.2+) ne sont créés qu'à leur version.
 
 ```
-flutter-forge/
+plugin-flutter/
 ├── .claude-plugin/
 │   ├── plugin.json              # manifeste (nom, version, description, auteur, licence)
 │   └── marketplace.json         # marketplace locale pour installer/mettre à jour
@@ -105,18 +105,18 @@ Pas de `CLAUDE.md` à la racine du plugin : il ne serait pas chargé, et déclen
 
 ## Manifeste et distribution
 
-Le plugin est publié dans le dépôt public `soonlysoul/flutter-forge` et distribué par la marketplace `soon` (dépôt public `soonlysoul/claude-plugins`), qui le référence en source `github`. Le dossier du plugin reste aussi une marketplace locale, `flutter-forge`, pour le développement. Champs vérifiés en phase A (rapport, §3.1).
+Le plugin est publié dans le dépôt public `soonlysoul/plugin-flutter` et distribué par la marketplace `soon` (dépôt public `soonlysoul/claude-plugins`), qui le référence en source `github`. Le dossier du plugin reste aussi une marketplace locale, `plugin-flutter`, pour le développement. Champs vérifiés en phase A (rapport, §3.1).
 
 `.claude-plugin/plugin.json` :
 
 ```json
 {
-  "name": "flutter-forge",
-  "version": "0.1.1",
+  "name": "plugin-flutter",
+  "version": "0.1.2",
   "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery.",
   "author": { "name": "Soon" },
-  "homepage": "https://github.com/soonlysoul/flutter-forge",
-  "repository": "https://github.com/soonlysoul/flutter-forge",
+  "homepage": "https://github.com/soonlysoul/plugin-flutter",
+  "repository": "https://github.com/soonlysoul/plugin-flutter",
   "license": "MIT",
   "keywords": ["flutter", "dart", "tdd", "git"]
 }
@@ -127,7 +127,7 @@ Le plugin est publié dans le dépôt public `soonlysoul/flutter-forge` et distr
 - `homepage` et `repository` pointent vers le dépôt GitHub, qui doit exister : une URL invalide empêche le chargement du plugin.
 - `version` est ignorée pour une marketplace locale, dont le plugin est lu sur place. Depuis la marketplace `soon`, elle décide des mises à jour : un appareil ne reçoit une nouvelle copie que si `version` change. Elle est donc augmentée à chaque release, et ne figure pas dans l'entrée de la marketplace.
 
-`.claude-plugin/marketplace.json` déclare la marketplace locale `flutter-forge` (propriétaire `Soon`), qui contient ce seul plugin. L'entrée s'écrit `"source": "./"`, avec le même `name` que `plugin.json`, sans répéter `version`.
+`.claude-plugin/marketplace.json` déclare la marketplace locale `plugin-flutter` (propriétaire `Soon`), qui contient ce seul plugin. L'entrée s'écrit `"source": "./"`, avec le même `name` que `plugin.json`, sans répéter `version`.
 
 Cycle de vie (vérifié en phase A, rapport §3.2). `/plugin` n'existe qu'en session interactive ; les commandes `claude plugin …` sont leurs équivalents scriptables.
 
@@ -135,12 +135,12 @@ Cycle de vie (vérifié en phase A, rapport §3.2). `/plugin` n'existe qu'en ses
 | --- | --- | --- |
 | Test sans installation | — | `claude --plugin-dir <chemin>` (plugin `@inline`, pour la session seule) |
 | Ajouter la marketplace | `/plugin marketplace add soonlysoul/claude-plugins` (locale : `<chemin>`) | `claude plugin marketplace add soonlysoul/claude-plugins [--scope user\|project\|local]` |
-| Installer | `/plugin install flutter-forge@soon` (locale : `flutter-forge@flutter-forge`) | `claude plugin install flutter-forge@soon [-s user\|project\|local]` |
+| Installer | `/plugin install plugin-flutter@soon` (locale : `plugin-flutter@plugin-flutter`) | `claude plugin install plugin-flutter@soon [-s user\|project\|local]` |
 | Mettre à jour (marketplace locale) | `/reload-plugins` : le plugin est lu sur place, rien à réinstaller | redémarrer la session |
-| Mettre à jour (marketplace `soon`) | `/plugin marketplace update soon` | `claude plugin marketplace update soon`, puis `claude plugin update flutter-forge@soon` |
-| Désinstaller | `/plugin uninstall flutter-forge` | `claude plugin uninstall flutter-forge@soon [-s …]` ; `claude plugin marketplace remove soon` retire aussi la marketplace |
+| Mettre à jour (marketplace `soon`) | `/plugin marketplace update soon` | `claude plugin marketplace update soon`, puis `claude plugin update plugin-flutter@soon` |
+| Désinstaller | `/plugin uninstall plugin-flutter` | `claude plugin uninstall plugin-flutter@soon [-s …]` ; `claude plugin marketplace remove soon` retire aussi la marketplace |
 | Valider | — | `claude plugin validate . --strict` (0 réussi, 1 échec, 2 erreur du validateur) |
-| Inventaire et coût | — | `claude plugin details flutter-forge` |
+| Inventaire et coût | — | `claude plugin details plugin-flutter` |
 
 Versionnage SemVer : patch pour une correction de consigne, minor pour un skill ou agent ajouté, major pour un changement de format de `.forge/` qui casse la reprise.
 
@@ -170,7 +170,7 @@ Ce que le frontmatter peut et ne peut pas exprimer (vérifié en phase A, rappor
 - `permissionMode`, `hooks` et `mcpServers` sont ignorés pour un agent de plugin.
 - Un frontmatter illisible se charge « avec tous les champs ignorés », donc avec tous les outils, sans message. Le test statique du frontmatter est strict pour cette raison.
 
-Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par le hook **agent-scope-guard**, qui reçoit `agent_type` (`flutter-forge:<agent>`).
+Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par le hook **agent-scope-guard**, qui reçoit `agent_type` (`plugin-flutter:<agent>`).
 
 « Git en lecture » désigne `git status`, `git log`, `git diff`, `git show`, `git ls-files`, `git rev-parse` et `git branch --show-current`.
 
@@ -194,7 +194,7 @@ Chaque agent termine par un rapport au format fixe : `STATUS` (done / blocked / 
 
 ## Skills
 
-Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/flutter-forge:<nom>` ou chargé automatiquement quand sa `description` correspond à la demande. La description doit donc dire précisément quand l'utiliser. Chaque skill écrit le checkpoint à chaque étape terminée.
+Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/plugin-flutter:<nom>` ou chargé automatiquement quand sa `description` correspond à la demande. La description doit donc dire précisément quand l'utiliser. Chaque skill écrit le checkpoint à chaque étape terminée.
 
 | Skill | Version | Déclencheur | Points de validation obligatoires | Produit |
 | --- | --- | --- | --- | --- |
@@ -464,7 +464,7 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 
 | Fichier | Vérifie |
 | --- | --- |
-| static/test\_manifest.sh | `plugin.json` et `marketplace.json` sont du JSON valide, champs requis présents, `name` en kebab-case et identique dans les deux, version SemVer, `homepage` et `repository` pointent vers `soonlysoul/flutter-forge`, `source` vaut `./` |
+| static/test\_manifest.sh | `plugin.json` et `marketplace.json` sont du JSON valide, champs requis présents, `name` en kebab-case et identique dans les deux, version SemVer, `homepage` et `repository` pointent vers `soonlysoul/plugin-flutter`, `source` vaut `./` |
 | static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; aucun agent ne liste `Agent` |
 | static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec |
 | static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean ou suppression ; les `deny` attendus sont présents ; aucune règle `Write(…)` |

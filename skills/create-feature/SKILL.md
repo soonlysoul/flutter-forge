@@ -1,6 +1,6 @@
 ---
 name: create-feature
-description: Develop one feature of a flutter-forge Flutter project in strict TDD — repo check, plan, branch, failing tests by the test-engineer, RED then GREEN with recorded output, refactor, format and analyze, independent review, docs, commit. Use when the user asks to implement an acceptance criterion (AC-xxx) or to add or change a feature in a project that has a .forge/ directory; not for other projects.
+description: Develop one feature of a plugin-flutter Flutter project in strict TDD — repo check, plan, branch, failing tests by the test-engineer, RED then GREEN with recorded output, refactor, format and analyze, independent review, docs, commit. Use when the user asks to implement an acceptance criterion (AC-xxx) or to add or change a feature in a project that has a .forge/ directory; not for other projects.
 argument-hint: "[AC-id or feature description]"
 ---
 

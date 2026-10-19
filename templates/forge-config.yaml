@@ -1,4 +1,4 @@
-# flutter-forge project configuration. Edited by the user only.
+# plugin-flutter project configuration. Edited by the user only.
 # A missing key counts as false. Once .claude/settings.json is installed, its deny rule
 # Edit(./.forge/config.yaml) stops Claude from changing this file.
 schema_version: 1

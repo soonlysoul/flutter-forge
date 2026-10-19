@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deterministic test suite of flutter-forge: bash + jq, no network, no Claude session,
+# Deterministic test suite of plugin-flutter: bash + jq, no network, no Claude session,
 # no quota. Usage, from anywhere: bash tests/run-all.sh
 # Exit codes: 0 every suite passed, 1 a suite failed, 2 a prerequisite is missing.
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 2

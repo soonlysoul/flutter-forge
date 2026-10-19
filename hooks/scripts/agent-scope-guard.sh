@@ -6,15 +6,15 @@
 # hooks.json sets "onFailure": "block".
 set -u
 export LC_ALL=C
-PLUGIN=flutter-forge
+PLUGIN=plugin-flutter
 
 _decided=0
-trap '[[ $_decided == 1 ]] || { echo "flutter-forge agent-scope-guard: internal error, tool call blocked (fail-closed)." >&2; exit 2; }' EXIT
+trap '[[ $_decided == 1 ]] || { echo "plugin-flutter agent-scope-guard: internal error, tool call blocked (fail-closed)." >&2; exit 2; }' EXIT
 
 allow() { _decided=1; exit 0; }
 block() {
   _decided=1
-  printf 'Blocked by flutter-forge (agent-scope-guard): %s\n' "$1" >&2
+  printf 'Blocked by plugin-flutter (agent-scope-guard): %s\n' "$1" >&2
   printf 'Use Read, Grep and Glob to inspect files. Do not work around this limit: report what you could not do under OPEN_QUESTIONS.\n' >&2
   exit 2
 }

@@ -12,7 +12,7 @@ cp -a "$P" "$WORK/s3" && Q="$WORK/s3"
 echo "// local change kept by the user" >>"$Q/lib/main.dart"
 before=$(sha256sum "$Q/lib/main.dart")
 SID=$(uuidgen)
-"$H" "$Q" "$SID" new "$WORK/s3-1.jsonl" "/flutter-forge:create-feature AC-001" "${TOOLS[@]}"
+"$H" "$Q" "$SID" new "$WORK/s3-1.jsonl" "/plugin-flutter:create-feature AC-001" "${TOOLS[@]}"
 ```
 
 ## Checks

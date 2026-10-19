@@ -12,7 +12,7 @@ the hooks and the permission rules (`CLAUDE_PROJECT_DIR`):
 ```bash
 P="$WORK/demo_notes" && mkdir "$P"
 SID=$(uuidgen)
-"$H" "$P" "$SID" new "$WORK/s1-1.jsonl" "/flutter-forge:bootstrap-project demo_notes" "${TOOLS[@]}"
+"$H" "$P" "$SID" new "$WORK/s1-1.jsonl" "/plugin-flutter:bootstrap-project demo_notes" "${TOOLS[@]}"
 ```
 
 Expected: prerequisites checked with their commands, then the questions of step 2 (name, org,

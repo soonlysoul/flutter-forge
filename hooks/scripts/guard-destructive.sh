@@ -6,12 +6,12 @@ set -u
 export LC_ALL=C
 
 _decided=0
-trap '[[ $_decided == 1 ]] || { echo "flutter-forge guard-destructive: internal error, command blocked (fail-closed)." >&2; exit 2; }' EXIT
+trap '[[ $_decided == 1 ]] || { echo "plugin-flutter guard-destructive: internal error, command blocked (fail-closed)." >&2; exit 2; }' EXIT
 
 allow() { _decided=1; exit 0; }
 block() {
   _decided=1
-  printf 'Blocked by flutter-forge (guard-destructive): %s\n' "$1" >&2
+  printf 'Blocked by plugin-flutter (guard-destructive): %s\n' "$1" >&2
   printf 'Do not retry or rephrase this command. Explain the risk to the user; if they want it, they can run it themselves.\n' >&2
   exit 2
 }

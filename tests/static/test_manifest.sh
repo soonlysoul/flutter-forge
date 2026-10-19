@@ -19,8 +19,8 @@ if jq -e . "$PLUGIN_JSON" >/dev/null 2>&1; then
   check "description is not empty" '.description | type == "string" and length > 0' "$PLUGIN_JSON"
   check "author.name is not empty" '.author.name | type == "string" and length > 0' "$PLUGIN_JSON"
   check "license is MIT" '.license == "MIT"' "$PLUGIN_JSON"
-  check "homepage is the GitHub repository" '.homepage == "https://github.com/soonlysoul/flutter-forge"' "$PLUGIN_JSON"
-  check "repository is the GitHub repository" '.repository == "https://github.com/soonlysoul/flutter-forge"' "$PLUGIN_JSON"
+  check "homepage is the GitHub repository" '.homepage == "https://github.com/soonlysoul/plugin-flutter"' "$PLUGIN_JSON"
+  check "repository is the GitHub repository" '.repository == "https://github.com/soonlysoul/plugin-flutter"' "$PLUGIN_JSON"
   check "only known fields" '(keys - ["name", "version", "description", "author", "license", "keywords", "homepage", "repository"]) == []' "$PLUGIN_JSON"
 else
   fail "plugin.json is valid JSON" "$PLUGIN_JSON"

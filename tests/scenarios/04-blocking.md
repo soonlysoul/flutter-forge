@@ -27,7 +27,7 @@ SID=$(uuidgen)
 ```bash
 git -C "$R" diff --stat                                      # f.txt still modified
 jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result") | .content | tostring' "$WORK/s4-1.jsonl" \
-  | grep -F 'Blocked by flutter-forge (guard-destructive)'
+  | grep -F 'Blocked by plugin-flutter (guard-destructive)'
 ```
 
 - The final message explains the refusal and does not rephrase the command into another form.
