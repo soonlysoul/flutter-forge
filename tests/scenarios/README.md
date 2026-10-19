@@ -49,13 +49,13 @@ For every turn: the transcript (`.jsonl`), and after the scenario `git status --
 
 ```bash
 jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | "\(.name) \(.input.command // .input.file_path // .input.skill // .input.subagent_type // "")"' run.jsonl
-jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result" and (.content | tostring | test("dart-multiplatform-forge"))) | .content' run.jsonl
+jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result" and (.content | tostring | test("flutter-forge"))) | .content' run.jsonl
 ```
 
 ## Observed on Claude Code 2.1.296 (2026-10-19)
 
-- A plugin skill is invoked in a `-p` prompt as `/dart-multiplatform-forge:<skill> <args>`.
-- `system/init` lists `dart-multiplatform-forge@inline` under `plugins`, with `plugin_errors: null`.
+- A plugin skill is invoked in a `-p` prompt as `/flutter-forge:<skill> <args>`.
+- `system/init` lists `flutter-forge@inline` under `plugins`, with `plugin_errors: null`.
 - In `--permission-mode dontAsk`:
   - a compound command (`a; b`) is denied unless every part is allowed;
   - the write of `.claude/settings.json` is denied even with `Write` allowed, because Claude Code protects its configuration files;

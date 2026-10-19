@@ -10,7 +10,7 @@ denied, make it yourself first: `git -C "$P" add -A && git -C "$P" commit -m "ch
 
 ```bash
 SID=$(uuidgen)
-"$H" "$P" "$SID" new "$WORK/s2-1.jsonl" "/dart-multiplatform-forge:create-feature AC-001" "${TOOLS[@]}"
+"$H" "$P" "$SID" new "$WORK/s2-1.jsonl" "/flutter-forge:create-feature AC-001" "${TOOLS[@]}"
 ```
 
 Scenario 1 left the PRD and the TRD in DRAFT, so the turn must stop at step 2 and ask for their
@@ -30,8 +30,8 @@ sed -n '/## Steps/,/## Next action/p' "$P/.forge/checkpoint.md"
 
 - The checkpoint shows step 7 with `flutter test <files>`, a failure summary and a non-zero exit
   code, then step 9 with the same command and exit 0.
-- The transcript shows an `Agent` call to `dart-multiplatform-forge:test-engineer` before step 7,
-  and one to `dart-multiplatform-forge:code-reviewer` at step 13, given `git diff --cached <base>`
+- The transcript shows an `Agent` call to `flutter-forge:test-engineer` before step 7,
+  and one to `flutter-forge:code-reviewer` at step 13, given `git diff --cached <base>`
   (nothing is committed before step 15).
 - Every test file written by the test-engineer is under `test/` or `integration_test/`.
 - `git -C "$P" status --short` lists the prepared changes, or `git log` shows the commit: the report

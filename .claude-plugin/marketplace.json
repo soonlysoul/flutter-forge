@@ -1,12 +1,12 @@
 {
-  "name": "dart-multiplatform-forge",
-  "description": "Local marketplace for the dart-multiplatform-forge Claude Code plugin.",
+  "name": "flutter-forge",
+  "description": "Local marketplace for the flutter-forge Claude Code plugin.",
   "owner": {
     "name": "Soon"
   },
   "plugins": [
     {
-      "name": "dart-multiplatform-forge",
+      "name": "flutter-forge",
       "source": "./",
       "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery."
     }

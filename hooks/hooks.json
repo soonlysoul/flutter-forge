@@ -1,5 +1,5 @@
 {
-  "description": "dart-multiplatform-forge guardrails: destructive-command guard, per-agent scope guard, Dart auto-format, checkpoint reminder.",
+  "description": "flutter-forge guardrails: destructive-command guard, per-agent scope guard, Dart auto-format, checkpoint reminder.",
   "hooks": {
     "PreToolUse": [
       {

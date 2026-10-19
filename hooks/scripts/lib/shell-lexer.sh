@@ -1,4 +1,4 @@
-# shell-lexer.sh — minimal shell lexer shared by the dart-multiplatform-forge guard hooks.
+# shell-lexer.sh — minimal shell lexer shared by the flutter-forge guard hooks.
 # Sourced, never executed. It does not run anything.
 #
 # It is not a shell parser: it splits a command line into simple commands well enough to

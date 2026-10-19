@@ -4,7 +4,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 SUITE=test_agent_scope_guard
 SCOPE="$SCRIPTS/agent-scope-guard.sh"
-P=dart-multiplatform-forge
+P=flutter-forge
 
 # agent_input <agent_type or ""> <tool> <tool_input JSON> [cwd]
 agent_input() {
@@ -105,7 +105,7 @@ check block "cwd is not used when CLAUDE_PROJECT_DIR is set" \
   "$(agent_input "$T" Write '{"file_path": "/work/proj/sub/test/a_test.dart"}' /work/proj/sub)" CLAUDE_PROJECT_DIR=/other/root
 
 echo "# errors"
-check block "malformed JSON from a plugin agent" '{"agent_type": "dart-multiplatform-forge:test-engineer", "tool_name": '
+check block "malformed JSON from a plugin agent" '{"agent_type": "flutter-forge:test-engineer", "tool_name": '
 check allow "malformed JSON without the plugin prefix" '{"tool_name": '
 nojq=$(restricted_path)
 check block "missing jq for a plugin agent" "$(write_input "$T" /work/proj/test/a_test.dart)" PATH="$nojq"

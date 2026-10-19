@@ -1,6 +1,6 @@
 ---
 name: recover-session
-description: Resume interrupted work in a dart-multiplatform-forge project from what is on disk — .forge/checkpoint.md, the Git history and the repository state — without changing anything before the user agrees. Use when the user asks to resume, continue or see where the work stopped, after a usage limit, a crash or an interruption, in a project that has .forge/checkpoint.md.
+description: Resume interrupted work in a flutter-forge project from what is on disk — .forge/checkpoint.md, the Git history and the repository state — without changing anything before the user agrees. Use when the user asks to resume, continue or see where the work stopped, after a usage limit, a crash or an interruption, in a project that has .forge/checkpoint.md.
 ---
 
 # Recover a session
