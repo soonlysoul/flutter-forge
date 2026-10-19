@@ -50,6 +50,20 @@ Claude ne doit jamais reformuler une commande bloquée pour la faire passer. S'i
 
 **Solution** : ouvrir une session interactive dans le dossier et accepter la question de confiance. En mode `-p`, passer les outils par `--allowedTools`.
 
+## `.claude/settings.json` n'est pas installé
+
+**Symptôme** : bootstrap-project signale que l'écriture de `.claude/settings.json` a été refusée.
+
+**Cause** : Claude Code protège ses fichiers de configuration. En mode non interactif, ou sans votre confirmation, il refuse de les écrire, même quand l'outil `Write` est autorisé. C'est voulu : un dépôt ne doit pas pouvoir s'accorder des permissions tout seul.
+
+**Solution** : lancer vous-même la commande de copie que le skill affiche, depuis la racine du projet :
+
+```bash
+mkdir -p .claude && cp /chemin/vers/dart-multiplatform-forge/templates/project-settings.json .claude/settings.json
+```
+
+Tant que ce n'est pas fait, aucune règle du projet ne s'applique, y compris la protection de `.forge/config.yaml`.
+
 ## Un commit est refusé en mode `-p`
 
 **Cause** : la règle `ask` sur `git commit` du gabarit demande une confirmation, et personne ne peut répondre en mode non interactif.

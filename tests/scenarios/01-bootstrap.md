@@ -30,7 +30,11 @@ the two questions of step 7.
 "$H" "$P" "$SID" resume "$WORK/s1-3.jsonl" "Keep the PRD and the TRD in DRAFT for now. Yes, install the permission rules." "${TOOLS[@]}"
 ```
 
-Expected: `.claude/settings.json` written, `flutter test` and `flutter analyze` run, commit proposed.
+Expected: `flutter test` and `flutter analyze` run, commit proposed. Observed on 2.1.296: in
+`-p --permission-mode dontAsk`, Claude Code denies the write of `.claude/settings.json` even with
+`Write` allowed (it protects its configuration files); the skill must not work around it and must
+give the copy command instead. Copy the template yourself before scenario 2:
+`mkdir -p "$P/.claude" && cp "$PLUGIN/templates/project-settings.json" "$P/.claude/settings.json"`.
 Whether the session applies a `.claude/settings.json` written during the session is not verified:
 the commit is denied if the project's `ask` rule on `git commit` applies (nobody can answer it in
 `-p`), and made otherwise, since `Bash(git *)` is allowed. Either way, the report must match

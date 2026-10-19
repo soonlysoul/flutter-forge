@@ -61,10 +61,11 @@ bash tests/run-all.sh
 
 ## La première ouverture d'un projet généré
 
-bootstrap-project propose d'installer des règles de permission dans `<projet>/.claude/settings.json`. Deux points à connaître :
+bootstrap-project propose d'installer des règles de permission dans `<projet>/.claude/settings.json`. Trois points à connaître :
 
 - les règles `allow` du projet ne s'appliquent **qu'après acceptation de la confiance du workspace**, à la première session interactive ouverte dans ce dossier ; `deny` et `ask` s'appliquent toujours ;
-- ouvrez la session **à la racine du projet** : c'est elle qui fixe `CLAUDE_PROJECT_DIR`, que les hooks utilisent comme racine.
+- ouvrez la session **à la racine du projet** : c'est elle qui fixe `CLAUDE_PROJECT_DIR`, que les hooks utilisent comme racine ;
+- en mode non interactif (`claude -p`), Claude Code refuse l'écriture de `.claude/settings.json`, qu'il protège. bootstrap-project donne alors la commande de copie à lancer vous-même : `! mkdir -p .claude && cp <plugin>/templates/project-settings.json .claude/settings.json`.
 
 ## Mettre à jour
 

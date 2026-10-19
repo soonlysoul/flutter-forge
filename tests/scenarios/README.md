@@ -52,11 +52,13 @@ jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "too
 jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result" and (.content | tostring | test("dart-multiplatform-forge"))) | .content' run.jsonl
 ```
 
-## Points to confirm along the way
+## Observed on Claude Code 2.1.296 (2026-10-19)
 
-- whether a plugin skill can be invoked as `/dart-multiplatform-forge:<skill> <args>` in a `-p`
-  prompt; if not, name the skill in plain words ("Use the bootstrap-project skill to …") and say so
-  in the result;
-- whether `stream-json` really requires `--verbose` in print mode;
-- whether `--max-turns` exists in 2.1.296 (documented online, absent from `claude --help`);
-- whether a command typed by the user with the `!` prefix escapes `PreToolUse` (interactive only).
+- A plugin skill is invoked in a `-p` prompt as `/dart-multiplatform-forge:<skill> <args>`.
+- `system/init` lists `dart-multiplatform-forge@inline` under `plugins`, with `plugin_errors: null`.
+- In `--permission-mode dontAsk`:
+  - a compound command (`a; b`) is denied unless every part is allowed;
+  - the write of `.claude/settings.json` is denied even with `Write` allowed, because Claude Code protects its configuration files;
+  - the project's `ask` rule on `git commit` becomes a denial.
+- In a folder that was never trusted, stderr says `Ignoring N permissions.allow entries from .claude/settings.json: this workspace has not been trusted`.
+- Still not verified: whether `stream-json` requires `--verbose` (always passed); `--max-turns` (never used); the `!` prefix against `PreToolUse` (interactive only).

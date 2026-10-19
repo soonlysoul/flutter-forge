@@ -52,6 +52,7 @@ Pour l'essayer sans l'installer : `claude --plugin-dir /chemin/vers/dart-multipl
 - [Sécurité : les trois couches et leurs limites](docs/SECURITY.md)
 - [Dépannage](docs/TROUBLESHOOTING.md)
 - [Journal des versions](CHANGELOG.md)
+- [Rapport de validation de la v0.1](docs/V0.1_REPORT.md)
 - [Architecture](ARCHITECTURE.md), pour qui veut faire évoluer le plugin
 
 ## Tests du plugin

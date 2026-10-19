@@ -20,6 +20,10 @@ Première version : créer un projet, développer une fonctionnalité en TDD, co
 - Tests déterministes `tests/run-all.sh`, sans réseau ni quota : 9 suites et `claude plugin validate --strict` sur le manifeste, la marketplace, les agents et les skills.
 - Scénarios comportementaux 1 à 5 dans `tests/scenarios/`, exécutés à la main avec le quota.
 
+### Validé
+
+- Scénarios 1 à 5 exécutés le 2026-10-19 en sessions réelles (Claude Code 2.1.296, Flutter 3.44.3, Linux) : tous réussis, le scénario 1 avec une réserve (`.claude/settings.json` copié à la main en mode `-p`).
+
 ### Exigences
 
 - Claude Code 2.1.295 ou plus (`onFailure` des hooks), `jq`, `git`, Flutter stable.

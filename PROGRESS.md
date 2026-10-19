@@ -1,11 +1,11 @@
 # PROGRESS — dart-multiplatform-forge v0.1
 
-Dernière mise à jour : 2026-10-18T01:40+02:00
+Dernière mise à jour : 2026-10-19T11:45+02:00
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
 ## État courant
 
-**Phases B à E et F.1 — terminées.** Phase G (docs) en cours ; F.2 attend votre accord.
+**v0.1.0 terminée** : phases A à G faites, rapport final dans `docs/V0.1_REPORT.md`. Reste à votre main : passer ARCHITECTURE.md en APPROVED si vous l'acceptez.
 
 Décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7) : le questionnaire a été refusé, puis la consigne « continue » donnée. Les recommandations du §7 sont donc appliquées **par défaut**, et chacune reste révisable :
 
@@ -18,7 +18,7 @@ Décisions D1 à D9 (`docs/PHASE_A_REPORT.md` §7) : le questionnaire a été re
 | D5 | Auteur, propriétaire et titulaire MIT : `Allosun` ; marketplace `dart-multiplatform-forge` |
 | D6 | Dépôt initialisé sur place, `~/Documents/claude-plugin/App` (rien déplacé) |
 | D7 | `inherit` pour flutter-architect, `sonnet` pour test-engineer et code-reviewer |
-| D8 | **Non tranché** : ne concerne que la phase F avec quota, qui attend votre accord |
+| D8 | Profil `~/.claude`, celui de cette session : vous avez validé la phase F.2 le 2026-10-19 sans désigner d'autre compte |
 | D9 | Rédaction directe des agents, puis `skill-reviewer` en fin de phase D |
 
 ## Phase A — Audit et vérification — terminée
@@ -142,7 +142,7 @@ Revue `plugin-dev:skill-reviewer` (une passe, lecture seule) : 2 constats bloqua
 
 | Commande | Résultat |
 | --- | --- |
-| `bash tests/run-all.sh` | exit 0 — 13 réussis (9 suites, 500 assertions, 4 validations), 0 échoué, 0 bloqué |
+| `bash tests/run-all.sh` | exit 0 — 13 réussis (9 suites, 500 assertions, 4 validations), 0 échoué, 0 bloqué ; après F.2 : 502 assertions |
 
 ## Phase F.1 — Validation sans quota — faite
 
@@ -155,7 +155,28 @@ Revue `plugin-dev:skill-reviewer` (une passe, lecture seule) : 2 constats bloqua
 | `claude --plugin-dir . plugin details dart-multiplatform-forge` | exit 0 — `@inline`, 4 skills, 3 agents, hooks sur 3 événements ; ~848 jetons permanents |
 | Projets de `~/.claude.json` avant / après | 36 / 36 |
 
-## Phase G — Documentation — rédigée, à compléter après F.2
+## Phase F.2 — Scénarios réels — terminée (accord donné le 2026-10-19)
+
+Profil `~/.claude`, celui de cette session (D8 : aucun autre compte désigné). Avant de commencer, copie de `~/.claude.json` dans le scratchpad. Scénarios lancés un par un. Résultat : 36 projets avant comme après, aucun perdu.
+
+| Scénario | Tours | Résultat | Coût estimé (API) |
+| --- | --- | --- | --- |
+| 4 Blocage | 1 | **réussi** : un seul appel `git reset --hard`, refusé par guard-destructive (exit 2) avec sa raison ; aucune reformulation ; fichier intact | 0,25 $ |
+| 1 Bootstrap | 3 | **réussi avec réserve** : arrêts aux étapes 2 et 7 ; création dans le dossier courant ; `.forge/`, 4 docs en DRAFT, 6 autorisations à `false` ; `flutter test` exit 0 (revérifié). Réserve : `.claude/settings.json` refusé par Claude Code en `-p`, non contourné, copié à la main | 3,27 $ |
+| 2 Feature TDD | 2 | **réussi** : arrêt à l'étape 2 (DRAFT) ; puis étapes 3 à 14. Tests écrits par le test-engineer, sous `test/` seulement ; ROUGE exit 1 puis VERT exit 0 consignés ; revue de `git diff --cached main` ; commit refusé (règle `ask`), puis fait à la main | 3,54 $ |
+| 3 Préservation | 1 | **réussi** : arrêt à l'étape 1 avec 3 options ; `lib/main.dart` identique (sha256), aucun stash | 0,52 $ |
+| 5 Reprise | 1 | **réussi** : un seul `flutter test` ciblé (ROUGE confirmé) ; aucun agent, aucune écriture ; étape 8 proposée ; 3 vraies incohérences du jeu d'essai relevées | 0,44 $ |
+
+Total : environ 8,02 $ en équivalent API, sur le quota de l'abonnement.
+
+Défauts trouvés et corrigés pendant F.2 :
+
+- **checkpoint-reminder** se déclenchait à tort sur le dossier `.forge/` non suivi (`0da9906`, TDD : 2 tests ROUGE puis VERT) ;
+- **bootstrap-project** donne désormais la commande de copie de `.claude/settings.json` quand l'écriture est refusée.
+
+Constats sur la 2.1.296 : voir `tests/scenarios/README.md`, section « Observed ».
+
+## Phase G — Documentation et rapport — terminée
 
 - `README.md`, `docs/{INSTALLATION,USER_GUIDE,SECURITY,TROUBLESHOOTING}.md`, `CHANGELOG.md` (0.1.0), en français.
 - Commandes vérifiées par `--help` avant d'être citées : `plugin install|uninstall -s/--scope`, `marketplace add --scope`, `marketplace remove`, `plugin disable|enable`, `plugin details`.
@@ -165,5 +186,5 @@ Revue `plugin-dev:skill-reviewer` (une passe, lecture seule) : 2 constats bloqua
 - [x] D — Agents, skills, gabarits, revue `skill-reviewer`, commit (`f1f3e2b`)
 - [x] E — `tests/run-all.sh` au vert, commit (`5e3fe7f`)
 - [x] F.1 — Validation sans quota (`flutter create`/`test` jetable, `plugin details`, scénario 4 au niveau du hook)
-- [ ] F.2 — Scénarios headless 1 à 5 : **attend votre accord** (quota), et D8
-- [ ] G — Compléter les docs avec les résultats de F.2, puis commit final
+- [x] F.2 — Scénarios headless 1 à 5 : tous réussis (1 avec réserve)
+- [x] G — Docs complétées avec F.2, rapport `docs/V0.1_REPORT.md`, commit final

@@ -90,7 +90,7 @@ Ask both questions, then stop:
 1. Do you approve the PRD and the TRD as they are, or what should change? No application code is written before this approval.
 2. May I install the proposed permission rules in `.claude/settings.json`? Summarize `${CLAUDE_PLUGIN_ROOT}/templates/project-settings.json`: what runs without asking, what asks first, what is denied. Explain that the `allow` rules apply only after the user accepts the workspace trust prompt, while `deny` and `ask` always apply.
 
-On approval of a document, set its status to APPROVED with the date. On approval of the rules, copy the template to `.claude/settings.json`; if that file exists, show the merge and wait for agreement before writing.
+On approval of a document, set its status to APPROVED with the date. On approval of the rules, copy the template to `.claude/settings.json`; if that file exists, show the merge and wait for agreement before writing. Claude Code protects its own configuration files: in a non-interactive run the write is denied. Do not work around it; give the user the exact command to run themselves, `! mkdir -p .claude && cp ${CLAUDE_PLUGIN_ROOT}/templates/project-settings.json .claude/settings.json`, and say that no project rule applies until then.
 
 ## Step 8 — Base test, green
 
