@@ -68,6 +68,25 @@ run_hook "$REMIND" "$(stop_input "$repo")"
 expect_reminder "checkpoint older than an untracked file" "lib/note.dart"
 
 repo=$(make_repo)
+mkdir -p "$repo/lib/notes"
+echo "class Note {}" >"$repo/lib/notes/note.dart"
+touch -t 202601200000 "$repo/lib/notes/note.dart"
+touch -t 202601120000 "$repo/lib/notes"
+run_hook "$REMIND" "$(stop_input "$repo")"
+expect_reminder "newer file inside a new untracked directory whose own date is older" "lib/notes/note.dart"
+
+# Found in a real session: before the first commit, git reports the untracked .forge/ directory,
+# and an edit through rename leaves the directory newer than the checkpoint it holds.
+early=$(mktemp -d "$work/early.XXXXXX")
+git -C "$early" init -q
+mkdir -p "$early/.forge"
+echo "# Checkpoint" >"$early/.forge/checkpoint.md"
+touch -t 202601150000 "$early/.forge/checkpoint.md"
+touch -t 202601150100 "$early/.forge"
+run_hook "$REMIND" "$(stop_input "$early")"
+expect_silent_allow "untracked .forge/ newer than its checkpoint before the first commit: silent"
+
+repo=$(make_repo)
 echo "// changed" >>"$repo/lib/main.dart"
 touch -t 202601120000 "$repo/lib/main.dart"
 run_hook "$REMIND" "$(stop_input "$repo")"

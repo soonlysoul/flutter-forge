@@ -28,11 +28,13 @@ else
     # A rename or copy is followed by its original path.
     if [[ $status == R* || $status == C* ]]; then IFS= read -r -d '' _; fi
     [[ $path != .forge/checkpoint.md ]] || continue
-    if [[ -e $root/$path && $root/$path -nt $checkpoint ]]; then
+    # Files only: a directory's date moves when an entry inside it is renamed (as editors save),
+    # so an untracked .forge/ would always look newer than the checkpoint it holds.
+    if [[ -f $root/$path && $root/$path -nt $checkpoint ]]; then
       reason="uncommitted changes are newer than it (for example $path)"
       break
     fi
-  done < <(git -C "$root" status --porcelain -z 2>/dev/null)
+  done < <(git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null)
 fi
 [[ -n $reason ]] || exit 0
 
