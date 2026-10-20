@@ -81,4 +81,11 @@ else
   fail "skills/debug-project/SKILL.md exists"
 fi
 
+echo "# devops-engineer build"
+# Scenario 11 (v0.3): doctor showed `[✗] Android toolchain`, the agent built android anyway and
+# reported it failed. The step that runs builds must itself leave out a platform doctor rules out.
+DEVOPS="$PLUGIN_ROOT/agents/devops-engineer.md"
+says "$DEVOPS" "builds only the platforms doctor does not rule out" "whose toolchain \`flutter doctor -v\` does not mark \`[✗]\`"
+says "$DEVOPS" "a platform doctor rules out is blocked, its build not run" "is **blocked**, with that line as the reason: do not run its build"
+
 finish
