@@ -1,9 +1,55 @@
-# PROGRESS — plugin-flutter v0.1
+# PROGRESS — plugin-flutter
 
-Dernière mise à jour : 2026-10-19
+Dernière mise à jour : 2026-10-20
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
-## État courant
+## v0.2 — en cours (branche locale `feat/v0.2`)
+
+Démarrée le 2026-10-20 sur « continue V2 ». Périmètre fixé par ARCHITECTURE.md (feuille de route) : skills github-workflow et debug-project, agent devops-engineer, hooks secret-scan et protect-sensitive, gabarit CI Flutter. Critère de sortie : une PR ouverte sur un dépôt de test, avec une CI verte.
+
+Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** et restent révisables. Seules les actions qui sortent de la machine ou consomment du quota attendent votre accord : création du dépôt de test GitHub (phase F.2), scénarios headless (F.2), publication de la 0.2.0 (G).
+
+| # | Retenu par défaut |
+| --- | --- |
+| D12 | Travail sur la branche locale `feat/v0.2`, un commit local par phase ; rien n'est poussé avant la publication |
+| D13 | secret-scan lit toujours l'index (`git diff --cached`, valable avant le premier commit). Il lit aussi les modifications non indexées et les fichiers non suivis quand le commit peut les inclure : `-a`/`--all`, `-i`, `-o`, chemins nommés, ou commande d'indexation dans la même ligne (`git add x && git commit`). Le diff est lu fichier par fichier, car git ajoute une tabulation après un chemin qui contient une espace |
+| D14 | Détection : noms de fichiers (`.env`, `.env.*` sauf `.example`/`.sample`/`.template`, `*.jks`, `*.keystore`, `key.properties`) et motifs sur les **lignes ajoutées** seulement : `-----BEGIN … PRIVATE KEY` (un certificat public passe), clés AWS, `gh[pousr]_…` et `github_pat_…`, `sk-` précédé d'une frontière et suivi d'au moins 20 caractères (`task-…` passe), `AIza…`. Le secret n'est jamais affiché. gitleaks, s'il est installé, s'ajoute aux motifs (`gitleaks git --pre-commit --staged`, forme 8.19+ ; `protect` est dépréciée) sans les remplacer : il ne regarde pas les noms de fichiers. Le plugin ne l'installe pas. Un faux positif se lève par l'utilisateur (`! git commit …`) |
+| D15 | protect-sensitive répond `ask` (JSON, exit 0), pas exit 2 : l'utilisateur confirme dans l'invite ; en `-p`, l'appel est refusé et Claude lit la raison (doc vérifiée). Inerte hors d'un projet ayant `.forge/`, sauf pour un `.forge/config.yaml`, protégé partout. Liste : celle d'ARCHITECTURE.md, plus `*.jks` et `macos/Runner/*.entitlements` |
+| D16 | devops-engineer : `sonnet` ; écriture sous `.github/` seulement ; Bash en lecture : `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status`, `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, git en lecture et `git remote -v`. Il ne pousse pas, n'ouvre pas de PR, ne relance pas de CI : ces actions restent dans la session principale, derrière un point de validation |
+| D17 | Le fichier CI est écrit par la session principale depuis le gabarit (copie courte, protect-sensitive demande confirmation). devops-engineer sert aux builds par plateforme et au diagnostic d'une CI rouge, dont les journaux sont longs. Actions épinglées par SHA : `actions/checkout` v7.0.1, `subosito/flutter-action` v2.23.0 ; `flutter-version` fixée à la version locale |
+| D18 | `project-settings.json` : `allow` pour les `gh` en lecture (`auth status`, `pr view`, `pr checks`, `run list`, `run view`) ; `ask` pour `gh repo create`, `gh pr edit`, `gh issue create`, `gh run rerun`, `gh workflow run` |
+| D19 | debug-project écrit lui-même le test de non-régression (le contexte du bug est dans la session) ; le code-reviewer relit le correctif |
+| D20 | Pas de champ `if` dans `hooks.json` : `Bash(git commit *)` ne voit pas `git -C x commit`, et le script écarte une commande sans `commit` avant même de lancer `jq` |
+| D21 | Version 0.2.0 (mineure : skills et agent ajoutés, format de `.forge/` inchangé) |
+
+### Phases v0.2
+
+- [x] A — Vérifications (2026-10-20), détail ci-dessous
+- [ ] B — Refactor : préfixes de commande partagés par les gardes (`shell-lexer.sh`), à tests verts
+- [ ] C — Hooks secret-scan et protect-sensitive, en TDD
+- [ ] D — Agent devops-engineer et son périmètre ; skills github-workflow et debug-project ; gabarits CI et corps de PR ; règles de permission
+- [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff
+- [ ] F.1 — Validation sans quota (gitleaks réel par `nix shell`, `plugin details`, CI rejouée localement)
+- [ ] F.2 — Dépôt de test GitHub, PR et CI verte ; scénarios headless — **sur votre accord**
+- [ ] G — Docs, CHANGELOG 0.2.0, ARCHITECTURE.md APPROVED, rapport ; publication **sur votre accord**
+
+### Phase A v0.2 — Vérifications
+
+| Point | Résultat | Source |
+| --- | --- | --- |
+| Suite déterministe avant tout changement | exit 0 — 13 réussis (9 suites, 4 validations), 0 échoué | `bash tests/run-all.sh` |
+| Outils | Claude Code 2.1.296, gh 2.101.0 (compte `soonlysoul`, scopes `repo`, `workflow`), Flutter 3.44.3, jq 1.8.2, bash 5.2.37 ; gitleaks absent | `--version`, `gh auth status` |
+| `permissionDecision: "ask"` d'un PreToolUse | invite l'utilisateur, étiquetée `[plugin:<nom>]`, y compris en mode auto ; en `-p`, refus et raison transmise à Claude ; précédence `deny` > `defer` > `ask` > `allow` ; un exit 2 l'emporte sur tout JSON | doc Hooks, « PreToolUse decision control » |
+| Sous-agent en arrière-plan | ses invites de permission remontent dans la session principale | doc Subagents |
+| Champ `if` des hooks | une seule règle de permission ; chaque sous-commande est testée | doc Hooks |
+| gitleaks | 8.30.1 dans nixpkgs ; sous-commandes `git`, `dir`, `stdin` ; `git --pre-commit --staged` ; `--redact`, `--exit-code`, `--report-format json --report-path -` | `nix shell nixpkgs#gitleaks -c gitleaks …` (non installé) |
+| Actions GitHub | `actions/checkout` v7.0.1 = `3d3c42e5aac5ba805825da76410c181273ba90b1` ; `subosito/flutter-action` v2.23.0 = `1a449444c387b1966244ae4d4f8c696479add0b2` ; entrées `channel`, `flutter-version`, `cache` | `gh api repos/…/releases/latest`, `…/git/ref/tags/…` |
+| `gh` | `pr create --base --head --title --body-file -` ; sans `--head`, `pr create` veut pousser la branche ; `pr checks` sort en 8 si des checks sont en attente ; `run view --log-failed` ; `repo create --private\|--public --source --remote` | `gh … --help` |
+| git avant le premier commit | `git diff --cached` exit 0 ; `git diff HEAD` exit 128 | sonde dans le scratchpad |
+
+Incident : le garde-fou du plugin installé ici (`flutter-forge` 0.1.1, ancien nom) a bloqué un `rm -rf` sur le dossier de sonde. Non contourné : un dossier neuf (`mktemp -d`) a suffi.
+
+## v0.1 — État à la clôture
 
 **v0.1.0 clôturée le 2026-10-19** (« clôture la v1 ») : phases A à G faites, rapport final dans `docs/V0.1_REPORT.md`, ARCHITECTURE.md en APPROVED, tag local `v0.1.0`. Suite déterministe verte à la clôture : 502 assertions, 4 validations. Prochaine étape : la v0.2 (github-workflow, debug-project, devops-engineer, secret-scan), qui ne démarre que sur votre demande.
 
