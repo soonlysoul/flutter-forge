@@ -42,7 +42,9 @@ EOF
 cp "$PLUGIN/templates/forge-config.yaml" .forge/config.yaml && sed -i 's/\[android, web, linux\]/[linux]/' .forge/config.yaml
 cp "$PLUGIN/templates/checkpoint.md" .forge/checkpoint.md
 cp "$PLUGIN/skills/bootstrap-project/reference/doc-templates/DECISIONS.md" docs/engineering/DECISIONS.md
+dart format lib test >/dev/null                                 # the baseline checks the format too
 flutter test; echo "exit=$?"                                    # exit=0
+dart format --output=none --set-exit-if-changed .; echo "exit=$?"   # exit=0
 ```
 
 ```bash

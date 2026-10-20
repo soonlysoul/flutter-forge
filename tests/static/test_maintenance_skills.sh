@@ -243,4 +243,12 @@ step14=$(awk '/^### Step 14 /{f=1; print; next} /^### Step 15 /{f=0} f' "$CF")
 says "$FA" "flutter-architect lists resolved packages with flutter pub deps" "\`flutter pub deps\` lists"
 says "$FA" "flutter-architect documents the stack of an adopted app as pre-existing" "pre-existing"
 
+echo "# scenario 6 (v0.3): ADRs of an adopted app, and paths in documents"
+# The plan announced one ADR per dependency; the agent's defaults made every deviation an ADR too,
+# so three ADRs reached the user unapproved. The plan now announces both, and the agent says it.
+says "$AD" "the adoption plan announces an ADR per deviation from the defaults" "one per deviation from the plugin's defaults (state management, navigation, layout)"
+says "$FA" "flutter-architect records each deviation of an adopted app as an ADR" "and one per deviation from the defaults below (state management, navigation, layout)"
+# DECISIONS.md cited /home/<user>/.pub-cache/…: a committed document carried a path of this machine.
+says "$FA" "flutter-architect never cites an absolute path of this machine" "never by an absolute path of this machine"
+
 finish

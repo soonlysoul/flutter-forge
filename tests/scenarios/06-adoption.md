@@ -68,8 +68,10 @@ git -C <P> ls-files -z | (cd <P> && xargs -0 sha256sum) >"$WORK/s6-tracked.sha"
 2. Partial approval.
 
    ```bash
-   "$H" "$P" "$SID" resume "$WORK/s6-2.jsonl" "J'approuve les items 1, 2, 3 et 6 du plan. Je refuse les items 4 et 5 : ne touche ni à CLAUDE.md, ni à .gitignore, ni à analysis_options.yaml, ni à .claude/." "${TOOLS[@]}"
+   "$H" "$P" "$SID" resume "$WORK/s6-2.jsonl" "J'approuve les items 1, 2, 3 et 6 du plan. Je refuse les items 4 et 5 : ne touche ni à CLAUDE.md, ni à .gitignore, ni à analysis_options.yaml, ni à .claude/. main est bien la branche par défaut." "${TOOLS[@]}"
    ```
+
+   The project has no remote: the plan asks to confirm the default branch, so the answer does.
 
    In `-p`, protect-sensitive refuses the write of `.forge/config.yaml`: the skill must stop and
    give a `! mkdir -p .forge && sed … > .forge/config.yaml` command instead of writing the file

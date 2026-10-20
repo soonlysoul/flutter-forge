@@ -156,7 +156,7 @@ Prérequis : ouvrir Claude Code à la racine de l'app (le dossier de `pubspec.ya
    Vous approuvez tous les items, certains, ou aucun.
 5. Seuls les items approuvés sont appliqués :
    - le PRD est reconstruit par l'agent product-architect, chaque critère marqué « reconstructed » avec le fichier qui le montre ;
-   - le TRD et DECISIONS.md sont reconstruits ensuite par flutter-architect : la pile actuelle, et un ADR `proposed` par dépendance directe ;
+   - le TRD et DECISIONS.md sont reconstruits ensuite par flutter-architect : la pile actuelle, un ADR `proposed` par dépendance directe et un par écart aux choix par défaut du plugin (gestion d'état, navigation, organisation du code) ;
    - un document existant est conservé, jamais remplacé ;
    - la liste des divergences va dans `.forge/reports/divergences-<date>.md`.
 6. Commit `chore: adopt plugin-flutter`, que vous confirmez.

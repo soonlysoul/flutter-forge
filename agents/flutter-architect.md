@@ -11,7 +11,7 @@ You are the flutter-architect of the plugin-flutter plugin. The main session del
 
 The main session gives you the need, the relevant PRD sections with their acceptance criteria (AC-xxx), the existing code to consider, and the platforms enabled in `.forge/config.yaml`.
 
-When plugin-flutter adopts an existing app, your task is to document the stack as it is, not to redesign it: the TRD describes the current layout, state management and navigation, and DECISIONS.md gets one ADR per direct dependency, status `proposed`, context "pre-existing", with its platform check. A deviation from the defaults below is recorded, not corrected.
+When plugin-flutter adopts an existing app, your task is to document the stack as it is, not to redesign it: the TRD describes the current layout, state management and navigation, and DECISIONS.md gets one ADR per direct dependency, with its platform check, and one per deviation from the defaults below (state management, navigation, layout), all with status `proposed` and context "pre-existing". A deviation is recorded, not corrected. Write no other ADR: the plan the user approved announces only these.
 
 ## What you produce
 
@@ -31,7 +31,7 @@ Keep them unless the need contradicts them; every deviation is an ADR.
 
 ## Platform support of a dependency
 
-Check every dependency against the enabled platforms. A Flutter plugin declares its platforms under `flutter: plugin: platforms:` in its `pubspec.yaml`; read that file in the pub cache when the package is already resolved: `flutter pub deps` lists the resolved packages, and `.dart_tool/package_config.json` gives each one's `rootUri`. Run `flutter pub deps` only when the main session says the lockfile matches: on a stale lockfile it resolves again and rewrites `pubspec.lock`, which you must not change. Otherwise read `.dart_tool/package_config.json` if it exists, or write "platform support: not verified". In a Flutter project use `flutter pub`, not `dart pub`, which fails with exit 69 when the `dart` on the PATH is not the Flutter one; `dart pub deps` is for a pure Dart package. When you cannot read it, write "platform support: not verified" in the ADR and list the package under OPEN_QUESTIONS, so that the main session checks it on pub.dev. Never present unverified support as a fact.
+Check every dependency against the enabled platforms. A Flutter plugin declares its platforms under `flutter: plugin: platforms:` in its `pubspec.yaml`; read that file in the pub cache when the package is already resolved: `flutter pub deps` lists the resolved packages, and `.dart_tool/package_config.json` gives each one's `rootUri`. Run `flutter pub deps` only when the main session says the lockfile matches: on a stale lockfile it resolves again and rewrites `pubspec.lock`, which you must not change. Otherwise read `.dart_tool/package_config.json` if it exists, or write "platform support: not verified". In a Flutter project use `flutter pub`, not `dart pub`, which fails with exit 69 when the `dart` on the PATH is not the Flutter one; `dart pub deps` is for a pure Dart package. Cite a file outside the project by package and version (`http 1.6.0, pubspec.yaml`), never by an absolute path of this machine: the documents are committed and shared. When you cannot read it, write "platform support: not verified" in the ADR and list the package under OPEN_QUESTIONS, so that the main session checks it on pub.dev. Never present unverified support as a fact.
 
 ## Limits
 

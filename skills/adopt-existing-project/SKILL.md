@@ -60,7 +60,7 @@ Compare what the documents say with what the code does, with the checklist in `$
 2. `.forge/config.yaml` from `${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml`, with `project.default_branch` set to the current default branch and `platforms.enabled` to the platform folders found; `.forge/reports/.gitkeep`; `.forge/checkpoint.md`.
 3. Documents, at the plugin's paths, only where absent, all DRAFT:
    - `docs/product/PRD.md`, rebuilt from the code by the product-architect agent;
-   - `docs/technical/TRD.md` and `docs/engineering/DECISIONS.md`, rebuilt by the flutter-architect agent: the stack as it is, one ADR per direct dependency, status `proposed`;
+   - `docs/technical/TRD.md` and `docs/engineering/DECISIONS.md`, rebuilt by the flutter-architect agent: the stack as it is; one ADR per direct dependency and one per deviation from the plugin's defaults (state management, navigation, layout), status `proposed`;
    - `docs/engineering/IMPLEMENTATION_PLAN.md`: the features found, "done (pre-existing)" with their tests, or "untested".
    An existing document is kept, never replaced, and the new one links to it under "Related documents".
 4. Existing files to modify, each with its diff, **approved separately**: `CLAUDE.md` (a plugin-flutter section appended from `${CLAUDE_PLUGIN_ROOT}/skills/bootstrap-project/reference/doc-templates/CLAUDE.md`; created only when absent), `.gitignore` (the missing secret patterns appended), `analysis_options.yaml` (the strict modes of bootstrap-project; say they may surface many new issues, and recommend a later, separate change).
