@@ -5,6 +5,11 @@
       "Bash(flutter analyze *)",
       "Bash(dart format *)",
       "Bash(flutter pub get)",
+      "Bash(flutter pub get --enforce-lockfile)",
+      "Bash(flutter pub outdated)",
+      "Bash(flutter pub outdated *)",
+      "Bash(flutter pub deps)",
+      "Bash(flutter pub deps *)",
       "Bash(git status)",
       "Bash(git diff *)",
       "Bash(git log *)",
@@ -27,6 +32,7 @@
       "Bash(git rev-parse *)",
       "Bash(git branch --show-current)",
       "Bash(flutter --version)",
+      "Bash(flutter --version --machine)",
       "Bash(flutter doctor)",
       "Bash(flutter doctor *)",
       "Bash(flutter devices)",
@@ -44,7 +50,10 @@
       "Bash(gh pr edit *)",
       "Bash(gh issue create *)",
       "Bash(gh run rerun *)",
-      "Bash(gh workflow run *)"
+      "Bash(gh workflow run *)",
+      "Bash(flutter upgrade*)",
+      "Bash(flutter downgrade*)",
+      "Bash(flutter channel *)"
     ],
     "deny": [
       "Bash(git reset --hard*)",

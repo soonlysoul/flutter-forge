@@ -107,10 +107,10 @@ done
 
 echo "# skills"
 skills=$(cd "$PLUGIN_ROOT/skills" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | LC_ALL=C sort | tr '\n' ' ')
-[[ $skills == "bootstrap-project create-feature debug-project git-workflow github-workflow recover-session " ]] \
-  && pass "exactly the six v0.2 skills" || fail "exactly the six v0.2 skills" "found: ${skills:-none}"
+[[ $skills == "bootstrap-project create-feature debug-project git-workflow github-workflow recover-session update-project " ]] \
+  && pass "exactly the seven skills of v0.3 so far" || fail "exactly the seven skills of v0.3 so far" "found: ${skills:-none}"
 
-for skill in bootstrap-project create-feature git-workflow recover-session github-workflow debug-project; do
+for skill in bootstrap-project create-feature git-workflow recover-session github-workflow debug-project update-project; do
   file="$PLUGIN_ROOT/skills/$skill/SKILL.md"
   if [[ ! -f $file ]] || ! read_frontmatter "$file"; then
     fail "$skill: readable frontmatter" "${FM_ERROR:-missing file}"

@@ -81,7 +81,8 @@ while IFS= read -r ref; do
 done <<<"$cited"
 
 for file in "$PLUGIN_ROOT"/skills/bootstrap-project/reference/doc-templates/{PRD,TRD,IMPLEMENTATION_PLAN,DECISIONS}.md \
-  "$PLUGIN_ROOT"/templates/{project-settings.json,forge-config.yaml,checkpoint.md}; do
+  "$PLUGIN_ROOT"/templates/{project-settings.json,forge-config.yaml,checkpoint.md} \
+  "$PLUGIN_ROOT"/skills/update-project/reference/deps-report.md; do
   rel=${file#"$PLUGIN_ROOT"/}
   [[ -f $file ]] && pass "$rel exists" || fail "$rel exists"
 done
@@ -95,7 +96,8 @@ for file in ${annexes[@]+"${annexes[@]}"}; do
     || pass "$rel does not contain \${CLAUDE_PLUGIN_ROOT} (annexes are not substituted)"
 done
 
-personal=$(grep -rnE '/home/|/Users/|/nix/store/' "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null)
+# /nix/store/ alone is allowed: update-project detects a Flutter from Nix by that prefix.
+personal=$(grep -rnE '/home/|/Users/|/nix/store/[a-z0-9]{32}-' "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null)
 [[ -z $personal ]] && pass "no absolute personal or store path in the plugin" || fail "no absolute personal or store path in the plugin" "$personal"
 shopt -u nullglob
 

@@ -60,7 +60,9 @@ plugin-flutter/
 │   │   ├── SKILL.md
 │   │   └── reference/pr-body.md      # gabarit du corps de PR
 │   ├── debug-project/SKILL.md
-│   ├── update-project/SKILL.md       # (v0.3)
+│   ├── update-project/
+│   │   ├── SKILL.md
+│   │   └── reference/deps-report.md  # gabarit du rapport avant/après
 │   ├── adopt-existing-project/SKILL.md # (v0.3)
 │   ├── release-project/SKILL.md      # (v0.4)
 │   └── optimize-usage/SKILL.md       # (v0.4)
@@ -212,10 +214,12 @@ Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/plugin-flutter:<n
 | recover-session | v0.1 | Reprendre un travail | Aucune (lecture seule jusqu'au résumé) | Résumé de reprise + prochaine étape proposée |
 | github-workflow | v0.2 | Dépôt distant, issue, PR, CI | Création de dépôt (propriétaire, nom, visibilité, à chaque fois), ajout de la CI (avec son coût), PR et push si non préautorisés, relance de CI sur dépôt privé ; jamais de fusion | PR avec résumé, AC, risques, tests en quatre catégories, plateformes en trois états ; état des checks |
 | debug-project | v0.2 | Erreur de build, d'analyse ou test rouge inattendu, CI rouge | Modification hors du périmètre de l'erreur | Cause racine prouvée, test de non-régression ROUGE puis VERT, correctif minimal, commit `fix(…)` |
-| update-project | v0.3 | Mettre à jour Flutter ou dépendances | Toute mise à jour majeure ; plan de lots | Branche `chore/deps-*`, rapport avant/après, lockfile |
+| update-project | v0.3 | Mettre à jour Flutter ou dépendances | Plan de lots, toujours, avec chaque majeure et son changelog ; référence rouge ; lock périmé ; plateforme perdue par un plugin ; migration hors des fichiers qui importent le paquet ; abandon d'un lot ; changement de SDK (fait par l'utilisateur) | Branche `chore/deps-<slug>`, un commit par lot avec `pubspec.yaml`, `pubspec.lock` et registres de plugins, ADR par majeure, rapport `.forge/reports/deps-<date>-<slug>.md` |
 | adopt-existing-project | v0.3 | Prendre en main un projet existant | Plan de mise en conformité | `.forge/`, docs reconstruites depuis le code, liste des divergences |
 | release-project | v0.4 | Préparer une release | Toute publication, tag poussé, signature | Notes de version, builds vérifiés par plateforme |
 | optimize-usage | v0.4 | Session longue ou coûteuse | Aucune | Recommandations ; résumé de contexte compact |
+
+update-project (D31 à D35) part d'une référence : `flutter pub get --enforce-lockfile`, puis `flutter analyze` et `flutter test`. L'inventaire vient de `flutter pub outdated --json`, qui ne modifie aucun fichier et sort en 0 même avec des paquets en retard. Chaque dépendance directe est classée compatible (`upgradable` plus récente), majeure (`resolvable` change la version majeure, ou la mineure sous 1.0), retenue (`latest` hors d'atteinte, souvent à cause du SDK) ou signalée (avis de sécurité, version retirée, paquet abandonné). Lots : les paquets signalés, puis `flutter pub upgrade` pour tout le compatible, puis un lot par majeure avec `flutter pub upgrade --major-versions <paquet>`. Après chaque lot : fichiers attendus seulement, `CHANGELOG.md` lu dans le cache pub pour une majeure, plateformes d'un plugin comparées à `platforms.enabled`, analyse et tests, commit. Le SDK n'est jamais changé par Claude : `flutter upgrade`, `downgrade` et `channel` demandent confirmation dans les règles du projet, et sous Nix (`flutterRoot` dans `/nix/store/`) la version vient de la configuration Nix de l'utilisateur. Après un changement de SDK, le skill rappelle la ligne `flutter-version` de `.github/workflows/ci.yml`.
 
 Règle commune : un skill ne déclare jamais une étape réussie sans la sortie de la commande correspondante. Après deux échecs identiques d'une même commande, il s'arrête, écrit le checkpoint et expose le blocage au lieu de réessayer.
 
@@ -260,20 +264,23 @@ La sécurité repose sur trois couches indépendantes : les règles de permissio
   "permissions": {
     "allow": [
       "Bash(flutter test *)", "Bash(flutter analyze *)", "Bash(dart format *)",
-      "Bash(flutter pub get)", "Bash(git status)", "Bash(git diff *)",
+      "Bash(flutter pub get)", "Bash(flutter pub get --enforce-lockfile)",
+      "Bash(flutter pub outdated)", "Bash(flutter pub outdated *)", "Bash(flutter pub deps)", "Bash(flutter pub deps *)",
+      "Bash(git status)", "Bash(git diff *)",
       "Bash(git log *)", "Bash(git add *)", "Bash(git switch *)",
       "Bash(gh --version)", "Bash(gh auth status)", "Bash(gh repo view)", "Bash(gh repo view *)",
       "Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh run list *)", "Bash(gh run view *)",
       "Bash(gh run watch *)", "Bash(gh workflow list)", "Bash(gh workflow view *)",
       "Bash(gh issue list *)", "Bash(gh issue view *)", "Bash(git remote -v)", "Bash(git rev-parse *)",
-      "Bash(git branch --show-current)", "Bash(flutter --version)", "Bash(flutter doctor)",
+      "Bash(git branch --show-current)", "Bash(flutter --version)", "Bash(flutter --version --machine)", "Bash(flutter doctor)",
       "Bash(flutter doctor *)", "Bash(flutter devices)", "Bash(flutter build *)"
     ],
     "ask": [
       "Bash(git add -A*)", "Bash(git add .)", "Bash(git add --all*)",
       "Bash(git commit *)", "Bash(git push *)", "Bash(gh pr create *)",
       "Bash(flutter pub upgrade *)", "Bash(gh repo create *)", "Bash(gh pr edit *)",
-      "Bash(gh issue create *)", "Bash(gh run rerun *)", "Bash(gh workflow run *)"
+      "Bash(gh issue create *)", "Bash(gh run rerun *)", "Bash(gh workflow run *)",
+      "Bash(flutter upgrade*)", "Bash(flutter downgrade*)", "Bash(flutter channel *)"
     ],
     "deny": [
       "Bash(git reset --hard*)", "Bash(git clean *)",
@@ -484,8 +491,9 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 | --- | --- |
 | static/test\_manifest.sh | `plugin.json` et `marketplace.json` sont du JSON valide, champs requis présents, `name` en kebab-case et identique dans les deux, version SemVer, `homepage` et `repository` pointent vers `soonlysoul/plugin-flutter`, `source` vaut `./` |
 | static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; product-architect n'a pas Bash ; aucun agent ne liste `Agent` |
-| static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec |
-| static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean ou suppression ; les `deny` attendus sont présents ; aucune règle `Write(…)` |
+| static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec ; aucun chemin personnel ni chemin réel du store Nix (`/nix/store/<hash>-…`) |
+| static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean, suppression, ni mise à jour d'une dépendance ou du SDK ; les `deny` attendus sont présents ; `flutter upgrade`, `downgrade` et `channel` demandent confirmation ; aucune règle `Write(…)` |
+| static/test\_maintenance\_skills.sh | product-architect, update-project et son gabarit de rapport, adopt-existing-project énoncent leurs points de validation, commandes et limites ; update-project ne lance jamais `flutter upgrade` ni `dart pub` |
 | hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée, `jq` absent bloqué, appel `Monitor` couvert |
 | hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des cinq agents ; commandes composées refusées ; un agent sans branche de liste blanche refusé ; erreurs internes bloquantes |
 | hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |

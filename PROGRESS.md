@@ -21,7 +21,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 | D32 | Version 0.3.0 (mineure, format de `.forge/` inchangé : la phase A n'a rien trouvé qui l'oblige à changer) |
 | D33 | *(extension de D31)* update-project ne lance `flutter upgrade`, `downgrade` ou `channel` **nulle part**, Nix ou non : le SDK est partagé par tous les projets de la machine. L'utilisateur le change lui-même (Nix : sa configuration ; sinon `! flutter upgrade`), puis le skill vérifie. Le gabarit de permissions passe ces trois commandes en `ask` |
 | D34 | Lots : le lot 1 réunit les mises à jour compatibles (`flutter pub upgrade`, sans argument : contraintes inchangées, transitives comprises) ; puis un lot par mise à jour majeure (`flutter pub upgrade --major-versions <paquet>`), une famille de paquets ensemble (`riverpod` et `flutter_riverpod`). Chaque lot : `flutter analyze` et `flutter test`, puis un commit `chore(deps): …` avec `pubspec.yaml`, `pubspec.lock` et les registres de plugins régénérés. Point de validation : le plan de lots, toujours, et chaque majeure (lien vers son changelog). Un lot rouge n'est pas commité ; l'abandonner passe par `! git restore pubspec.yaml pubspec.lock`, que guard-destructive refuse à Claude |
-| D35 | Rapport avant/après dans `.forge/reports/deps-<date>-<slug>.md`, commité avec le dernier lot : versions avant (`flutter pub outdated --json`) et après (`pubspec.lock`), SDK (`flutter --version --machine`), tests et analyse avant (référence) et après chaque lot. Une référence rouge arrête le skill : sans votre accord, on ne met pas à jour sur une base qui échoue déjà |
+| D35 | Rapport avant/après dans `.forge/reports/deps-<date>-<slug>.md`, commité à part après le dernier lot (`docs(deps): …`), puisque ce lot peut être abandonné : versions avant (`flutter pub outdated --json`) et après (`pubspec.lock`), SDK (`flutter --version --machine`), tests et analyse avant (référence) et après chaque lot. Une référence rouge arrête le skill : sans votre accord, on ne met pas à jour sur une base qui échoue déjà |
 | D36 | Dans un projet Flutter, les skills et agents citent `flutter pub …`, jamais `dart pub …`, qui échoue sous Nix (exit 69). flutter-architect garde `dart pub deps` dans sa liste blanche, pour un paquet Dart pur |
 | D37 | adopt-existing-project, analyse en lecture seule : jamais `flutter analyze`, `flutter test` ou `flutter pub get` nus, qui lancent `pub get` et peuvent réécrire `pubspec.lock`. D'abord `flutter pub get --enforce-lockfile` (refuse sans rien écrire si le lock est périmé ou absent), puis `flutter analyze --no-pub` et `flutter test --no-pub`. `git status --porcelain` identique avant et après, sinon arrêt |
 | D38 | adopt-existing-project, mise en conformité : branche `chore/adopt-plugin-flutter` ; un document existant est gardé et référencé, jamais remplacé ; `CLAUDE.md`, `.gitignore`, `analysis_options.yaml` existants : modification proposée en diff, approuvée fichier par fichier ; aucun code déplacé. Documents reconstruits en DRAFT, AC marqués « reconstructed », ADR des dépendances existantes en `proposed`. Divergences dans `.forge/reports/divergences-<date>.md` |
@@ -33,7 +33,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 
 - [x] A — Vérifications (2026-10-20), détail ci-dessous
 - [x] B — Agent product-architect et son périmètre dans agent-scope-guard, en TDD
-- [ ] C — Skill update-project ; règles de permission
+- [x] C — Skill update-project ; règles de permission
 - [ ] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
 - [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
 - [ ] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
@@ -78,6 +78,20 @@ B4 vient de la relecture du hook : en bash, un `case` sans branche correspondant
 Mutations (une règle désactivée dans une copie du plugin, la suite doit échouer) : 7 sur 7 détectées. agent-scope-guard : `docs/product` élargi à `docs` (5 échecs), refus « no shell » retiré (1), branche product-architect retirée (5), branche par défaut retirée (1), `git status` accordé (1), `docs/technical` ajouté (2). Frontmatter : Bash ajouté (1), modèle `sonnet` (1). Une mutation visait par erreur le `*) return 1` de `git_read_only` (même texte) : détectée aussi (4), puis refaite sur la bonne ligne.
 
 Suite complète : exit 0 — 18 réussis (14 suites, 888 assertions, 4 validations).
+
+| Cycle | ROUGE | VERT |
+| --- | --- | --- |
+| C1 — contenu d'update-project et de son gabarit de rapport | 2 échecs (fichiers absents) | 62/62 |
+| C2 — frontmatter (7 skills) | 2 échecs | 107/107 |
+| C3 — gabarit de rapport cité et présent (`test_paths`) | 1 échec | 95/95 |
+| C4 — règles : `pub outdated`, `pub deps`, `pub get --enforce-lockfile`, `--version --machine` en `allow` ; `flutter upgrade`, `downgrade`, `channel` en `ask` | 2 échecs | 22/22 |
+
+Deux tests existants ont accroché à tort, et ont été resserrés plutôt que contournés :
+
+- `test_paths` refusait toute chaîne `/nix/store/`, que le skill cite comme motif de détection. Il vise désormais un vrai chemin du store, `/nix/store/<hash de 32 caractères>-`. Mutation : un chemin réel ajouté au skill → 1 échec.
+- `test_settings_template` lisait `force` dans `--enforce-lockfile`. Motif `\bforce`. Mutations : `allow` sur `git push --force-with-lease *`, `flutter pub upgrade --force *`, `git checkout --force *` → 1, 2 et 1 échecs.
+
+Suite complète : exit 0 — 18 réussis (14 suites, 951 assertions, 4 validations).
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 

@@ -15,7 +15,7 @@ else
   deny=$(jq -r '.permissions.deny[]' "$SETTINGS")
   all=$(jq -r '.permissions[][]' "$SETTINGS")
 
-  risky=$(grep -nE 'push|merge|reset|clean|rm |delete|publish|force|branch -D|checkout|restore|stash|^Bash$|^Bash\(\*\)$' <<<"$allow")
+  risky=$(grep -nE 'push|merge|reset|clean|rm |delete|publish|\bforce|branch -D|checkout|restore|stash|^Bash$|^Bash\(\*\)$' <<<"$allow")
   [[ -z $risky ]] && pass "no allow rule covers push, merge, reset, clean or deletion" \
     || fail "no allow rule covers push, merge, reset, clean or deletion" "$risky"
 
@@ -51,6 +51,23 @@ else
   done
   [[ -z $missing ]] && pass "gh commands that change GitHub or spend CI minutes ask first" \
     || fail "gh commands that change GitHub or spend CI minutes ask first" "missing:$missing"
+
+  missing=""
+  for rule in 'Bash(flutter pub outdated)' 'Bash(flutter pub outdated *)' 'Bash(flutter pub deps)' 'Bash(flutter pub deps *)' \
+    'Bash(flutter pub get --enforce-lockfile)' 'Bash(flutter --version --machine)'; do
+    grep -qxF "$rule" <<<"$allow" || missing+=" $rule"
+  done
+  [[ -z $missing ]] && pass "read-only pub and SDK commands of the v0.3 skills run without asking" \
+    || fail "read-only pub and SDK commands of the v0.3 skills run without asking" "missing:$missing"
+
+  missing=""
+  for rule in 'Bash(flutter upgrade*)' 'Bash(flutter downgrade*)' 'Bash(flutter channel *)'; do
+    grep -qxF "$rule" <<<"$ask" || missing+=" $rule"
+  done
+  [[ -z $missing ]] && pass "changing the machine's Flutter SDK asks first" || fail "changing the machine's Flutter SDK asks first" "missing:$missing"
+
+  risky=$(grep -nE 'upgrade|downgrade|channel' <<<"$allow")
+  [[ -z $risky ]] && pass "no allow rule upgrades a dependency or the SDK" || fail "no allow rule upgrades a dependency or the SDK" "$risky"
 
   risky=$(grep -nE 'gh (pr (create|edit)|repo create|issue create|workflow run|run (rerun|cancel|download)|api|auth token)|show-token|^Bash\(gh \*\)$' <<<"$allow")
   [[ -z $risky ]] && pass "no allow rule changes GitHub or shows a token" || fail "no allow rule changes GitHub or shows a token" "$risky"
