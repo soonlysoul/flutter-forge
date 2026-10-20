@@ -43,6 +43,8 @@ expect_hook() {
 }
 expect_hook PreToolUse 'Bash|PowerShell|Monitor' guard-destructive.sh block
 expect_hook PreToolUse 'Edit|Write|NotebookEdit|Bash|PowerShell|Monitor' agent-scope-guard.sh block
+expect_hook PreToolUse 'Bash|PowerShell|Monitor' secret-scan.sh block
+expect_hook PreToolUse 'Edit|Write|NotebookEdit' protect-sensitive.sh block
 expect_hook PostToolUse 'Edit|Write' format-dart.sh continue
 expect_hook Stop '' checkpoint-reminder.sh ''
 

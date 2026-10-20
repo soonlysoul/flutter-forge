@@ -1,5 +1,5 @@
 {
-  "description": "plugin-flutter guardrails: destructive-command guard, per-agent scope guard, Dart auto-format, checkpoint reminder.",
+  "description": "plugin-flutter guardrails: destructive-command guard, per-agent scope guard, secret scan before commits, confirmation for sensitive files, Dart auto-format, checkpoint reminder.",
   "hooks": {
     "PreToolUse": [
       {
@@ -21,6 +21,30 @@
             "type": "command",
             "command": "bash",
             "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/scripts/agent-scope-guard.sh"],
+            "timeout": 10,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/scripts/secret-scan.sh"],
+            "timeout": 30,
+            "onFailure": "block"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protect-sensitive.sh"],
             "timeout": 10,
             "onFailure": "block"
           }
