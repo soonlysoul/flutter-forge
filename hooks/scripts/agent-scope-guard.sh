@@ -52,6 +52,10 @@ case $agent in
     write_dirs=".github"
     allowed_commands="flutter build, flutter --version, flutter doctor, flutter devices, gh auth status, gh run list|view|watch, gh pr checks|view, gh workflow list|view, gh repo view, git remote -v, $GIT_READ"
     ;;
+  product-architect)
+    write_dirs="docs/product"
+    allowed_commands=""
+    ;;
   *) block "no scope is defined for agent $agent." ;;
 esac
 
@@ -125,6 +129,8 @@ command_allowed() {
       fi
       [[ $1 == git ]] && git_read_only "${@:2}"
       ;;
+    # A case without a matching branch returns 0: an agent without a branch must not pass.
+    *) return 1 ;;
   esac
 }
 
@@ -150,6 +156,7 @@ check_write() {
 
 check_command() {
   local command word
+  [[ -n $allowed_commands ]] || block "$agent may not run shell commands."
   command=$(jq -er '.tool_input.command // "" | strings' <<<"$input") || block "tool_input.command is not a string."
   [[ -n $command ]] || block "$agent may only run: $allowed_commands."
   sw_lex "$command"

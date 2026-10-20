@@ -32,7 +32,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 ### Phases v0.3
 
 - [x] A — Vérifications (2026-10-20), détail ci-dessous
-- [ ] B — Agent product-architect et son périmètre dans agent-scope-guard, en TDD
+- [x] B — Agent product-architect et son périmètre dans agent-scope-guard, en TDD
 - [ ] C — Skill update-project ; règles de permission
 - [ ] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
 - [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
@@ -61,6 +61,23 @@ Projet jetable `flutter create` (Linux) dans le scratchpad, dépendances ancienn
 | Gabarit CI | la version épinglée est la ligne `flutter-version: "<version>"` du job | `templates/github-workflows/flutter-ci.yml` |
 
 Incidents : le secret-scan installé (0.2.0) a refusé `git init … && git commit` sur une même ligne (D25), puis un `cd "$P"` à variable. Non contourné : commandes séparées, chemin écrit en clair.
+
+### Phases B à D v0.3 — TDD
+
+Chaque composant a vu son test échouer pour la bonne raison avant d'exister, puis passer.
+
+| Cycle | ROUGE | VERT |
+| --- | --- | --- |
+| B1 — périmètre de product-architect (agent-scope-guard) | 4 échecs : agent inconnu, tout refusé, y compris `docs/product/PRD.md` | 148/148 |
+| B2 — frontmatter (5 agents) | 2 échecs (agent absent) | 99/99 |
+| B3 — contenu de product-architect (`test_maintenance_skills.sh`, nouvelle suite) | 1 échec (fichier absent) | 14/14 |
+| B4 — agent doté de commandes mais sans branche de liste blanche | 1 échec : **exit 0**, la commande passait | 149/149 |
+
+B4 vient de la relecture du hook : en bash, un `case` sans branche correspondante renvoie 0, si bien que `command_allowed` autorisait toute commande d'un agent qui n'aurait pas sa branche. Aucun agent existant n'était concerné ; un futur agent l'aurait été. La branche par défaut `*) return 1` avait d'abord été écrite sans test : retirée, test écrit et vu ROUGE sur une copie du hook dotée d'un agent orphelin, puis remise.
+
+Mutations (une règle désactivée dans une copie du plugin, la suite doit échouer) : 7 sur 7 détectées. agent-scope-guard : `docs/product` élargi à `docs` (5 échecs), refus « no shell » retiré (1), branche product-architect retirée (5), branche par défaut retirée (1), `git status` accordé (1), `docs/technical` ajouté (2). Frontmatter : Bash ajouté (1), modèle `sonnet` (1). Une mutation visait par erreur le `*) return 1` de `git_read_only` (même texte) : détectée aussi (4), puis refaite sur la bonne ligne.
+
+Suite complète : exit 0 — 18 réussis (14 suites, 888 assertions, 4 validations).
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 

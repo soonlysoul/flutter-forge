@@ -160,6 +160,29 @@ check block "flutter build -o writes elsewhere" "$(shell_input "$O" 'flutter bui
 check block "flutter build --output writes elsewhere" "$(shell_input "$O" 'flutter build web --output=/tmp/site')"
 check block "compound build and push" "$(shell_input "$O" 'flutter build linux && git push')"
 
+echo "# product-architect"
+PA="$P:product-architect"
+check allow "writes the PRD" "$(write_input "$PA" /work/proj/docs/product/PRD.md)"
+check allow "edits a file under docs/product/" "$(write_input "$PA" /work/proj/docs/product/notes/brief.md Edit)"
+check block "writes the TRD" "$(write_input "$PA" /work/proj/docs/technical/TRD.md)"
+check block "writes DECISIONS.md" "$(write_input "$PA" /work/proj/docs/engineering/DECISIONS.md)"
+check block "writes docs/ itself" "$(write_input "$PA" /work/proj/docs/PRD.md)"
+check block "docs/productx/ is not docs/product/" "$(write_input "$PA" /work/proj/docs/productx/PRD.md)"
+check block "climbs out of docs/product/ with .." "$(write_input "$PA" /work/proj/docs/product/../technical/TRD.md)"
+check block "writes lib/" "$(write_input "$PA" /work/proj/lib/main.dart)"
+check block "writes outside the project" "$(write_input "$PA" /etc/hosts)"
+check block "NotebookEdit outside docs/product/" "$(agent_input "$PA" NotebookEdit '{"notebook_path": "/work/proj/test/x.ipynb"}')"
+check block "git status (no shell at all)" "$(shell_input "$PA" 'git status')"
+check block "flutter --version (no shell at all)" "$(shell_input "$PA" 'flutter --version')"
+check block "ls (no shell at all)" "$(shell_input "$PA" 'ls docs')"
+check block "Monitor (no shell at all)" "$(shell_input "$PA" 'tail -f log' Monitor)"
+run_hook "$SCOPE" "$(write_input "$PA" /work/proj/docs/technical/TRD.md)"
+[[ $HOOK_STDERR == *product-architect* && $HOOK_STDERR == *docs/product/* ]] \
+  && pass "product-architect write refusal names docs/product/" || fail "product-architect write refusal names docs/product/" "$HOOK_STDERR"
+run_hook "$SCOPE" "$(shell_input "$PA" 'git status')"
+[[ $HOOK_STDERR == *"product-architect may not run shell commands"* ]] \
+  && pass "product-architect command refusal says it has no shell" || fail "product-architect command refusal says it has no shell" "$HOOK_STDERR"
+
 echo "# project root"
 check allow "CLAUDE_PROJECT_DIR is the root when set" \
   "$(agent_input "$T" Write '{"file_path": "/other/root/test/a_test.dart"}' /work/proj/sub)" CLAUDE_PROJECT_DIR=/other/root
@@ -178,6 +201,16 @@ cp "$SCOPE" "$nolib/"
 run_hook "$nolib/agent-scope-guard.sh" "$(shell_input "$R" 'git status')"
 expect_blocked "missing shell lexer library for a plugin agent"
 rm -r "$nolib"
+
+# bash's case returns 0 when no branch matches: an agent given commands but no allowlist
+# branch must still be refused. Proved on a copy with such an agent added.
+orphan=$(mktemp -d)
+cp -r "$SCRIPTS"/. "$orphan/"
+sed -i 's/^  product-architect)$/  orphan-agent)\n    write_dirs=""\n    allowed_commands="git status"\n    ;;\n  product-architect)/' "$orphan/agent-scope-guard.sh"
+grep -q '^  orphan-agent)$' "$orphan/agent-scope-guard.sh" || fail "orphan agent injected into the copy"
+run_hook "$orphan/agent-scope-guard.sh" "$(shell_input "$P:orphan-agent" 'git status')"
+expect_blocked "an agent with commands but no allowlist branch is refused"
+rm -r "$orphan"
 
 run_hook "$SCOPE" "$(write_input "$T" /work/proj/lib/notes.dart)"
 [[ $HOOK_STDERR == *test-engineer* && $HOOK_STDERR == *test/* && $HOOK_STDERR == *integration_test/* ]] \

@@ -56,13 +56,13 @@ done
 rm -r "$fixtures"
 
 echo "# agents"
-declare -A expected_model=([flutter-architect]=inherit [test-engineer]=sonnet [code-reviewer]=sonnet [devops-engineer]=sonnet)
+declare -A expected_model=([flutter-architect]=inherit [test-engineer]=sonnet [code-reviewer]=sonnet [devops-engineer]=sonnet [product-architect]=inherit)
 known_tools=" Read Grep Glob Bash Write Edit "
 agents=$(cd "$PLUGIN_ROOT/agents" 2>/dev/null && ls *.md 2>/dev/null | LC_ALL=C sort | tr '\n' ' ')
-[[ $agents == "code-reviewer.md devops-engineer.md flutter-architect.md test-engineer.md " ]] \
-  && pass "exactly the four v0.2 agents" || fail "exactly the four v0.2 agents" "found: ${agents:-none}"
+[[ $agents == "code-reviewer.md devops-engineer.md flutter-architect.md product-architect.md test-engineer.md " ]] \
+  && pass "exactly the five v0.3 agents" || fail "exactly the five v0.3 agents" "found: ${agents:-none}"
 
-for agent in flutter-architect test-engineer code-reviewer devops-engineer; do
+for agent in flutter-architect test-engineer code-reviewer devops-engineer product-architect; do
   file="$PLUGIN_ROOT/agents/$agent.md"
   if [[ ! -f $file ]] || ! read_frontmatter "$file"; then
     fail "$agent: readable frontmatter" "${FM_ERROR:-missing file}"
@@ -93,6 +93,9 @@ for agent in flutter-architect test-engineer code-reviewer devops-engineer; do
     if [[ $agent == code-reviewer ]]; then
       [[ $tools != *" Write "* && $tools != *" Edit "* ]] && pass "code-reviewer: neither Write nor Edit" \
         || fail "code-reviewer: neither Write nor Edit" "tools: ${FM[tools]}"
+    fi
+    if [[ $agent == product-architect ]]; then
+      [[ $tools != *" Bash "* ]] && pass "product-architect: no Bash" || fail "product-architect: no Bash" "tools: ${FM[tools]}"
     fi
   fi
   body=$(body_of "$file")

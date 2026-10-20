@@ -31,7 +31,7 @@ La v0.1 couvre le cycle minimal : créer un projet, développer une fonctionnali
 | v0.3 | update-project, adopt-existing-project | product-architect | détection de divergences docs/code | Mise à jour d'un lot de dépendances avec rapport avant/après |
 | v0.4 | release-project, optimize-usage | ui-ux-engineer | matrice plateformes en CI | Build de release Android + Web vérifié |
 
-`implementation-engineer` n'est pas prévu comme agent séparé : l'implémentation reste dans la session principale pour éviter des transferts de contexte coûteux pendant le cycle rouge-vert. À réévaluer en v0.3.
+`implementation-engineer` n'est pas prévu comme agent séparé : l'implémentation reste dans la session principale pour éviter des transferts de contexte coûteux pendant le cycle rouge-vert. Réévalué en v0.3 et maintenu ainsi (D29).
 
 ## Arborescence du plugin
 
@@ -47,7 +47,7 @@ plugin-flutter/
 │   ├── test-engineer.md
 │   ├── code-reviewer.md
 │   ├── devops-engineer.md
-│   ├── product-architect.md     # (v0.3)
+│   ├── product-architect.md
 │   └── ui-ux-engineer.md        # (v0.4)
 ├── skills/
 │   ├── bootstrap-project/
@@ -183,15 +183,17 @@ Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par 
 | flutter-architect | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `docs/` ; Bash limité à `flutter --version`, `dart --version`, `dart pub deps`, `flutter pub deps`, et git en lecture | `inherit` | Besoin, code existant, PRD | TRD, décisions ADR dans DECISIONS.md, liste de dépendances justifiées |
 | test-engineer | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `test/` et `integration_test/` ; Bash limité à `flutter test`, `dart test`, et git en lecture | `sonnet` | Critères d'acceptation, plan de la feature | Tests écrits, sortie brute de l'exécution ROUGE, liste des cas limites |
 | code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne |
+| product-architect | v0.3 | Read, Grep, Glob, Write, Edit — pas de Bash | Écriture limitée à `docs/product/` ; aucune commande | `inherit` | Description du besoin (tâche `draft`), ou code d'une app adoptée (tâche `reconstruct`) | `docs/product/PRD.md` en DRAFT, critères AC-xxx numérotés, testables, jamais renumérotés ; bloc ACCEPTANCE_CRITERIA |
 | devops-engineer | v0.2 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `.github/` ; Bash limité à `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status` (sans `--show-token`), `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, `git remote -v` et git en lecture ; option `-o`/`--output` refusée | `sonnet` | Tâche `build`, `ci-diagnosis` ou `workflow-change` ; plateformes activées ; branche, PR ou run | Tableau BUILDS par plateforme ; classe d'un échec de CI avec ses lignes de journal et le correctif à faire |
 
 devops-engineer ne pousse pas, n'ouvre ni ne modifie de PR, ne relance ni ne démarre de workflow, ne télécharge pas d'artefact et n'appelle pas `gh api` : ces actions changent le dépôt distant ou consomment des minutes, et restent dans la session principale, derrière un point de validation (D16). Le fichier CI initial est écrit par la session principale depuis le gabarit, une copie courte ; l'agent sert aux journaux longs (D17).
 
-Les agents v0.3+ du tableau ci-dessous suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
+product-architect ne décide ni l'architecture, ni les dépendances, ni les plateformes, qui restent au flutter-architect. Il est délégué par adopt-existing-project, et par bootstrap-project quand le besoin fourni est long ; create-feature écrit lui-même un AC isolé (D39).
+
+Les agents v0.4 du tableau ci-dessous suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
 
 | Agent | Version | Outils autorisés | Reçoit | Rend |
 | --- | --- | --- | --- | --- |
-| product-architect | v0.3 | Read, Write limité à `docs/product/` | Description du besoin | PRD, critères d'acceptation numérotés (AC-xxx) |
 | ui-ux-engineer | v0.4 | Read, Write limité à `docs/design/` et `lib/ui/` | PRD, APPFLOW | Spécification UI, états d'erreur, points d'accessibilité |
 
 Deux couches se complètent : agent-scope-guard refuse l'appel d'outil hors périmètre ; le code-reviewer compare ensuite `git diff --name-only` au périmètre déclaré, car une commande Bash autorisée (`flutter test`) peut encore produire des fichiers.
@@ -237,7 +239,7 @@ Règles de mise en œuvre (vérifiées en phase A, rapport §3.5) :
 | Hook | Événement | Filtre | Comportement | En cas d'erreur du script |
 | --- | --- | --- | --- | --- |
 | guard-destructive | PreToolUse | `Bash\|PowerShell\|Monitor` | Bloque : `git reset --hard` ; `git clean` avec `-f`/`--force` ; `git push` avec `-f`, `--force`, `--force-with-lease` ou `--force-if-includes` à n'importe quelle position, une refspec `+ref`, `--delete`/`-d` ou une refspec `:ref`, `--mirror`, `--tags`/`--follow-tags` ou une refspec `refs/tags/…` ; `git branch -D` et `--delete --force` ; `git checkout -- <chemin>`, `git checkout .` et `--force` ; `git restore` hors `--staged` seul ; `git stash drop` et `git stash clear` ; `git switch --discard-changes`/`-f` ; `rm` récursif et forcé (`-rf`, `-fr`, `-Rf`, `-r -f`, `--recursive --force`) hors `build/`, ou sans cible visible (`xargs`) ; `gh repo delete` ; `gh repo edit` avec `--visibility` ; `gh pr merge` ; `gh release create\|edit\|upload\|delete\|delete-asset` ; `gh api -X DELETE` ; `flutter pub publish` et `dart pub publish`, sauf `--dry-run`. L'analyse découpe la commande (`;`, `&&`, `\|`, sauts de ligne), ignore le texte cité, passe les préfixes (`VAR=…`, `sudo`, `env`, `command`, `nohup`, `timeout`, `nice`, `xargs`) et descend dans `bash -c`, `eval`, `$(…)`, les accents graves, `find -exec`, les heredocs donnés à un shell et les substitutions des heredocs non cités. Renvoie la raison à Claude | Bloque (fail-closed) |
-| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des quatre agents du plugin. Pour eux, refuse toute écriture hors des dossiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée | Bloque (fail-closed) |
+| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des cinq agents du plugin. Pour eux, refuse toute écriture hors des dossiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée ; un agent sans liste blanche (product-architect) n'en lance aucune | Bloque (fail-closed) |
 | format-dart | PostToolUse | `Edit\|Write` | Si le fichier finit par `.dart` et que `dart` est dans le PATH : `dart format <fichier>` | Ignore silencieusement (fail-open) |
 | checkpoint-reminder | Stop | — | Inerte sans `.forge/checkpoint.md`, ou si `stop_hook_active` est vrai. Si le checkpoint est plus ancien que le dernier commit ou qu'un fichier modifié non commité, renvoie `hookSpecificOutput.additionalContext` : Claude reprend une fois pour le mettre à jour | Ignore (`onFailure` est sans effet sur `Stop`) |
 | secret-scan | PreToolUse | `Bash\|PowerShell\|Monitor` | Écarte sans `jq` une entrée sans le mot `commit`. Trouve chaque `git commit` comme guard-destructive (préfixes, `bash -c`, `eval`, `$(…)`), suit `cd`, `pushd`, `git -C`, `--git-dir`. Lit l'index (`git diff --cached`, valable avant le premier commit) et ce que le commit peut prendre d'autre : modifications non indexées pour `-a` ou un chemin nommé ; modifications et fichiers non suivis des chemins d'un `git add` de la même ligne (D13). Refuse `git init`, `git clone`, `git add -f`, `git apply --cached` sur la ligne d'un commit (D25). Bloque les noms `.env`, `.env.*` (sauf `.example`, `.sample`, `.template`), `*.jks`, `*.keystore`, `key.properties`, `*.p12`, `*.pfx`, et dans les lignes **ajoutées** : clé privée, clé AWS, `gh[pousr]_…`, `github_pat_…`, `sk-…`, `AIza…` (sauf dans la configuration Firebase, D24). Si gitleaks est installé, lance aussi `gitleaks git --pre-commit --staged`, et sans `--staged` pour tout l'arbre. Le secret n'est jamais affiché. Actif dans tout dépôt (D22) | Bloque le commit (fail-closed, y compris sans `grep` ou `awk`) |
@@ -481,11 +483,11 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 | Fichier | Vérifie |
 | --- | --- |
 | static/test\_manifest.sh | `plugin.json` et `marketplace.json` sont du JSON valide, champs requis présents, `name` en kebab-case et identique dans les deux, version SemVer, `homepage` et `repository` pointent vers `soonlysoul/plugin-flutter`, `source` vaut `./` |
-| static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; aucun agent ne liste `Agent` |
+| static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; product-architect n'a pas Bash ; aucun agent ne liste `Agent` |
 | static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec |
 | static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean ou suppression ; les `deny` attendus sont présents ; aucune règle `Write(…)` |
 | hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée, `jq` absent bloqué, appel `Monitor` couvert |
-| hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des trois agents ; commandes composées refusées ; erreurs internes bloquantes |
+| hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des cinq agents ; commandes composées refusées ; un agent sans branche de liste blanche refusé ; erreurs internes bloquantes |
 | hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |
 | hooks/test\_checkpoint\_reminder.sh | Rappel émis quand le checkpoint est plus ancien que les fichiers modifiés ; silence si `stop_hook_active`, sans `.forge/`, ou checkpoint à jour |
 | static/test\_tdd\_skill.sh | `create-feature/SKILL.md` contient les 15 étapes, dont ROUGE et VERT, chacune avec une commande et la consigne de consigner sa sortie |
