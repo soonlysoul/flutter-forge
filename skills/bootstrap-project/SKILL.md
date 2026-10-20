@@ -46,7 +46,7 @@ In the project directory, run `git init -b main`, unless it is already inside a 
 
 Create, in this order:
 
-1. `.forge/config.yaml` from `${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml`, with `platforms.enabled` set to the validated platforms. Every authorization stays false: only the user changes them, by editing the file. Create it now: once `.claude/settings.json` is installed (step 7), its deny rule `Edit(./.forge/config.yaml)` stops Claude from writing it. The protect-sensitive hook asks the user to confirm this write. If it is refused — a non-interactive run cannot ask — do not write the file another way: give the user `! mkdir -p .forge && sed -e 's/^  enabled: .*/  enabled: [<platforms>]/' ${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml > .forge/config.yaml`, with the platforms filled in, and wait.
+1. `.forge/config.yaml` from `${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml`, with `platforms.enabled` set to the validated platforms. Every authorization stays false: only the user changes them, by editing the file. Create it now: once `.claude/settings.json` is installed (step 7), its deny rule `Edit(./.forge/config.yaml)` stops Claude from writing it. The protect-sensitive hook asks the user to confirm this write. If it is refused — a non-interactive run cannot ask — do not write the file another way: give the user `! mkdir -p <directory>/.forge && sed -e 's|^  enabled: .*|  enabled: [<platforms>]|' ${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml > <directory>/.forge/config.yaml`, with the project directory (`.` for the current one) and the platforms filled in, and wait.
 2. `.forge/reports/.gitkeep`.
 3. `.forge/checkpoint.md` from `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`, with steps 1 to 4 ticked.
 
@@ -90,7 +90,7 @@ Ask both questions, then stop:
 1. Do you approve the PRD and the TRD as they are, or what should change? No application code is written before this approval.
 2. May I install the proposed permission rules in `.claude/settings.json`? Summarize `${CLAUDE_PLUGIN_ROOT}/templates/project-settings.json`: what runs without asking, what asks first, what is denied. Explain that the `allow` rules apply only after the user accepts the workspace trust prompt, while `deny` and `ask` always apply.
 
-On approval of a document, set its status to APPROVED with the date. On approval of the rules, copy the template to `.claude/settings.json`; if that file exists, show the merge and wait for agreement before writing. Claude Code protects its own configuration files: in a non-interactive run the write is denied. Do not work around it; give the user the exact command to run themselves, `! mkdir -p .claude && cp ${CLAUDE_PLUGIN_ROOT}/templates/project-settings.json .claude/settings.json`, and say that no project rule applies until then.
+On approval of a document, set its status to APPROVED with the date. On approval of the rules, copy the template to `.claude/settings.json`; if that file exists, show the merge and wait for agreement before writing. Claude Code protects its own configuration files: in a non-interactive run the write is denied. Do not work around it; give the user the exact command to run themselves, `! mkdir -p <directory>/.claude && cp ${CLAUDE_PLUGIN_ROOT}/templates/project-settings.json <directory>/.claude/settings.json`, with the project directory (`.` for the current one), and say that no project rule applies until then.
 
 ## Step 8 — Base test, green
 

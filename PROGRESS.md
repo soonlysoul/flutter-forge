@@ -35,7 +35,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 - [x] B — Agent product-architect et son périmètre dans agent-scope-guard, en TDD
 - [x] C — Skill update-project ; règles de permission
 - [x] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
-- [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
+- [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
 - [ ] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
 - [ ] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé)
 - [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite
@@ -128,6 +128,26 @@ Mineurs traités : resynchronisation d'un lock périmé (commit à part, sur la 
 Écarté par le relecteur, et maintenu hors périmètre : le comportement réel du modèle (F.2), la sémantique de `Bash(x *)` sur un `x` nu en 2.1.296 (non vérifiable sans session ; les deux formes sont désormais listées pour `flutter pub upgrade`), le contournement par lien symbolique d'agent-scope-guard (antérieur, dans SECURITY.md).
 
 Suite complète : exit 0 — 18 réussis (14 suites, 1 046 assertions, 4 validations).
+
+**Contre-vérification** de `d799064` par le même relecteur : 8 constats sur 9 résolus (I1 à I7, I9, plusieurs revérifiés par rejeu), I8 en partie, I10 ouvert comme prévu ; aucune régression des hooks ni du gabarit. Elle trouve 2 importants et 9 mineurs. Les deux trous de tests ont été reproduits avant correction (mutations M4, M5 et `allow` sur `flutter pub add --dev *` : 0 échec), le `sed` aussi (branche `release/2.x` : exit 1 et un `.forge/config.yaml` de 0 octet). 17 tests ROUGES, puis corrections :
+
+| Constat | Traitement |
+| --- | --- |
+| **Important** : après une adoption, `github-workflow pr` exige format et analyse à exit 0 et lance un `flutter analyze` nu, qui réécrirait un lock périmé | La référence d'adoption mesure aussi `dart format --output=none`. La PR par github-workflow seulement « when the baseline was clean » ; sinon PR ou fusion locale par l'utilisateur |
+| **Important** : une adoption reprise n'a plus la référence de l'étape 2, et l'attente sur `.forge/config.yaml` précédait le checkpoint | Le checkpoint est écrit avant `.forge/config.yaml`, avec la référence (dont l'exit de `--enforce-lockfile`) |
+| `sed` cassé par une branche contenant `/` | Délimiteur `\|` dans adopt, bootstrap **et** le `sed` du CI de github-workflow (même défaut depuis la v0.2) |
+| Commandes de bootstrap relatives au dossier de session, fausses pour un projet en sous-dossier | `<directory>/.forge/…` et `<directory>/.claude/…` (le second date de la v0.1) |
+| Lock resynchronisé : branche recréée à l'étape 6, registres oubliés, commit compté dans le rapport | « unless step 3 already created it » ; registres dans le commit de synchro ; rapport à partir de ce commit |
+| Paquets nommés : le lot compatible les déplaçait tous | `flutter pub upgrade <package> [<package>]` |
+| Transitifs comptés par ligne (`-`/`+` doublés) | Par paquet dont la `version:` change |
+| Test : `pub add --dev` passait ; exclusion morte (préfixe `12:` de `grep -n`) | La règle exacte du dry-run est retirée d'abord, tout autre `pub add` est refusé |
+| Test : phrases épinglées réduites à des fragments, fin de phrase inversable | Phrases entières, jusqu'au point |
+| `git rev-parse --abbrev-ref origin/HEAD` imprime `origin/HEAD` en échec | « only exit 0 counts » |
+| SDK comparé au format de la référence, jamais mesuré | `dart format --output=none --set-exit-if-changed .` dans la référence d'update-project |
+
+Mutations après correction : 5 sur 5 détectées (M4, M5, délimiteur `sed` remis à `/`, config écrite avant le checkpoint, `allow` sur `pub add --dev`). Écarté par le relecteur : `flutter pub deps` à l'étape 2 de debug-project (antérieur à la v0.3, hors adoption). Pas de troisième passe de revue, comme pour la v0.2. `docs/TROUBLESHOOTING.md` et `docs/INSTALLATION.md` citent encore l'ancienne commande `.claude/` : phase G.
+
+Suite complète : exit 0 — 18 réussis (14 suites, 1 061 assertions, 4 validations).
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 

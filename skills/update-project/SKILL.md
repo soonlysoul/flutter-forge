@@ -35,8 +35,8 @@ If `.github/workflows/ci.yml` exists, read its `flutter-version:` line. A versio
 
 ## Step 3 — Baseline
 
-1. `flutter pub get --enforce-lockfile`. Exit 0: the lockfile matches `pubspec.yaml`. Exit 65: it does not, and a plain `flutter pub get` would rewrite it — **validation point**: present that first change on its own. On approval, create the branch of step 6 now, run `flutter pub get`, commit the lockfile alone through the git-workflow skill (`chore(deps): sync pubspec.lock with pubspec.yaml`), then take the baseline below. Exit 1 without `pubspec.lock`: say whether `.gitignore` excludes it (a package often does); the before/after report then compares `pubspec.yaml` constraints only.
-2. `flutter analyze`, then `flutter test`. Record each exit code, the issue count and the test summary line: this is the baseline every batch is compared with.
+1. `flutter pub get --enforce-lockfile`. Exit 0: the lockfile matches `pubspec.yaml`. Exit 65: it does not, and a plain `flutter pub get` would rewrite it — **validation point**: present that first change on its own. On approval, create the branch of step 6 now, run `flutter pub get`, and commit `pubspec.lock` and the plugin registrants it regenerated, nothing else, through the git-workflow skill (`chore(deps): sync pubspec.lock with pubspec.yaml`): this is the sync commit. Then take the baseline below. Exit 1 without `pubspec.lock`: say whether `.gitignore` excludes it (a package often does); the before/after report then compares `pubspec.yaml` constraints only.
+2. `flutter analyze`, `flutter test`, then `dart format --output=none --set-exit-if-changed .` (it writes nothing). Record each exit code, the issue count and the test summary line: this is the baseline every batch is compared with.
 
 **A red baseline stops** the workflow: an update cannot be judged on a base that already fails. Present the failures and offer two choices: fix them first with the debug-project skill, or go on with these known failures recorded, which the user must say explicitly.
 
@@ -63,7 +63,7 @@ When the request names packages, the plan covers only them and the packages rele
 - one table: package | kind | current | target | class | batch | changelog (`https://pub.dev/packages/<package>/changelog` for every major);
 - the batches, in order:
   1. flagged packages first, each in its own batch: `flutter pub upgrade <package>` when its constraint allows the fix, `flutter pub upgrade --major-versions <package>` otherwise;
-  2. batch "compatible": `flutter pub upgrade` — every dependency within its current constraint, transitive ones included;
+  2. batch "compatible": `flutter pub upgrade` — every dependency within its current constraint, transitive ones included; when the request names packages, `flutter pub upgrade <package> [<package>]` moves only them;
   3. one batch per major: `flutter pub upgrade --major-versions <package>`. Packages released together go in one batch (`riverpod` with `flutter_riverpod`, a plugin with its `_platform_interface`). Dev dependencies such as lints first: they change the analysis, not the app;
 - what each major may require: code changes in the files that import it, done inside its batch;
 - the held-back packages and what holds them;
@@ -73,13 +73,13 @@ The user approves all batches, some of them, or none. A major is applied only if
 
 ## Step 6 — Branch
 
-Through the git-workflow skill: `git switch -c chore/deps-<slug>` from the default branch.
+Through the git-workflow skill: `git switch -c chore/deps-<slug>` from the default branch, unless step 3 already created it to sync the lockfile.
 
 ## Step 7 — One batch at a time
 
 For each approved batch, in order:
 
-1. Run its command: `flutter pub upgrade`, or `flutter pub upgrade --major-versions <package> [<package>]`. The project rules ask for confirmation. Record the changed lines of its output (`> package new (was old)`).
+1. Run its command: `flutter pub upgrade`; `flutter pub upgrade <package> [<package>]` for named or flagged packages; or `flutter pub upgrade --major-versions <package> [<package>]`. The project rules ask for confirmation. Record the changed lines of its output (`> package new (was old)`).
 2. `git status --short`. Expected, besides the workflow state (`.forge/checkpoint.md`, `.forge/reports/`): `pubspec.lock`; `pubspec.yaml` for a major; the generated plugin registrants when the set of plugins changed (`linux/flutter/generated_plugin_registrant.cc`, `linux/flutter/generated_plugins.cmake`, their `windows/` equivalents, `macos/Flutter/GeneratedPluginRegistrant.swift`). Any other file: stop and report it.
 3. For a major: find the package's `rootUri` in `.dart_tool/package_config.json` and read the `CHANGELOG.md` there, from the old version to the new one. List the breaking changes. Find the project's uses with Grep (`package:<package>/`) and check each breaking change against them. For a Flutter plugin, read the `flutter: plugin: platforms:` section of its `pubspec.yaml` there and compare it with `platforms.enabled`: a platform that is no longer supported stops the batch — **validation point**.
 4. `flutter analyze`, then `flutter test`. Both must exit 0, or be no worse than the baseline the user accepted. Record both results for the report.
@@ -111,7 +111,7 @@ When the user asks to update Flutter, or when packages are held back by the SDK:
 ## Step 8 — Before/after report
 
 1. `flutter pub outdated --json --show-all`: its `current` column gives the "after" of every direct and dev dependency, updated ones included (without `--show-all`, an up-to-date package is left out); a newer `latest` marks what was not updated.
-2. `git diff <default branch> -- pubspec.lock`: count the changed `version:` lines, the direct dependencies apart, for the transitive changes. `git log --oneline <default branch>..HEAD` for the batch commits.
+2. Call `<base>` the default branch, or the sync commit when step 3 made one. `git diff <base> -- pubspec.lock`: count the packages whose `version:` changed (one `+    version:` line each), the direct dependencies apart, for the transitive changes. `git log --oneline <default branch>..HEAD` for the batch commits.
 3. Write `.forge/reports/deps-<YYYY-MM-DD>-<slug>.md` from `${CLAUDE_PLUGIN_ROOT}/skills/update-project/reference/deps-report.md`: toolchain before and after, batches with their commits, versions before and after, packages not updated and why, analysis and tests at the baseline and after the last batch, breaking changes handled.
 4. Commit the report with the updated checkpoint through git-workflow: `docs(deps): report the dependency update`.
 

@@ -15,6 +15,7 @@ CF="$PLUGIN_ROOT/skills/create-feature/SKILL.md"
 DBG="$PLUGIN_ROOT/skills/debug-project/SKILL.md"
 BS="$PLUGIN_ROOT/skills/bootstrap-project/SKILL.md"
 GW="$PLUGIN_ROOT/skills/git-workflow/SKILL.md"
+GH="$PLUGIN_ROOT/skills/github-workflow/SKILL.md"
 
 # says <file> <label> <fixed string>
 says() { grep -qiF -- "$3" "$1" && pass "$2" || fail "$2" "missing: $3"; }
@@ -90,12 +91,12 @@ if [[ -f $UP ]]; then
   says "$UP" "writes the checkpoint" "skill: update-project"
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$UP" "report category $category" "$category"; done
   only_in "$UP" "never runs flutter upgrade, downgrade or channel itself" 'flutter (upgrade|downgrade|channel)' \
-    'Never run `flutter upgrade`, `flutter downgrade` or `flutter channel <name>`' \
-    'the user runs `! flutter upgrade` themselves'
+    'Never run `flutter upgrade`, `flutter downgrade` or `flutter channel <name>`: they change Flutter for every project on this machine.' \
+    'Otherwise the user runs `! flutter upgrade` themselves, knowing it changes Flutter for every project on this machine.'
   only_in "$UP" "uses flutter pub, never dart pub" 'dart pub' \
-    '**`flutter pub`, never `dart pub`.** In a Flutter project, `dart pub` fails with exit 69'
+    '**`flutter pub`, never `dart pub`.** In a Flutter project, `dart pub` fails with exit 69 when the `dart` on the PATH is not the Flutter one, as on NixOS.'
   only_in "$UP" "never forces a resolution with dependency_overrides (no other mention)" 'dependency_overrides' \
-    'never add `dependency_overrides` to force a resolution'
+    'Never edit `pubspec.lock` by hand, and never add `dependency_overrides` to force a resolution: a conflict goes to the user.'
   # Review of v0.3 (Important 5, 6; minor items).
   says "$UP" "dropping a batch restores every file it changed" "every file the batch changed"
   says "$UP" "after a drop, analysis and tests are compared with the baseline again" "compare them with the baseline"
@@ -108,6 +109,16 @@ if [[ -f $UP ]]; then
   says "$UP" "explains a held-back package without changing a file" "flutter pub add --dry-run"
   says "$UP" "checks formatting after an SDK change" "dart format --output=none --set-exit-if-changed ."
   says "$UP" "a package argument narrows the plan" "When the request names packages"
+  # Counter-verification of the v0.3 review.
+  says "$UP" "counts transitive changes by package, not by diff line" "packages whose \`version:\` changed"
+  says "$UP" "the stale-lock branch is not created twice" "unless step 3 already created it"
+  says "$UP" "the sync commit carries the registrants it regenerated" "and the plugin registrants it regenerated"
+  says "$UP" "the report starts after the sync commit" "the sync commit"
+  step3=$(awk '/^## Step 3 /{f=1; print; next} /^## /{f=0} f' "$UP")
+  [[ $step3 == *"dart format --output=none --set-exit-if-changed ."* ]] && pass "the baseline records formatting" \
+    || fail "the baseline records formatting" "step 3 has no dart format"
+  [[ $step7 == *'`flutter pub upgrade <package> [<package>]`'* ]] && pass "named packages move alone in a batch" \
+    || fail "named packages move alone in a batch" "step 7 lacks flutter pub upgrade <package> [<package>]"
 else
   fail "skills/update-project/SKILL.md exists"
 fi
@@ -123,7 +134,7 @@ if [[ -f $REPORT ]]; then
   says "$REPORT" "says whether the lockfile is committed" "| Lockfile |"
   says "$REPORT" "records the CI pin" "| CI pin |"
   says "$REPORT" "analysis and tests after each batch" "| # | Command | Packages | Commit | analyze | test | Result |"
-  says "$REPORT" "counts transitive changes by version lines, not diff lines" "changed \`version:\` lines"
+  says "$REPORT" "counts transitive changes by package, not by diff line" "packages whose \`version:\` changed"
 else
   fail "skills/update-project/reference/deps-report.md exists"
 fi
@@ -160,7 +171,7 @@ if [[ -f $AD ]]; then
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$AD" "report category $category" "$category"; done
   # Before the plan (steps 1 to 4), every flutter command that could run pub get must not.
   # The one sentence that forbids the plain forms is removed word for word, nothing else.
-  rule='never run `flutter pub get` without `--enforce-lockfile`, nor `flutter analyze` or `flutter test` without `--no-pub`'
+  rule='Before the plan is approved, never run `flutter pub get` without `--enforce-lockfile`, nor `flutter analyze` or `flutter test` without `--no-pub`: a plain one runs `pub get`, which rewrites a `pubspec.lock` that does not match `pubspec.yaml`.'
   before_plan=$(awk '/^## Step 5 /{exit} {print}' "$AD")
   [[ $before_plan == *"$rule"* ]] && pass "states the no pub get rule" || fail "states the no pub get rule" "missing: $rule"
   before_plan=${before_plan//"$rule"/}
@@ -168,7 +179,7 @@ if [[ -f $AD ]]; then
   [[ -z $bad ]] && pass "before the plan, flutter analyze and test always carry --no-pub" || fail "before the plan, flutter analyze and test always carry --no-pub" "$bad"
   bad=$(grep -oE '`flutter pub get[^`]*`' <<<"$before_plan" | grep -v -- '--enforce-lockfile')
   [[ -z $bad ]] && pass "before the plan, flutter pub get always carries --enforce-lockfile" || fail "before the plan, flutter pub get always carries --enforce-lockfile" "$bad"
-  only_in "$AD" "uses flutter pub, never dart pub" 'dart pub' '**`flutter pub`, never `dart pub`**, which fails with exit 69'
+  only_in "$AD" "uses flutter pub, never dart pub" 'dart pub' '**`flutter pub`, never `dart pub`**, which fails with exit 69 when the `dart` on the PATH is not the Flutter one.'
   # Review of v0.3 (Important 1 to 4, 7, 8; minor items).
   says "$AD" "flutter pub deps rewrites a stale lockfile too" "\`flutter pub deps\` rewrites it too"
   says "$AD" "tells the flutter-architect whether the lockfile matches" "whether the lockfile matches"
@@ -179,6 +190,18 @@ if [[ -f $AD ]]; then
   says "$AD" "finds the default branch from the remote" "origin/HEAD"
   says "$AD" "resumes an interrupted adoption from its checkpoint" "resume from its next action"
   says "$AD" "lists new untracked files too" "--untracked-files=all"
+  # Counter-verification of the v0.3 review.
+  says "$AD" "the baseline records formatting" "dart format --output=none --set-exit-if-changed ."
+  says "$AD" "github-workflow pr only after a clean baseline" "When the baseline was clean"
+  says "$AD" "the checkpoint keeps the step-2 baseline" "baseline of step 2"
+  step5=$(awk '/^## Step 5 /{f=1; print; next} /^## /{f=0} f' "$AD")
+  checkpoint_at=$(grep -n '^[0-9]\..*`\.forge/checkpoint\.md`' <<<"$step5" | head -1 | cut -d: -f1)
+  config_at=$(grep -n '^[0-9]\..*`\.forge/config\.yaml`' <<<"$step5" | head -1 | cut -d: -f1)
+  [[ -n $checkpoint_at && -n $config_at ]] && ((checkpoint_at < config_at)) \
+    && pass "the checkpoint exists before the .forge/config.yaml wait" \
+    || fail "the checkpoint exists before the .forge/config.yaml wait" "checkpoint item line ${checkpoint_at:-none}, config item line ${config_at:-none}"
+  says "$AD" "the sed survives a branch with a slash" "s|^  default_branch: .*|"
+  says "$AD" "relies on the exit code of git rev-parse origin/HEAD" "only exit 0 counts"
 else
   fail "skills/adopt-existing-project/SKILL.md exists"
 fi
@@ -206,7 +229,10 @@ says "$DBG" "debug-project reports the reviewer's DIVERGENCES" "DIVERGENCES"
 
 echo "# delegation and flutter pub"
 says "$BS" "bootstrap-project delegates a long brief to the product-architect" "product-architect"
-says "$BS" "bootstrap-project gives a command when the .forge/config.yaml write is refused" "templates/forge-config.yaml > .forge/config.yaml"
+says "$BS" "bootstrap-project gives a command when the .forge/config.yaml write is refused" "templates/forge-config.yaml > <directory>/.forge/config.yaml"
+says "$BS" "bootstrap-project's sed survives a slash" "s|^  enabled: .*|"
+says "$BS" "bootstrap-project's settings command names the project directory" "<directory>/.claude/settings.json"
+says "$GH" "github-workflow's CI sed survives a branch with a slash" "s|__DEFAULT_BRANCH__|"
 says "$BS" "bootstrap-project checks the agent's files with untracked files listed" "--untracked-files=all"
 says "$FA" "flutter-architect runs flutter pub deps only on a matching lockfile" "rewrites \`pubspec.lock\`"
 says "$GW" "git-workflow names the adoption branch" "chore/adopt-plugin-flutter"

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Branch | chore/deps-<slug> |
-| Base | <default branch> at <short hash> |
+| Base | <default branch> at <short hash>; sync commit: <short hash> or none |
 | Flutter | before <version> (<channel>, Nix: yes/no) → after <version> |
 | Dart | before <version> → after <version> |
 | CI pin | `flutter-version` in .github/workflows/ci.yml: <version>, must change: yes/no — or "no CI" |
@@ -22,7 +22,7 @@
 | --- | --- | --- | --- | --- | --- |
 | <package> | direct / dev | <version> | <version> | patch / minor / major / unchanged | <n> |
 
-Transitive dependencies changed: <n> (changed `version:` lines of `git diff <default branch> -- pubspec.lock`, direct dependencies excluded).
+Transitive dependencies changed: <n> (packages whose `version:` changed in `git diff <base> -- pubspec.lock`, direct dependencies excluded; `<base>`: the default branch, or the sync commit).
 
 ## Not updated
 

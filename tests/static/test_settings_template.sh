@@ -68,7 +68,8 @@ else
   done
   [[ -z $missing ]] && pass "changing the machine's Flutter SDK, or every dependency at once, asks first" || fail "changing the machine's Flutter SDK, or every dependency at once, asks first" "missing:$missing"
 
-  risky=$(grep -nE 'upgrade|downgrade|channel|pub add( [^-]|\)$| \*\)$)' <<<"$allow" | grep -vxF 'Bash(flutter pub add --dry-run *)')
+  # The one dry-run rule is removed first; any other pub add would change pubspec.yaml.
+  risky=$(grep -vxF 'Bash(flutter pub add --dry-run *)' <<<"$allow" | grep -nE 'upgrade|downgrade|channel|pub add')
   [[ -z $risky ]] && pass "no allow rule upgrades a dependency or the SDK" || fail "no allow rule upgrades a dependency or the SDK" "$risky"
 
   risky=$(grep -nE 'gh (pr (create|edit)|repo create|issue create|workflow run|run (rerun|cancel|download)|api|auth token)|show-token|^Bash\(gh \*\)$' <<<"$allow")
