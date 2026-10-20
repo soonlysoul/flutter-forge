@@ -1,4 +1,4 @@
-# Behavioural scenarios — v0.1
+# Behavioural scenarios — v0.1 and v0.2
 
 These scenarios need a Claude Code session and **consume the subscription quota**. They are never
 run by `tests/run-all.sh`. Run them only after the user agreed, with an estimate of the sessions
@@ -11,6 +11,9 @@ and turns, and record each result as passed, failed, blocked (reason) or not run
 | 3 | [Preservation of uncommitted work](03-preservation.md) | 1 turn | the project of scenario 1 |
 | 4 | [Blocking `git reset --hard`](04-blocking.md) | 1 turn | — |
 | 5 | [Recovery after an interruption](05-recovery.md) | 1 turn | the project of scenario 2 |
+| 7 | [A commit holding a secret is blocked](07-secret-scan.md) | 1 turn | — |
+| 8 | [Debug a failing test](08-debug.md) | 1–2 turns | — |
+| 9 | [Pull request with a green CI](09-github-pr.md) | 5–6 turns, a GitHub repository and CI minutes | the user's approval of owner, name, visibility |
 
 Scenario 6 of ARCHITECTURE.md (existing repository) belongs to adopt-existing-project, v0.3.
 

@@ -12,8 +12,8 @@ Un plugin **ne peut pas** imposer de règles de permission : le `settings.json` 
 
 ## Couche 1 — les règles de permission proposées
 
-- **Sans demander** : `flutter test`, `flutter analyze`, `dart format`, `flutter pub get`, `git status`, `git diff`, `git log`, `git add <fichiers>`, `git switch`.
-- **Demandent d'abord** : `git commit`, `git push`, `gh pr create`, `flutter pub upgrade`, et `git add -A` / `git add .` / `git add --all`.
+- **Sans demander** : `flutter test`, `flutter analyze`, `dart format`, `flutter pub get`, `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `git status`, `git diff`, `git log`, `git add <fichiers>`, `git switch`, `git remote -v`, `git rev-parse`, `git branch --show-current`, et les `gh` en lecture : `gh --version`, `gh auth status`, `gh repo view`, `gh pr view`, `gh pr checks`, `gh run list`, `gh run view`, `gh run watch`, `gh workflow list`, `gh workflow view`, `gh issue list`, `gh issue view`.
+- **Demandent d'abord** : `git commit`, `git push`, `gh pr create`, `gh pr edit`, `gh repo create`, `gh issue create`, `gh run rerun`, `gh workflow run` (ces deux derniers consomment des minutes de CI), `flutter pub upgrade`, et `git add -A` / `git add .` / `git add --all`.
 - **Refusées** : `git reset --hard`, `git clean`, `git push --force` et ses variantes (`-f`, `+ref`), `git branch -D`, `gh repo delete`, `gh pr merge`, `dart pub publish`, `flutter pub publish`, la lecture de `.env`, `.env.*` et `key.properties`, et toute modification de `.forge/config.yaml`.
 
 À savoir :
@@ -37,13 +37,32 @@ Actif sur `Bash`, `PowerShell` et `Monitor`, dans toutes les sessions où le plu
 
 Il découpe la commande, ignore le texte cité (un message de commit qui parle de `git push --force` passe), passe les préfixes (`sudo`, `env`, `VAR=…`, `timeout`…) et descend dans `bash -c`, `eval`, `$(…)`, les accents graves, `find -exec`, les heredocs donnés à un shell et les substitutions des heredocs non cités.
 
+### secret-scan
+
+Actif sur `Bash`, `PowerShell` et `Monitor`, dans toutes les sessions où le plugin est activé, comme guard-destructive : un secret n'a sa place dans aucun dépôt. Avant un `git commit`, il refuse :
+
+- les fichiers de secrets, quel que soit leur contenu : `.env` et `.env.*` (sauf `.env.example`, `.env.sample`, `.env.template`), `*.jks`, `*.keystore`, `key.properties`, `*.p12`, `*.pfx` ;
+- les **lignes ajoutées** qui contiennent une clé privée (`-----BEGIN … PRIVATE KEY`), une clé d'accès AWS, un jeton GitHub (`ghp_…`, `gho_…`, `github_pat_…`), une clé `sk-…` (OpenAI, Anthropic…) ou une clé Google (`AIza…`). Retirer un secret d'un fichier passe ; un certificat public passe. Les clés Google des fichiers de configuration Firebase (`firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) passent aussi : elles sont faites pour être livrées avec l'app, et seule la règle Google est levée pour ces fichiers.
+
+Il lit ce que le commit peut inclure, et seulement cela : l'index (`git diff --cached`, y compris avant le premier commit) ; les modifications non indexées prises par `-a` ou par un chemin nommé ; les modifications et les fichiers non suivis désignés par un `git add` de la même ligne (`git add lib/a.dart && git commit` ne lit que `lib/a.dart`, `git add .` tout le dossier). Il suit `cd`, `pushd`, `git -C`, `--git-dir`, `bash -c`, `eval` et `$(…)`.
+
+Il **refuse** ce qu'il ne peut pas vérifier avant que la commande s'exécute, en demandant de la découper : `git init` ou `git clone` sur la même ligne qu'un commit (le dépôt n'existe pas encore), `git add -f` (un fichier ignoré, que l'index ne montre pas encore), `git apply --cached`. Si **gitleaks** est installé, il le lance en plus (`gitleaks git --pre-commit --staged`), ce qui couvre des centaines de formats de plus ; les règles de noms de fichiers restent les siennes.
+
+Le secret n'est **jamais affiché** : le message nomme le fichier et la règle, puis demande de désindexer le fichier et de vous dire lequel le contenait. Une commande qui ne contient pas le mot `commit` est écartée sans même lancer `jq`.
+
+### protect-sensitive
+
+Actif sur `Edit`, `Write` et `NotebookEdit`, **seulement dans un projet qui a un dossier `.forge/`** : le plus proche dossier parent du fichier qui en contient un, même si la session a été ouverte plus haut. Avant d'écrire un fichier de signature (`key.properties`, `*.keystore`, `*.jks`, `*.p12`, `*.pfx`), des entitlements Apple (`*.entitlements`) ou du code de CI (`.github/workflows/*`, `.github/actions/*`), il vous demande confirmation dans l'invite de permission, étiquetée `[plugin:plugin-flutter]`. `.forge/config.yaml` est protégé partout, même dans un projet où `.claude/settings.json` n'est pas installé.
+
+En mode non interactif (`claude -p`), personne ne peut répondre : l'écriture est refusée, et Claude lit la raison. Les skills donnent alors la commande à lancer vous-même.
+
 ### agent-scope-guard
 
-Inerte hors des trois agents du plugin. Pour eux, il refuse toute écriture hors de leurs dossiers et toute commande hors de leur liste (voir le [guide](USER_GUIDE.md#les-agents)). Il compense une limite de Claude Code : le frontmatter d'un agent ne sait pas restreindre Bash à certaines commandes, ni l'écriture à certains dossiers.
+Inerte hors des quatre agents du plugin. Pour eux, il refuse toute écriture hors de leurs dossiers et toute commande hors de leur liste (voir le [guide](USER_GUIDE.md#les-agents)). Il compense une limite de Claude Code : le frontmatter d'un agent ne sait pas restreindre Bash à certaines commandes, ni l'écriture à certains dossiers.
 
 ### Fail-closed
 
-Les deux gardes **bloquent en cas de doute** : `jq` absent, entrée illisible, bibliothèque manquante, imbrication trop profonde. Ils sortent alors en 2, et `hooks.json` déclare `"onFailure": "block"`, qui couvre aussi un script introuvable, un plantage ou un délai dépassé. Ce champ exige Claude Code 2.1.295. Un hook qui sortirait en 1 laisserait passer la commande.
+Les quatre gardes — guard-destructive, agent-scope-guard, secret-scan (pour un commit) et protect-sensitive (pour un fichier sensible) — **bloquent en cas de doute** : `jq` absent, entrée illisible, bibliothèque manquante, imbrication trop profonde. Ils sortent alors en 2, et `hooks.json` déclare `"onFailure": "block"`, qui couvre aussi un script introuvable, un plantage ou un délai dépassé. Ce champ exige Claude Code 2.1.295. Un hook qui sortirait en 1 laisserait passer la commande.
 
 `format-dart` et `checkpoint-reminder` sont au contraire **fail-open** : ils ne bloquent jamais rien.
 
@@ -63,6 +82,17 @@ Le guard est un **filet de sécurité, pas une garantie**. Il analyse la command
 - `git checkout <fichier>` sans `--`, impossible à distinguer de `git checkout <branche>` ;
 - un script lancé par fichier (`bash script.sh`), dont le contenu n'est pas lu.
 
+Pour secret-scan :
+
+- sans gitleaks, ses motifs sont volontairement peu nombreux : un jeton Slack, Stripe ou une clé secrète AWS (`aws_secret_access_key`) passent. **Installez gitleaks** pour une vraie couverture (sous NixOS : `home.packages = [ pkgs.gitleaks ];` dans Home Manager) ;
+- il ne voit que `git commit` : pas `git commit-tree`, `git merge`, `git cherry-pick`, `git rebase`, `git am`, ni un commit fait par un script lancé par fichier ;
+- un `cd` vers un chemin qui contient une variable bloque le commit, faute de savoir quel dépôt il vise ;
+- un fichier modifié sur la même ligne par une autre commande (`echo … >> f && git commit -a`, `sed -i`, `git apply` sans `--cached`) est lu dans son état d'avant : le hook passe avant toute la ligne ;
+- gitleaks lit l'index, et l'arbre de travail entier pour `-a` ou `git add -A` ; un fichier non suivi n'est lu que par les motifs intégrés ;
+- un faux positif (clé d'exemple dans un test) se lève par vous seul : `! git commit …`.
+
+Pour protect-sensitive : sans `jq`, il ne connaît pas le chemin du fichier et ne regarde que la racine de session ; il ne voit que les outils d'écriture de Claude ; une écriture par Bash (`sed -i`, `cp`, redirection) lui échappe. La règle `deny` `Edit(./.forge/config.yaml)` et la relecture du diff avant commit restent les autres barrières.
+
 Pour agent-scope-guard : un lien symbolique placé sous `test/` et pointant ailleurs n'est pas suivi ; la racine du projet est `CLAUDE_PROJECT_DIR`, c'est-à-dire le dossier où la session a été lancée.
 
 Les règles `deny` de la couche 1 forment la seconde barrière pour les formes courantes. Signalez toute formulation qui passe : elle deviendra un test.
@@ -70,9 +100,11 @@ Les règles `deny` de la couche 1 forment la seconde barrière pour les formes c
 ## Secrets
 
 - Aucun jeton ni secret n'est affiché, écrit dans `.forge/` ou passé en argument de commande visible.
-- `git-workflow` relit `git diff --cached` avant chaque commit, à la recherche de motifs de secrets (clés AWS, `-----BEGIN`, `ghp_`, `sk-`, `AIza`). Le hook `secret-scan` arrive en v0.2.
+- Le hook `secret-scan` vérifie chaque commit (voir plus haut) ; `git-workflow` relit aussi `git diff --cached` avant de committer.
+- `github-workflow` ne demande, n'affiche ni ne transmet jamais de jeton : sans `gh auth status` valide, il s'arrête et vous laisse lancer `! gh auth login`. L'agent devops-engineer ne peut pas lancer `gh auth status --show-token`.
+- Le gabarit CI n'utilise aucun secret, donne au jeton de la CI la lecture seule (`contents: read`), ne le garde pas dans `.git/config` (`persist-credentials: false`) et épingle ses actions par SHA de commit.
 - `.gitignore` des projets générés : `.env*`, `*.jks`, `*.keystore`, `key.properties`.
 
 ## Actions toujours soumises à votre accord
 
-Quelle que soit la configuration : fusion dans la branche principale, changement de visibilité, suppression, release publique, toute dépense, tout changement de fournisseur ou de mode d'authentification.
+Quelle que soit la configuration : fusion dans la branche principale, changement de visibilité, suppression, release publique, toute dépense, tout changement de fournisseur ou de mode d'authentification. S'y ajoutent, depuis la v0.2 : la création du dépôt distant (propriétaire, nom et visibilité reconfirmés à chaque fois), l'ajout ou la modification de la CI, et toute relance de CI sur un dépôt privé, qui consomme des minutes.

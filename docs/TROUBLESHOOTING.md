@@ -34,6 +34,38 @@ Le guard préfère un faux positif à une commande destructive. Cas courants :
 
 Claude ne doit jamais reformuler une commande bloquée pour la faire passer. S'il le fait, signalez-le.
 
+## Un commit est bloqué par secret-scan
+
+**Symptôme** : `Blocked by plugin-flutter (secret-scan): this commit would include secrets:`, suivi des fichiers et des règles.
+
+**Si c'est un vrai secret** : désindexer le fichier (`git restore --staged <fichier>`, ou `git rm --cached <fichier>` avant le premier commit), sortir le secret du code (variable d'environnement, fichier non suivi listé dans `.gitignore`), puis committer. Si le secret a déjà été poussé, le révoquer : le retirer de l'historique ne suffit pas.
+
+**Si c'est un faux positif** (clé d'exemple dans un test, clé Firebase publique) : vous seul pouvez lever le blocage, en lançant le commit vous-même (`! git commit …`). Avec gitleaks, un commentaire `gitleaks:allow` sur la ligne ou un fichier `.gitleaksignore` évite le blocage suivant ; les règles de noms de fichiers et les motifs intégrés du hook, eux, ne lisent pas ces exceptions.
+
+**« … in a separate command »** : la ligne fait quelque chose que le hook ne peut pas voir avant qu'elle s'exécute — `git init` ou `git clone`, `git add -f`, `git apply --cached` suivis d'un commit. Lancer cette commande seule, puis le commit dans un second appel : le hook lit alors le vrai index.
+
+**`gitleaks failed (exit …)`** : gitleaks est installé mais n'a pas pu tourner, souvent à cause d'un `.gitleaks.toml` invalide. Le commit est bloqué par prudence ; corriger la configuration, ou lancer `gitleaks git --pre-commit --staged -v` à la main pour voir l'erreur.
+
+## Claude demande confirmation pour écrire un fichier
+
+**Symptôme** : une invite étiquetée `[plugin:plugin-flutter]` demande de confirmer l'écriture de `key.properties`, d'un keystore, d'entitlements, de `.github/workflows/…` ou de `.forge/config.yaml`.
+
+**Cause** : le hook protect-sensitive. C'est voulu : ces fichiers signent l'app, lui donnent des droits, ou s'exécutent avec les jetons du dépôt.
+
+**Solution** : approuver si vous avez demandé ce changement. En mode `-p`, l'écriture est refusée ; le skill donne alors la commande à lancer vous-même.
+
+## `github-workflow` s'arrête sur `gh auth status`
+
+**Cause** : `gh` n'est pas installé, ou pas connecté au compte voulu.
+
+**Solution** : `! gh auth login` (dans la session, avec le préfixe `!`, ou dans un terminal). Ne collez jamais de jeton dans la conversation. Vérifiez ensuite le compte actif avec `gh auth status`.
+
+## La CI échoue alors que tout passe en local
+
+**Causes courantes** : la version de Flutter de la CI diffère de la vôtre (le gabarit l'épingle sur `flutter --version` au moment de l'ajout : relancez `/plugin-flutter:github-workflow ci` après une mise à jour de Flutter) ; un fichier non formaté (`dart format --set-exit-if-changed .`) ; un fichier oublié dans le commit.
+
+**Solution** : `/plugin-flutter:github-workflow checks` fait lire les journaux à l'agent devops-engineer, qui classe l'échec ; un échec du code part ensuite vers `/plugin-flutter:debug-project`.
+
 ## Les agents ne peuvent ni écrire ni lancer `flutter test`
 
 **Symptôme** : `Blocked by plugin-flutter (agent-scope-guard): test-engineer may only write under: test/, integration_test/` pour un fichier qui est pourtant sous `test/`.
@@ -74,7 +106,7 @@ Tant que ce n'est pas fait, aucune règle du projet ne s'applique, y compris la 
 
 **Cause probable** : son frontmatter ne se lit plus. Claude Code charge alors l'agent avec tous ses champs ignorés, donc avec **tous les outils**, sans message. Le validateur officiel ne le détecte pas, même avec `--strict` : `claude plugin validate agents --strict` accepte par exemple `description: Use when: …`, qui n'est pas du YAML valide.
 
-**Solution** : `bash tests/static/test_frontmatter.sh` nomme la ligne fautive. Un `: ` dans une valeur exige des guillemets. agent-scope-guard continue de limiter les écritures et les commandes des trois agents.
+**Solution** : `bash tests/static/test_frontmatter.sh` nomme la ligne fautive. Un `: ` dans une valeur exige des guillemets. agent-scope-guard continue de limiter les écritures et les commandes des quatre agents.
 
 ## Claude reprend la main pour mettre à jour le checkpoint
 

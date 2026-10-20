@@ -12,24 +12,28 @@ Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** e
 | # | Retenu par défaut |
 | --- | --- |
 | D12 | Travail sur la branche locale `feat/v0.2`, un commit local par phase ; rien n'est poussé avant la publication |
-| D13 | secret-scan lit toujours l'index (`git diff --cached`, valable avant le premier commit). Il lit aussi les modifications non indexées et les fichiers non suivis quand le commit peut les inclure : `-a`/`--all`, `-i`, `-o`, chemins nommés, ou commande d'indexation dans la même ligne (`git add x && git commit`). Le diff est lu fichier par fichier, car git ajoute une tabulation après un chemin qui contient une espace |
+| D13 | *(corrigée après la revue, I2)* secret-scan lit toujours l'index (`git diff --cached`, valable avant le premier commit). Il lit aussi ce que le commit peut prendre d'autre, et seulement cela : les modifications non indexées pour `-a` (tout l'arbre), pour un chemin nommé ou `-i`/`-o` (ce chemin) ; les modifications et les fichiers non suivis désignés par un `git add`/`git stage` de la même ligne (ses chemins, résolus depuis son dossier ; tout l'arbre pour `-A`, `--pathspec-from-file` ou un chemin à variable). Un fichier non suivi n'est jamais lu pour `-a`. Un seul diff global, puis lecture fichier par fichier seulement s'il contient un motif (800 fichiers : 0,1 s) |
 | D14 | Détection : noms de fichiers (`.env`, `.env.*` sauf `.example`/`.sample`/`.template`, `*.jks`, `*.keystore`, `key.properties`) et motifs sur les **lignes ajoutées** seulement : `-----BEGIN … PRIVATE KEY` (un certificat public passe), clés AWS, `gh[pousr]_…` et `github_pat_…`, `sk-` précédé d'une frontière et suivi d'au moins 20 caractères (`task-…` passe), `AIza…`. Le secret n'est jamais affiché. gitleaks, s'il est installé, s'ajoute aux motifs (`gitleaks git --pre-commit --staged`, forme 8.19+ ; `protect` est dépréciée) sans les remplacer : il ne regarde pas les noms de fichiers. Le plugin ne l'installe pas. Un faux positif se lève par l'utilisateur (`! git commit …`) |
-| D15 | protect-sensitive répond `ask` (JSON, exit 0), pas exit 2 : l'utilisateur confirme dans l'invite ; en `-p`, l'appel est refusé et Claude lit la raison (doc vérifiée). Inerte hors d'un projet ayant `.forge/`, sauf pour un `.forge/config.yaml`, protégé partout. Liste : celle d'ARCHITECTURE.md, plus `*.jks` et `macos/Runner/*.entitlements` |
+| D15 | protect-sensitive répond `ask` (JSON, exit 0), pas exit 2 : l'utilisateur confirme dans l'invite ; en `-p`, l'appel est refusé et Claude lit la raison (doc vérifiée). Inerte hors d'un projet ayant `.forge/`, sauf pour un `.forge/config.yaml`, protégé partout. Liste : celle d'ARCHITECTURE.md, élargie à tout `key.properties`, `*.jks` et tout `*.entitlements` (iOS comme macOS) |
 | D16 | devops-engineer : `sonnet` ; écriture sous `.github/` seulement ; Bash en lecture : `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status`, `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, git en lecture et `git remote -v`. Il ne pousse pas, n'ouvre pas de PR, ne relance pas de CI : ces actions restent dans la session principale, derrière un point de validation |
 | D17 | Le fichier CI est écrit par la session principale depuis le gabarit (copie courte, protect-sensitive demande confirmation). devops-engineer sert aux builds par plateforme et au diagnostic d'une CI rouge, dont les journaux sont longs. Actions épinglées par SHA : `actions/checkout` v7.0.1, `subosito/flutter-action` v2.23.0 ; `flutter-version` fixée à la version locale |
 | D18 | `project-settings.json` : `allow` pour les `gh` en lecture (`auth status`, `pr view`, `pr checks`, `run list`, `run view`) ; `ask` pour `gh repo create`, `gh pr edit`, `gh issue create`, `gh run rerun`, `gh workflow run` |
 | D19 | debug-project écrit lui-même le test de non-régression (le contexte du bug est dans la session) ; le code-reviewer relit le correctif |
 | D20 | Pas de champ `if` dans `hooks.json` : `Bash(git commit *)` ne voit pas `git -C x commit`, et le script écarte une commande sans `commit` avant même de lancer `jq` |
 | D21 | Version 0.2.0 (mineure : skills et agent ajoutés, format de `.forge/` inchangé) |
+| D22 | secret-scan agit dans **tout** dépôt, comme guard-destructive : un secret commité est un problème partout. Un faux positif ailleurs se lève de la même façon (`! git commit …`) |
+| D24 | *(revue, I3)* Les clés Google des fichiers de configuration Firebase (`firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) passent : elles sont faites pour être livrées avec l'app. Seule la règle Google est levée pour ces trois noms, y compris la règle `gcp-api-key` de gitleaks ; les autres motifs s'y appliquent. Le message de blocage demande de consulter l'utilisateur avant de déplacer quoi que ce soit |
+| D25 | *(revue, C1 et I1)* secret-scan refuse ce qu'il ne peut pas vérifier avant son exécution : `git init` ou `git clone`, `git add -f` et `git apply --cached`/`--index` sur la même ligne qu'un commit. Le message demande de lancer ces commandes à part. Un dossier créé sur la ligne (`mkdir x && cd x && git commit`) est rattaché au dépôt de son plus proche parent existant ; un `cd` dans un sous-shell `( … )` fait aussi lire le dépôt de départ |
+| D23 | Avec un dépôt distant, la CI s'ajoute sur une branche `chore/ci` et passe par sa PR, puisque Claude ne pousse jamais la branche principale après sa publication initiale ; sans dépôt distant, elle se commite sur la branche principale, publiée ensuite par `remote`. Trou trouvé en écrivant le scénario 9 |
 
 ### Phases v0.2
 
 - [x] A — Vérifications (2026-10-20), détail ci-dessous
-- [ ] B — Refactor : préfixes de commande partagés par les gardes (`shell-lexer.sh`), à tests verts
-- [ ] C — Hooks secret-scan et protect-sensitive, en TDD
-- [ ] D — Agent devops-engineer et son périmètre ; skills github-workflow et debug-project ; gabarits CI et corps de PR ; règles de permission
-- [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff
-- [ ] F.1 — Validation sans quota (gitleaks réel par `nix shell`, `plugin details`, CI rejouée localement)
+- [x] B — Refactor : préfixes de commande partagés par les gardes (`shell-lexer.sh`), à tests verts (`31d8d51`)
+- [x] C — Hooks secret-scan et protect-sensitive, en TDD (`5c589a3`)
+- [x] D — Agent devops-engineer et son périmètre ; skills github-workflow et debug-project ; gabarits CI et corps de PR ; règles de permission (`d518169`, `7eebd3d`)
+- [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, constats traités
+- [x] F.1 — Validation sans quota (gitleaks réel par `nix shell`, `plugin details`, CI rejouée localement)
 - [ ] F.2 — Dépôt de test GitHub, PR et CI verte ; scénarios headless — **sur votre accord**
 - [ ] G — Docs, CHANGELOG 0.2.0, ARCHITECTURE.md APPROVED, rapport ; publication **sur votre accord**
 
@@ -48,6 +52,62 @@ Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** e
 | git avant le premier commit | `git diff --cached` exit 0 ; `git diff HEAD` exit 128 | sonde dans le scratchpad |
 
 Incident : le garde-fou du plugin installé ici (`flutter-forge` 0.1.1, ancien nom) a bloqué un `rm -rf` sur le dossier de sonde. Non contourné : un dossier neuf (`mktemp -d`) a suffi.
+
+### Phases B à D — TDD
+
+Chaque composant a vu son test échouer pour la bonne raison avant d'exister, puis passer.
+
+| Cycle | ROUGE | VERT |
+| --- | --- | --- |
+| B — `sw_program` dans `shell-lexer.sh` | (refactor) 206 assertions du guard vertes avant et après | 206/206 |
+| C1 — secret-scan | 62 échecs, script absent (exit 127) | 64/64 |
+| C2 — protect-sensitive, câblage `hooks.json` | 26 + 3 échecs | 26/26, 85/85 |
+| D1 — périmètre devops-engineer | 20 échecs (agent inconnu, tout refusé) | 116/116 |
+| D2 — frontmatter (4 agents, 6 skills) | 5 échecs | 90/90 |
+| D3 — gabarit CI, règles `gh`, contenu des skills | 1 + 2 + 3 échecs (fichiers absents) | 23, 19, 51 |
+
+Mutations (une règle désactivée dans une copie du plugin, la suite doit échouer) : secret-scan, 4 mutations détectées sur 4 (5, 16, 6, 2 échecs) ; protect-sensitive, 3 sur 3 (3, 11, 2).
+
+Deux tests corrigés, pas le code : le marqueur `__FLUTTER_VERSION__` compté aussi dans un commentaire ; l'ordre de tri des skills, qui dépendait de la locale (`LC_ALL=C sort`).
+
+### Phase E — Revue indépendante
+
+Un sous-agent relecteur, sans l'historique de cette session, a relu `55df72c..7eebd3d` et rejoué lui-même les hooks sur des dépôts jetables et le vrai gitleaks. Verdict : « avec corrections ». Chaque constat de comportement a d'abord été reproduit par un test ROUGE sur le code d'alors (24 échecs pour secret-scan, 9 pour agent-scope-guard, 5 pour protect-sensitive), puis corrigé.
+
+| Constat | Traitement |
+| --- | --- |
+| **C1** fail-open : `git init && git add . && git commit` ; `mkdir x && cd x && git commit` ; `cd` dans un sous-shell | Corrigé (D25) |
+| **I1** `git add -f <ignoré> && git commit` non vu | Corrigé : refusé, à lancer à part (D25) |
+| **I2** faux positifs : fichiers non suivis lus pour `-a`, tout l'arbre lu pour `git add <un fichier>` ; D13 elle-même était fausse | Corrigé, D13 réécrite |
+| **I3** configuration Firebase bloquée (`AIza`), y compris par gitleaks | Corrigé (D24) |
+| **I4** devops-engineer pouvait afficher le jeton : `gh auth status -at`, `--show-token=true` | Corrigé : seules les formes exactes passent |
+| M1 durée : 3 processus par fichier, ~3 000 fichiers dépassaient le délai | Corrigé : un diff global ; 800 fichiers en 0,1 s |
+| M2 `grep`/`awk` absents : fail-open | Corrigé, testé ; le test vise le message propre, après une mutation non détectée |
+| M3 attribut `-diff` qui masquait un contenu | Corrigé : `--text --no-textconv` |
+| M4 `git apply --cached` sur la ligne | Corrigé : refusé |
+| M5 protect-sensitive prenait la racine de session ; `.github/actions/` absent | Corrigé : racine cherchée depuis le fichier ; actions couvertes |
+| M6 `flutter build -o/x`, `--split-debug-info`, `--web` | Corrigé. `git remote -v` qui afficherait un jeton dans l'URL : non traité, l'agent peut lire `.git/config` de toute façon |
+| M7 `flutter analyze` bloquant par défaut en CI, « avertissements listés » en local | Corrigé : exit 0 exigé dans create-feature, bootstrap-project, debug-project, github-workflow |
+| M8 commandes des nouveaux workflows absentes du gabarit de permissions | Corrigé : 16 règles `allow` en lecture ou locales |
+| M9 flux : branche du commit CI, coût de chaque PR et de chaque push, exception de git-workflow | Corrigé (D23, textes) |
+| M10 `*.p12`, `*.pfx` | Ajoutés aux deux hooks |
+| M11 gitleaks antérieur à 8.19 | Le message nomme la version minimale |
+| M12 tests manquants | Ajoutés (`--git-dir`, `pushd`, `-i`, `-o`, `--pathspec-from-file`, `git stage`, durée) |
+
+Écarté par le relecteur, et maintenu hors périmètre : Windows et PowerShell natif, alias git, commits faits sans `git commit` (merge, rebase, am…), secrets dans le message de commit, écritures sensibles par Bash, lenteur de l'analyseur v0.1 sur des heredocs de plus de 300 Ko.
+
+Mutations après correction : 7 sur 7 détectées (refus, portée, Firebase, sous-shell, dossier parent, outils requis, gitleaks sur l'arbre).
+
+### Phase F.1 — Validation sans quota
+
+| Commande | Résultat |
+| --- | --- |
+| `bash tests/run-all.sh` | exit 0 — 17 réussis (13 suites, 826 assertions, 4 validations), 0 échoué |
+| secret-scan avec le vrai gitleaks 8.30.1 (`nix shell nixpkgs#gitleaks`) | jeton Slack bloqué : `slack.dart:1: gitleaks rule slack-bot-token`, secret non affiché ; index propre accepté. Sans gitleaks, ce jeton passe : limite écrite dans SECURITY.md |
+| `claude --plugin-dir . plugin details plugin-flutter` | 6 skills, 4 agents, hooks sur 3 événements ; ~1 236 jetons permanents (v0.1 : ~848) |
+| Gabarit CI sur un projet `flutter create` jetable, Flutter 3.44.3 | `pub get`, `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` : exit 0 ×4 |
+| `actionlint` 1.7.12 (`nix shell nixpkgs#actionlint`) sur le workflow rempli | exit 0, aucune remarque |
+| Flutter 3.44.3 parmi les versions stables publiées | oui (`releases_linux.json`) : la CI peut l'épingler |
 
 ## v0.1 — État à la clôture
 

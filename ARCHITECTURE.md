@@ -6,7 +6,7 @@ Oct 17, 2026 · @Soon
 
 `plugin-flutter` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-**Statut du document : APPROVED** le 2026-10-19, par l'utilisateur (« clôture la v1 »), à la clôture de la v0.1.0. Les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) y sont intégrées, avec les recommandations du §7 retenues par défaut (D1 à D9). Toute modification le repasse en REVIEW.
+**Statut du document : REVIEW** depuis le 2026-10-20, pour la v0.2 : les composants de la v0.2 y sont décrits tels que construits, avec les décisions D12 à D25 de `PROGRESS.md`. Il redevient APPROVED à la clôture de la v0.2, sur l'accord de l'utilisateur. Version précédente : APPROVED le 2026-10-19 (« clôture la v1 »), à la clôture de la v0.1.0, avec les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) et les recommandations du §7 (D1 à D9).
 
 Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.296.
 
@@ -27,7 +27,7 @@ La v0.1 couvre le cycle minimal : créer un projet, développer une fonctionnali
 | Version | Skills | Agents | Hooks / autres | Critère de sortie |
 | --- | --- | --- | --- | --- |
 | v0.1 | bootstrap-project, create-feature (TDD intégré), git-workflow, recover-session | flutter-architect, test-engineer, code-reviewer | guard-destructive, agent-scope-guard, format-dart, checkpoint-reminder ; template settings.json | Projet démo créé + 1 feature en TDD + commit sur branche + reprise réussie |
-| v0.2 | github-workflow, debug-project | devops-engineer | secret-scan avant commit ; template CI Flutter | PR ouverte sur dépôt de test avec CI verte |
+| v0.2 | github-workflow, debug-project | devops-engineer | secret-scan avant commit, protect-sensitive ; template CI Flutter | PR ouverte sur dépôt de test avec CI verte |
 | v0.3 | update-project, adopt-existing-project | product-architect | détection de divergences docs/code | Mise à jour d'un lot de dépendances avec rapport avant/après |
 | v0.4 | release-project, optimize-usage | ui-ux-engineer | matrice plateformes en CI | Build de release Android + Web vérifié |
 
@@ -35,7 +35,7 @@ La v0.1 couvre le cycle minimal : créer un projet, développer une fonctionnali
 
 ## Arborescence du plugin
 
-Les composants sont à la racine du plugin ; seul le manifeste vit dans `.claude-plugin/`. Les éléments marqués (v0.2+) ne sont créés qu'à leur version.
+Les composants sont à la racine du plugin ; seul le manifeste vit dans `.claude-plugin/`. Les éléments marqués (v0.3+) ne sont créés qu'à leur version.
 
 ```
 plugin-flutter/
@@ -46,7 +46,7 @@ plugin-flutter/
 │   ├── flutter-architect.md
 │   ├── test-engineer.md
 │   ├── code-reviewer.md
-│   ├── devops-engineer.md       # (v0.2)
+│   ├── devops-engineer.md
 │   ├── product-architect.md     # (v0.3)
 │   └── ui-ux-engineer.md        # (v0.4)
 ├── skills/
@@ -56,8 +56,10 @@ plugin-flutter/
 │   ├── create-feature/SKILL.md
 │   ├── git-workflow/SKILL.md
 │   ├── recover-session/SKILL.md
-│   ├── github-workflow/SKILL.md      # (v0.2)
-│   ├── debug-project/SKILL.md        # (v0.2)
+│   ├── github-workflow/
+│   │   ├── SKILL.md
+│   │   └── reference/pr-body.md      # gabarit du corps de PR
+│   ├── debug-project/SKILL.md
 │   ├── update-project/SKILL.md       # (v0.3)
 │   ├── adopt-existing-project/SKILL.md # (v0.3)
 │   ├── release-project/SKILL.md      # (v0.4)
@@ -69,12 +71,14 @@ plugin-flutter/
 │       ├── agent-scope-guard.sh
 │       ├── format-dart.sh
 │       ├── checkpoint-reminder.sh
-│       └── secret-scan.sh            # (v0.2)
+│       ├── secret-scan.sh
+│       ├── protect-sensitive.sh
+│       └── lib/shell-lexer.sh        # analyseur partagé par les gardes
 ├── templates/
 │   ├── project-settings.json     # permissions proposées au projet
 │   ├── forge-config.yaml         # préautorisations par défaut (tout à false)
 │   ├── checkpoint.md
-│   └── github-workflows/flutter-ci.yml  # (v0.2)
+│   └── github-workflows/flutter-ci.yml  # CI copiée par github-workflow
 ├── tests/
 │   ├── run-all.sh
 │   ├── static/                  # manifeste, frontmatter, chemins
@@ -112,13 +116,13 @@ Le plugin est publié dans le dépôt public `soonlysoul/plugin-flutter` et dist
 ```json
 {
   "name": "plugin-flutter",
-  "version": "0.1.2",
-  "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery.",
+  "version": "0.2.0",
+  "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery, GitHub pull requests and CI, debugging.",
   "author": { "name": "Soon" },
   "homepage": "https://github.com/soonlysoul/plugin-flutter",
   "repository": "https://github.com/soonlysoul/plugin-flutter",
   "license": "MIT",
-  "keywords": ["flutter", "dart", "tdd", "git"]
+  "keywords": ["flutter", "dart", "tdd", "git", "github", "ci"]
 }
 ```
 
@@ -179,12 +183,14 @@ Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par 
 | flutter-architect | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `docs/` ; Bash limité à `flutter --version`, `dart --version`, `dart pub deps`, `flutter pub deps`, et git en lecture | `inherit` | Besoin, code existant, PRD | TRD, décisions ADR dans DECISIONS.md, liste de dépendances justifiées |
 | test-engineer | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `test/` et `integration_test/` ; Bash limité à `flutter test`, `dart test`, et git en lecture | `sonnet` | Critères d'acceptation, plan de la feature | Tests écrits, sortie brute de l'exécution ROUGE, liste des cas limites |
 | code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne |
+| devops-engineer | v0.2 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `.github/` ; Bash limité à `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status` (sans `--show-token`), `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, `git remote -v` et git en lecture ; option `-o`/`--output` refusée | `sonnet` | Tâche `build`, `ci-diagnosis` ou `workflow-change` ; plateformes activées ; branche, PR ou run | Tableau BUILDS par plateforme ; classe d'un échec de CI avec ses lignes de journal et le correctif à faire |
 
-Les agents v0.2+ du tableau ci-dessous suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
+devops-engineer ne pousse pas, n'ouvre ni ne modifie de PR, ne relance ni ne démarre de workflow, ne télécharge pas d'artefact et n'appelle pas `gh api` : ces actions changent le dépôt distant ou consomment des minutes, et restent dans la session principale, derrière un point de validation (D16). Le fichier CI initial est écrit par la session principale depuis le gabarit, une copie courte ; l'agent sert aux journaux longs (D17).
+
+Les agents v0.3+ du tableau ci-dessous suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
 
 | Agent | Version | Outils autorisés | Reçoit | Rend |
 | --- | --- | --- | --- | --- |
-| devops-engineer | v0.2 | Read, Grep, Glob, Write limité à `.github/`, Bash (`gh`, `git`, `flutter build`) | Plateformes cibles, état CI | Workflow CI, rapport de build par plateforme |
 | product-architect | v0.3 | Read, Write limité à `docs/product/` | Description du besoin | PRD, critères d'acceptation numérotés (AC-xxx) |
 | ui-ux-engineer | v0.4 | Read, Write limité à `docs/design/` et `lib/ui/` | PRD, APPFLOW | Spécification UI, états d'erreur, points d'accessibilité |
 
@@ -202,8 +208,8 @@ Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/plugin-flutter:<n
 | create-feature | v0.1 | Ajouter une fonctionnalité | Plan de la feature si périmètre, architecture ou dépendance nouvelle | Branche, tests, code, revue, docs mises à jour, commit préparé |
 | git-workflow | v0.1 | Brancher, committer, vérifier un diff | Toute opération hors liste blanche | Branche nommée, commits atomiques, rapport de diff |
 | recover-session | v0.1 | Reprendre un travail | Aucune (lecture seule jusqu'au résumé) | Résumé de reprise + prochaine étape proposée |
-| github-workflow | v0.2 | Dépôt distant, issue, PR, CI | Création de dépôt, visibilité, fusion, push si non préautorisé | PR avec résumé, risques, tests exécutés |
-| debug-project | v0.2 | Erreur de build ou test rouge inattendu | Modification hors du périmètre de l'erreur | Cause identifiée, correctif minimal, test de non-régression |
+| github-workflow | v0.2 | Dépôt distant, issue, PR, CI | Création de dépôt (propriétaire, nom, visibilité, à chaque fois), ajout de la CI (avec son coût), PR et push si non préautorisés, relance de CI sur dépôt privé ; jamais de fusion | PR avec résumé, AC, risques, tests en quatre catégories, plateformes en trois états ; état des checks |
+| debug-project | v0.2 | Erreur de build, d'analyse ou test rouge inattendu, CI rouge | Modification hors du périmètre de l'erreur | Cause racine prouvée, test de non-régression ROUGE puis VERT, correctif minimal, commit `fix(…)` |
 | update-project | v0.3 | Mettre à jour Flutter ou dépendances | Toute mise à jour majeure ; plan de lots | Branche `chore/deps-*`, rapport avant/après, lockfile |
 | adopt-existing-project | v0.3 | Prendre en main un projet existant | Plan de mise en conformité | `.forge/`, docs reconstruites depuis le code, liste des divergences |
 | release-project | v0.4 | Préparer une release | Toute publication, tag poussé, signature | Notes de version, builds vérifiés par plateforme |
@@ -231,11 +237,11 @@ Règles de mise en œuvre (vérifiées en phase A, rapport §3.5) :
 | Hook | Événement | Filtre | Comportement | En cas d'erreur du script |
 | --- | --- | --- | --- | --- |
 | guard-destructive | PreToolUse | `Bash\|PowerShell\|Monitor` | Bloque : `git reset --hard` ; `git clean` avec `-f`/`--force` ; `git push` avec `-f`, `--force`, `--force-with-lease` ou `--force-if-includes` à n'importe quelle position, une refspec `+ref`, `--delete`/`-d` ou une refspec `:ref`, `--mirror`, `--tags`/`--follow-tags` ou une refspec `refs/tags/…` ; `git branch -D` et `--delete --force` ; `git checkout -- <chemin>`, `git checkout .` et `--force` ; `git restore` hors `--staged` seul ; `git stash drop` et `git stash clear` ; `git switch --discard-changes`/`-f` ; `rm` récursif et forcé (`-rf`, `-fr`, `-Rf`, `-r -f`, `--recursive --force`) hors `build/`, ou sans cible visible (`xargs`) ; `gh repo delete` ; `gh repo edit` avec `--visibility` ; `gh pr merge` ; `gh release create\|edit\|upload\|delete\|delete-asset` ; `gh api -X DELETE` ; `flutter pub publish` et `dart pub publish`, sauf `--dry-run`. L'analyse découpe la commande (`;`, `&&`, `\|`, sauts de ligne), ignore le texte cité, passe les préfixes (`VAR=…`, `sudo`, `env`, `command`, `nohup`, `timeout`, `nice`, `xargs`) et descend dans `bash -c`, `eval`, `$(…)`, les accents graves, `find -exec`, les heredocs donnés à un shell et les substitutions des heredocs non cités. Renvoie la raison à Claude | Bloque (fail-closed) |
-| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des trois agents du plugin. Pour eux, refuse toute écriture hors des dossiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée | Bloque (fail-closed) |
+| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des quatre agents du plugin. Pour eux, refuse toute écriture hors des dossiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée | Bloque (fail-closed) |
 | format-dart | PostToolUse | `Edit\|Write` | Si le fichier finit par `.dart` et que `dart` est dans le PATH : `dart format <fichier>` | Ignore silencieusement (fail-open) |
 | checkpoint-reminder | Stop | — | Inerte sans `.forge/checkpoint.md`, ou si `stop_hook_active` est vrai. Si le checkpoint est plus ancien que le dernier commit ou qu'un fichier modifié non commité, renvoie `hookSpecificOutput.additionalContext` : Claude reprend une fois pour le mettre à jour | Ignore (`onFailure` est sans effet sur `Stop`) |
-| secret-scan (v0.2) | PreToolUse | Bash contenant `git commit` | `gitleaks protect --staged` si installé, sinon regex sur `git diff --cached` (clés AWS, `-----BEGIN`, `ghp_`, `sk-`, `AIza`, fichiers `.env`, `*.jks`, `key.properties`) | Bloque |
-| protect-sensitive (v0.2) | PreToolUse | Edit, Write | Demande confirmation avant modification de `android/key.properties`, `*.keystore`, `ios/Runner/*.entitlements`, `.github/workflows/*`, `.forge/config.yaml` | Bloque |
+| secret-scan | PreToolUse | `Bash\|PowerShell\|Monitor` | Écarte sans `jq` une entrée sans le mot `commit`. Trouve chaque `git commit` comme guard-destructive (préfixes, `bash -c`, `eval`, `$(…)`), suit `cd`, `pushd`, `git -C`, `--git-dir`. Lit l'index (`git diff --cached`, valable avant le premier commit) et ce que le commit peut prendre d'autre : modifications non indexées pour `-a` ou un chemin nommé ; modifications et fichiers non suivis des chemins d'un `git add` de la même ligne (D13). Refuse `git init`, `git clone`, `git add -f`, `git apply --cached` sur la ligne d'un commit (D25). Bloque les noms `.env`, `.env.*` (sauf `.example`, `.sample`, `.template`), `*.jks`, `*.keystore`, `key.properties`, `*.p12`, `*.pfx`, et dans les lignes **ajoutées** : clé privée, clé AWS, `gh[pousr]_…`, `github_pat_…`, `sk-…`, `AIza…` (sauf dans la configuration Firebase, D24). Si gitleaks est installé, lance aussi `gitleaks git --pre-commit --staged`, et sans `--staged` pour tout l'arbre. Le secret n'est jamais affiché. Actif dans tout dépôt (D22) | Bloque le commit (fail-closed, y compris sans `grep` ou `awk`) |
+| protect-sensitive | PreToolUse | `Edit\|Write\|NotebookEdit` | Écarte sans `jq` une entrée sans nom sensible. Pour un fichier dont un dossier parent contient `.forge/`, répond `permissionDecision: "ask"` avant d'écrire `key.properties`, `*.keystore`, `*.jks`, `*.p12`, `*.pfx`, `*.entitlements`, `.github/workflows/*`, `.github/actions/*` ; `.forge/config.yaml` partout. En `-p`, l'appel est refusé et Claude lit la raison | Bloque (fail-closed) |
 
 Le guard-destructive analyse la commande par motifs : il peut être contourné par une formulation exotique. C'est un filet de sécurité, pas une garantie ; les règles `deny` du `settings.json` de projet forment la seconde couche. Toute levée ponctuelle se fait par l'utilisateur, jamais par Claude qui réécrirait la commande : une commande tapée par l'utilisateur avec le préfixe `!` s'exécute sans appel d'outil, donc sans passer par `PreToolUse` (déduit de la doc, à confirmer en phase F).
 
@@ -253,12 +259,19 @@ La sécurité repose sur trois couches indépendantes : les règles de permissio
     "allow": [
       "Bash(flutter test *)", "Bash(flutter analyze *)", "Bash(dart format *)",
       "Bash(flutter pub get)", "Bash(git status)", "Bash(git diff *)",
-      "Bash(git log *)", "Bash(git add *)", "Bash(git switch *)"
+      "Bash(git log *)", "Bash(git add *)", "Bash(git switch *)",
+      "Bash(gh --version)", "Bash(gh auth status)", "Bash(gh repo view)", "Bash(gh repo view *)",
+      "Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh run list *)", "Bash(gh run view *)",
+      "Bash(gh run watch *)", "Bash(gh workflow list)", "Bash(gh workflow view *)",
+      "Bash(gh issue list *)", "Bash(gh issue view *)", "Bash(git remote -v)", "Bash(git rev-parse *)",
+      "Bash(git branch --show-current)", "Bash(flutter --version)", "Bash(flutter doctor)",
+      "Bash(flutter doctor *)", "Bash(flutter devices)", "Bash(flutter build *)"
     ],
     "ask": [
       "Bash(git add -A*)", "Bash(git add .)", "Bash(git add --all*)",
       "Bash(git commit *)", "Bash(git push *)", "Bash(gh pr create *)",
-      "Bash(flutter pub upgrade *)"
+      "Bash(flutter pub upgrade *)", "Bash(gh repo create *)", "Bash(gh pr edit *)",
+      "Bash(gh issue create *)", "Bash(gh run rerun *)", "Bash(gh workflow run *)"
     ],
     "deny": [
       "Bash(git reset --hard*)", "Bash(git clean *)",
@@ -281,7 +294,7 @@ La sécurité repose sur trois couches indépendantes : les règles de permissio
 
 **Couche 2 — hooks** (section précédente), actifs dès l'installation du plugin.
 
-**Couche 3 — `<projet>/.forge/config.yaml`**, lu par chaque skill avant une action externe. Toute clé absente vaut `false`. Seul l'utilisateur la modifie : dès la v0.1, la règle `deny` `Edit(./.forge/config.yaml)` de la couche 1 en bloque l'édition par Claude ; le hook protect-sensitive (v0.2) ajoutera la même protection hors projet configuré. bootstrap-project crée le fichier une seule fois, avant d'installer `.claude/settings.json`.
+**Couche 3 — `<projet>/.forge/config.yaml`**, lu par chaque skill avant une action externe. Toute clé absente vaut `false`. Seul l'utilisateur la modifie : la règle `deny` `Edit(./.forge/config.yaml)` de la couche 1 en bloque l'édition par Claude, et le hook protect-sensitive demande confirmation pour toute écriture d'un `.forge/config.yaml`, y compris dans un projet où `.claude/settings.json` n'est pas installé. bootstrap-project crée le fichier une seule fois, avant d'installer `.claude/settings.json`.
 
 ```yaml
 schema_version: 1
@@ -356,7 +369,7 @@ my_app/
 │   ├── config.yaml
 │   ├── checkpoint.md
 │   └── reports/
-├── .github/workflows/ci.yml     # (v0.2) format + analyze + test
+├── .github/workflows/ci.yml     # format + analyze + test (github-workflow ci)
 ├── lib/
 │   ├── main.dart
 │   ├── app/                     # MaterialApp, routing, thème
@@ -407,7 +420,7 @@ Le cycle rouge-vert-refactor reste dans la session principale ; le test-engineer
 9. **VERT** : mêmes tests ciblés, tous passent. Sinon retour à 8, au plus trois itérations avant d'exposer le blocage.
 10. **Refactor** sans changement de comportement.
 11. **Re-test ciblé** puis, à ce jalon seulement, `flutter test` complet.
-12. **Qualité** : `dart format --set-exit-if-changed .` et `flutter analyze` ; zéro erreur, avertissements listés.
+12. **Qualité** : `dart format --set-exit-if-changed .` et `flutter analyze` à exit 0 : infos et avertissements sont bloquants par défaut, comme dans la CI.
 13. **Revue** : rien n'est encore commité, donc les fichiers de la feature sont indexés, puis le code-reviewer relit `git diff --cached <base>`. Les constats bloquants sont corrigés, les étapes 11 et 12 relancées, et les corrections relues une fois ; un constat bloquant qui subsiste arrête le workflow. Le reviewer liste aussi les mises à jour de docs attendues, traitées à l'étape 14.
 14. **Docs** : plan, DECISIONS et traçabilité mis à jour ; signalement de toute divergence avec le code.
 15. **Commit** préparé par git-workflow, puis rapport final.
@@ -425,13 +438,16 @@ Toute action Git ou GitHub entre dans l'une de trois classes : libre, préautori
 | `git commit` | Accord par défaut (`ask`) | Message Conventional Commits : `feat(notes): list notes offline (AC-012)` |
 | `git push` d'une branche de travail | Préautorisable | `push_feature_branches: true` ; jamais vers `main` |
 | `gh pr create` / mise à jour | Préautorisable | `open_pull_requests`, `update_own_pull_requests` ; jamais de force-push sur une PR d'autrui |
-| Création de dépôt distant | Accord, toujours re-confirmé | Nom, visibilité, propriétaire affichés avant |
+| Création de dépôt distant | Accord, toujours re-confirmé | Nom, visibilité, propriétaire affichés avant ; `gh repo create` sans `--push`, puis publication de la branche principale, seul push de cette branche fait par Claude |
+| Ajout ou modification de la CI ; relance ou lancement d'un workflow sur dépôt privé | Accord explicite, avec le coût | Avec un dépôt distant, la CI passe par une branche `chore/ci` et sa PR ; protect-sensitive demande confirmation de l'écriture |
 | Fusion, changement de visibilité, suppression, release, tag poussé | Accord explicite à chaque fois | Bloqué aussi par hook |
 | `reset --hard`, `clean`, `push --force`, `branch -D` | Interdit sans demande explicite de l'utilisateur | Bloqué par hook et `deny` |
 
 Conventions : branches `feature/`, `fix/`, `chore/deps-`, `docs/` ; commits atomiques (un changement logique, tests compris) ; `.gitignore` Flutter standard plus `.env*`, `*.jks`, `*.keystore`, `key.properties`.
 
-Corps de PR généré par github-workflow : résumé, AC couverts, risques, tests exécutés avec résultats (quatre catégories), plateformes vérifiées, captures si disponibles. Avant toute action GitHub : `gh auth status` ; en cas d'échec, on s'arrête et on explique `gh auth login` sans jamais demander ni afficher de jeton.
+Corps de PR généré par github-workflow (`skills/github-workflow/reference/pr-body.md`) : résumé, AC couverts, risques, tests exécutés avec résultats (quatre catégories), plateformes en trois états, captures si disponibles. `gh pr create --base <principale> --head <branche> --body-file -` avec un heredoc cité, après le push de la branche. Avant toute action GitHub : `gh auth status` ; en cas d'échec, on s'arrête et on explique `gh auth login` sans jamais demander ni afficher de jeton.
+
+Gabarit CI (`templates/github-workflows/flutter-ci.yml`) : sur chaque PR et chaque push vers la branche principale, `flutter pub get`, `dart format --output=none --set-exit-if-changed .`, `flutter analyze`, `flutter test`, sur un runner `ubuntu-latest` plafonné à 20 minutes ; `permissions: contents: read`, `persist-credentials: false`, aucun secret ; actions épinglées par SHA de commit (`actions/checkout` v7.0.1, `subosito/flutter-action` v2.23.0) ; `flutter-version` remplacée par la version locale, pour que la CI reproduise la machine.
 
 ## Multiplateforme
 
@@ -473,6 +489,10 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 | hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |
 | hooks/test\_checkpoint\_reminder.sh | Rappel émis quand le checkpoint est plus ancien que les fichiers modifiés ; silence si `stop_hook_active`, sans `.forge/`, ou checkpoint à jour |
 | static/test\_tdd\_skill.sh | `create-feature/SKILL.md` contient les 15 étapes, dont ROUGE et VERT, chacune avec une commande et la consigne de consigner sa sortie |
+| static/test\_ci\_template.sh | Gabarit CI : déclencheurs, jeton en lecture, pas de `pull_request_target` ni de secret, actions épinglées par SHA avec leur version, les quatre commandes, les deux marqueurs |
+| static/test\_github\_skills.sh | github-workflow et debug-project énoncent leurs points de validation, commandes et limites ; corps de PR complet |
+| hooks/test\_secret\_scan.sh | Sur de vrais dépôts git jetables : commandes sans commit silencieuses (sans `jq`), chaque motif et chaque nom bloqués sans afficher le secret, faux positifs écartés (`task-`, certificat, `.env.example`, retrait d'un secret), portée (`-a`, chemin, `git add` sur la ligne, fichier ignoré), emplacement (`cd`, `-C`, `bash -c`, `eval`, `$(…)`), fail-closed, gitleaks simulé, durée |
+| hooks/test\_protect\_sensitive.sh | `ask` pour chaque fichier sensible d'un projet `.forge/`, silence ailleurs et sans `jq`, `.forge/config.yaml` partout, fail-closed |
 
 `run-all.sh` lance aussi `claude plugin validate . --strict` : local, déterministe, sans quota. Comme ce validateur ne voit ni un script de hook absent ni, de façon fiable, un frontmatter d'agent cassé, les tests statiques ci-dessus restent nécessaires.
 
@@ -490,7 +510,10 @@ Outillage de développement : les skills de `plugin-dev` (installé depuis `clau
 3. **Préservation** : un fichier modifié non commité avant le lancement est intact après.
 4. **Blocage** : demande explicite de `git reset --hard` refusée par le hook avec message clair.
 5. **Reprise** : session interrompue après l'étape 7, recover-session propose l'étape 8 sans refaire 1 à 7.
-6. **Dépôt existant** : aucun fichier réécrit sans plan validé.
+6. **Dépôt existant** : aucun fichier réécrit sans plan validé (v0.3).
+7. **Secret** : un commit qui contient une clé AWS est refusé par secret-scan ; le secret n'apparaît dans aucun message.
+8. **Débogage** : un test rouge inattendu est reproduit, sa cause prouvée avant le correctif, le correctif commité sur `fix/…` après revue.
+9. **PR et CI** : sur un dépôt de test jetable, CI ajoutée, dépôt créé, PR ouverte, checks verts ; rien de fusionné.
 
 Le rapport de test du plugin sépare trois colonnes : exécuté automatiquement, vérifié manuellement, bloqué (raison). Les scénarios GitHub utilisent un dépôt de test privé jetable, créé uniquement avec accord.
 
@@ -508,6 +531,14 @@ Ces points ont été vérifiés en phase A contre la documentation officielle (2
 - [x] Exécution headless avec un plugin chargé — confirmé par la doc ; exécution en phase F
 
 Côté outils : Flutter stable courant 3.47.7 (installé : 3.44.3) ; sous-commandes `gh` vérifiées par `--help` ; quotas GitHub Actions ci-dessus, multiplicateur macOS non vérifié.
+
+Vérifiés le 2026-10-20 pour la v0.2 (détail : `PROGRESS.md`, phase A v0.2) :
+
+- [x] `permissionDecision: "ask"` d'un PreToolUse : invite étiquetée `[plugin:<nom>]`, y compris pour un sous-agent en arrière-plan ; refus en `-p`, raison lue par Claude ; précédence `deny` > `defer` > `ask` > `allow`
+- [x] gitleaks 8.30.1 : `git --pre-commit --staged`, `--redact`, `--exit-code`, rapport JSON sur la sortie standard ; `protect` est dépréciée
+- [x] `actions/checkout` v7.0.1 et `subosito/flutter-action` v2.23.0, par leur SHA de commit ; le gabarit passe `actionlint` 1.7.12 et ses commandes réussissent sur un projet `flutter create`
+- [x] `gh` 2.101.0 : `pr create --head`, `pr checks` (exit 8 en attente), `run view --log-failed`, `repo create --source --remote`, `auth status --json hosts`
+- [x] `git diff --cached` avant le premier commit (exit 0) ; un chemin avec espace suivi d'une tabulation dans l'en-tête `+++` du diff
 
 | Risque | Effet | Parade |
 | --- | --- | --- |

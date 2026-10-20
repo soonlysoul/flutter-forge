@@ -62,6 +62,46 @@ Trois états distincts par plateforme : activée (dossier présent), compilée (
 - Messages Conventional Commits : `feat(notes): list notes offline (AC-012)`.
 - Push d'une branche de travail seulement si `.forge/config.yaml` l'autorise (`push_feature_branches: true`) ou si vous le demandez ; jamais la branche principale, jamais en force.
 
+## Publier sur GitHub — `github-workflow`
+
+Prérequis : `gh` installé et connecté. Le skill commence toujours par `gh auth status` ; s'il échoue, il s'arrête, et c'est vous qui lancez `! gh auth login`. Aucun jeton ne passe par la conversation.
+
+```
+/plugin-flutter:github-workflow remote    # créer le dépôt GitHub
+/plugin-flutter:github-workflow ci        # ajouter la CI
+/plugin-flutter:github-workflow pr        # ouvrir la pull request de la branche courante
+/plugin-flutter:github-workflow checks    # suivre la CI, diagnostiquer un échec
+```
+
+| Action | Ce qui se passe |
+| --- | --- |
+| `remote` | **Validation** à chaque fois : propriétaire, nom, visibilité (privé par défaut). Puis `gh repo create --source . --remote origin`, sans `--push`, et la publication de la branche principale, qui faisait partie de votre accord |
+| `ci` | **Validation** avec le coût : gratuit pour un dépôt public ; pour un dépôt privé, des minutes de votre quota mensuel (2 000 sur GitHub Free). Copie de `templates/github-workflows/flutter-ci.yml` avec votre version locale de Flutter ; le hook protect-sensitive vous demande de confirmer l'écriture. Les quatre vérifications de la CI sont d'abord lancées en local |
+| `pr` | Pousse la branche si `push_feature_branches` l'autorise ou si vous le demandez. Corps de PR : résumé, critères d'acceptation, risques, tests en quatre catégories, plateformes en trois états. **Validation** du titre et du corps, sauf si `open_pull_requests: true` |
+| `checks` | `gh pr checks` ; si la CI échoue, l'agent devops-engineer lit les journaux et classe l'échec (format, analyse, tests, dépendances, version de Flutter, workflow, infrastructure). Un échec du code part vers `debug-project` ; une relance sur dépôt privé demande votre accord |
+
+Le skill ne fusionne jamais : quand la CI est verte, il vous dit que la PR est prête, et la fusion vous revient.
+
+## Corriger une erreur — `debug-project`
+
+Pour ce qui échoue alors que cela devrait passer : build, analyse, test, CI rouge. Pas pour l'étape ROUGE attendue de `create-feature`.
+
+```
+/plugin-flutter:debug-project "flutter test test/notes échoue depuis le dernier commit"
+```
+
+1. État du dépôt, sans rien mettre de côté.
+2. **Reproduire** la commande exacte. Un échec qui ne se reproduit pas s'arrête là, avec ce qui diffère (version de Flutter, plateforme).
+3. Classer l'échec, avec la ligne qui le prouve.
+4. **Cause racine** : une hypothèse à la fois, avec sa preuve, avant tout correctif.
+5. **Validation** si le correctif sort du périmètre de l'erreur : autre fonctionnalité, `pubspec.yaml`, dossier de plateforme, CI.
+6. Branche `fix/<slug>` depuis la branche principale.
+7. Test de non-régression, ROUGE.
+8. Correctif minimal, VERT ; au plus trois itérations.
+9. Commande d'origine, `flutter test` complet, format, analyse.
+10. Revue du code-reviewer.
+11. Commit `fix(<scope>): …`, avec la cause racine dans le corps.
+
 ## Reprendre — `recover-session`
 
 ```
@@ -87,12 +127,13 @@ Une clé absente de `config.yaml` vaut `false`. Les clés `merge` et `publish_re
 | flutter-architect | celui de la session | `docs/` | `flutter --version`, `dart --version`, `dart pub deps`, `flutter pub deps`, git en lecture |
 | test-engineer | sonnet | `test/`, `integration_test/` | `flutter test`, `dart test`, git en lecture |
 | code-reviewer | sonnet | rien | `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` |
+| devops-engineer | sonnet | `.github/` | `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status`, `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, `git remote -v`, git en lecture |
 
-Ces limites sont imposées par le hook agent-scope-guard, pas seulement par la consigne. Une commande à la fois, sans `;`, `&&`, `|` ni redirection.
+Ces limites sont imposées par le hook agent-scope-guard, pas seulement par la consigne. Une commande à la fois, sans `;`, `&&`, `|` ni redirection. devops-engineer ne pousse rien, n'ouvre pas de PR et ne relance pas de CI : ces actions restent dans la session principale, derrière un point de validation.
 
 ## Économiser le quota
 
 - Tests ciblés pendant le développement ; suite complète et analyse aux jalons seulement.
-- Les agents ne sont lancés qu'aux étapes 6 et 13, et pour une architecture non triviale.
+- Les agents ne sont lancés qu'aux étapes 6 et 13 de `create-feature`, pour une architecture non triviale, pour les builds par plateforme et pour lire les journaux d'une CI rouge.
 - Aucune boucle de nouvelle tentative : après deux échecs identiques d'une commande, le workflow s'arrête et explique.
 - Si une limite d'usage tombe, rien n'est perdu : le checkpoint est écrit après chaque étape. Relancez avec `recover-session`.

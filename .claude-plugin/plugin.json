@@ -1,12 +1,12 @@
 {
   "name": "plugin-flutter",
-  "version": "0.1.2",
-  "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery.",
+  "version": "0.2.0",
+  "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery, GitHub pull requests and CI, debugging.",
   "author": {
     "name": "Soon"
   },
   "homepage": "https://github.com/soonlysoul/plugin-flutter",
   "repository": "https://github.com/soonlysoul/plugin-flutter",
   "license": "MIT",
-  "keywords": ["flutter", "dart", "tdd", "git"]
+  "keywords": ["flutter", "dart", "tdd", "git", "github", "ci"]
 }
