@@ -9,7 +9,12 @@
       "Bash(git diff *)",
       "Bash(git log *)",
       "Bash(git add *)",
-      "Bash(git switch *)"
+      "Bash(git switch *)",
+      "Bash(gh auth status)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)"
     ],
     "ask": [
       "Bash(git add -A*)",
@@ -18,7 +23,12 @@
       "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(gh pr create *)",
-      "Bash(flutter pub upgrade *)"
+      "Bash(flutter pub upgrade *)",
+      "Bash(gh repo create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh issue create *)",
+      "Bash(gh run rerun *)",
+      "Bash(gh workflow run *)"
     ],
     "deny": [
       "Bash(git reset --hard*)",

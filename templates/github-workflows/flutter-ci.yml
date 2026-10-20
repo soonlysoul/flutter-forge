@@ -1,0 +1,38 @@
+# Flutter CI proposed by plugin-flutter: format, analyze and test, on every pull request and
+# every push to the default branch, on one Linux runner.
+# The github-workflow skill copies it to .github/workflows/ci.yml and replaces
+# __FLUTTER_VERSION__ (the local `flutter --version`) and __DEFAULT_BRANCH__.
+# Actions are pinned by commit SHA; the comment gives the version.
+name: CI
+
+on:
+  push:
+    branches: [__DEFAULT_BRANCH__]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Format, analyze, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: "__FLUTTER_VERSION__"
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test

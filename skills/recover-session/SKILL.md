@@ -28,7 +28,7 @@ Flag each one:
 
 ## Step 4 — Confirm the real state
 
-Rerun only the targeted test of the last completed step, the command recorded in the test results table (for example `flutter test test/features/notes`). What to expect depends on the last ticked step: after RED (step 7) the tests still fail; from GREEN (step 9) on they pass; after step 8 alone, either outcome is possible, so report it without judging. If the table has no test line, say so and run nothing. Do not run the full suite.
+Rerun only the targeted test of the last completed step, the command recorded in the test results table (for example `flutter test test/features/notes`). What to expect depends on the last ticked step: after RED (step 7) the tests still fail; from GREEN (step 9) on they pass; after step 8 alone, either outcome is possible, so report it without judging. If the table has no test line, say so and run nothing. Do not run the full suite. When the checkpoint's skill is github-workflow, the real state is on GitHub: run `gh pr view <branch> --json number,url,state` and `gh pr checks <number>` (read-only) instead of a test.
 
 ## Step 5 — Summary, then wait
 

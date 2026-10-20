@@ -105,4 +105,4 @@ Through the git-workflow skill: show `git status`, stage the files explicitly, a
 - Path of the project, platforms enabled, built and tested.
 - Documents and their status.
 - Tests in four categories, each with its command: passed, failed, blocked (reason), not run; "none" for an empty category.
-- Next step: `/plugin-flutter:create-feature AC-001`. If the project is in a subdirectory, first start a new Claude Code session in it (`cd <directory> && claude`): the hooks and the permission rules use the session's launch directory as the project root.
+- Next step: `/plugin-flutter:create-feature AC-001`. To publish the project on GitHub and add the CI: `/plugin-flutter:github-workflow remote`, then `/plugin-flutter:github-workflow ci`. If the project is in a subdirectory, first start a new Claude Code session in it (`cd <directory> && claude`): the hooks and the permission rules use the session's launch directory as the project root.

@@ -35,6 +35,22 @@ else
   done
   [[ -z $missing ]] && pass "commit, push and git add -A ask first" || fail "commit, push and git add -A ask first" "missing:$missing"
 
+  missing=""
+  for rule in 'Bash(gh auth status)' 'Bash(gh pr view *)' 'Bash(gh pr checks *)' 'Bash(gh run list *)' 'Bash(gh run view *)'; do
+    grep -qxF "$rule" <<<"$allow" || missing+=" $rule"
+  done
+  [[ -z $missing ]] && pass "read-only gh commands run without asking" || fail "read-only gh commands run without asking" "missing:$missing"
+
+  missing=""
+  for rule in 'Bash(gh repo create *)' 'Bash(gh pr edit *)' 'Bash(gh issue create *)' 'Bash(gh run rerun *)' 'Bash(gh workflow run *)'; do
+    grep -qxF "$rule" <<<"$ask" || missing+=" $rule"
+  done
+  [[ -z $missing ]] && pass "gh commands that change GitHub or spend CI minutes ask first" \
+    || fail "gh commands that change GitHub or spend CI minutes ask first" "missing:$missing"
+
+  risky=$(grep -nE 'gh (pr (create|edit)|repo create|issue create|workflow run|run (rerun|cancel|download)|api|auth token)|show-token|^Bash\(gh \*\)$' <<<"$allow")
+  [[ -z $risky ]] && pass "no allow rule changes GitHub or shows a token" || fail "no allow rule changes GitHub or shows a token" "$risky"
+
   grep -q '^Write(' <<<"$all" && fail "no Write() rule (only Edit() rules protect files)" "$(grep '^Write(' <<<"$all")" \
     || pass "no Write() rule (only Edit() rules protect files)"
   grep -qF ':*' <<<"$all" && fail "space form Bash(x *), not the legacy :*" "$(grep -F ':*' <<<"$all")" \

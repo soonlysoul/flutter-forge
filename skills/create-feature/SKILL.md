@@ -70,7 +70,7 @@ Clean up without changing behaviour: naming, duplication, layout. No new behavio
 
 ### Step 11 — Re-test
 
-Run the targeted tests again, then, at this milestone only, the full suite: `flutter test`. Record both in the checkpoint.
+Run the targeted tests again, then, at this milestone only, the full suite: `flutter test`. Record both in the checkpoint. A failure outside the targeted tests is unexpected: diagnose it with the debug-project skill before going on.
 
 ### Step 12 — Quality
 
@@ -99,4 +99,4 @@ Prepare the commit through the git-workflow skill: the staged files, the updated
   - **blocked**, with the reason (missing device, missing account, platform not available on this machine);
   - **not run**.
 - Review findings and what was done about them.
-- What was not done, and the next step.
+- What was not done, and the next step: usually pushing the branch and opening the pull request with `/plugin-flutter:github-workflow pr`.

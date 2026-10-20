@@ -22,7 +22,8 @@ Every Git or GitHub action falls into one of three classes:
 | `git add <explicit files>` | free, after reviewing the diff |
 | `git commit` | asks for confirmation (project rule) |
 | `git push` of a work branch | only if `authorizations.push_feature_branches: true`, or on the user's explicit request in this conversation; never the default branch |
-| creating a remote repository, merging, changing visibility, deleting, releasing, pushing a tag | always the user's explicit approval, every time; outside this skill in v0.1 |
+| creating a remote repository, opening a pull request | the github-workflow skill, with its validation points |
+| merging, changing visibility, deleting, releasing, pushing a tag | never done by Claude: the user does it; the guard-destructive hook blocks them |
 | `reset --hard`, `clean -f`, `push --force`, `branch -D`, `checkout -- <path>`, `restore` (except `restore --staged`), `stash drop`, `stash clear` | forbidden: the guard-destructive hook and the project's deny rules block them |
 
 When a blocked command is really needed, explain why it is blocked and what it would destroy. The user can run it themselves with the `!` prefix; never rephrase it to get around the hook.
@@ -37,7 +38,7 @@ Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>`, `docs/<slug>
 
 ## Stage
 
-`git add <file> <file> …`, listing the files. `git add -A`, `git add .` and `git add --all` only after the whole diff has been reviewed with the user; the project rules make them ask. Before committing, read `git diff --cached` for secrets (AWS keys, `-----BEGIN`, `ghp_`, `sk-`, `AIza`); if one appears, unstage the file (`git restore --staged <file>`, or `git rm --cached <file>` before the first commit, when there is no HEAD yet), never print the secret, and tell the user which file holds it.
+`git add <file> <file> …`, listing the files. `git add -A`, `git add .` and `git add --all` only after the whole diff has been reviewed with the user; the project rules make them ask. Before committing, read `git diff --cached` for secrets (AWS keys, `-----BEGIN`, `ghp_`, `sk-`, `AIza`); if one appears, unstage the file (`git restore --staged <file>`, or `git rm --cached <file>` before the first commit, when there is no HEAD yet), never print the secret, and tell the user which file holds it. The secret-scan hook checks every commit the same way and blocks it; when it does, follow its reason, never rephrase the commit to get past it.
 
 ## Commit
 
@@ -48,7 +49,7 @@ Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>`, `docs/<slug>
 
 ## Push
 
-Only a work branch, never the default branch, never with force. Check the class above first. Run `git remote -v`: without a remote, stop; creating one is an explicit decision of the user. Then `git push -u origin <branch>`, and report the output.
+Only a work branch, never the default branch, never with force. Check the class above first. Run `git remote -v`: without a remote, stop; creating one is an explicit decision of the user, through the github-workflow skill (`remote`). Then `git push -u origin <branch>`, and report the output.
 
 ## Report
 
