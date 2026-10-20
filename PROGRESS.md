@@ -3,7 +3,9 @@
 Dernière mise à jour : 2026-10-20
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
-## v0.3 — en cours
+## v0.3 — clôturée le 2026-10-20
+
+**v0.3.0 clôturée le 2026-10-20** (« je valide ») : phases A à G faites, critère de sortie atteint par le scénario 10, rapport dans `docs/V0.3_REPORT.md`, ARCHITECTURE.md en APPROVED. `feat/v0.3` est fusionnée en avance rapide dans `main`, avec le tag local annoté `v0.3.0`. Rien n'est poussé : la publication de `main` et du tag vous revient (`git push origin main`, puis `git push origin v0.3.0`), ainsi que la suppression du dépôt de test `soonlysoul/plugin-flutter-ci-red`. Ensuite, sur chaque appareil : `claude plugin marketplace update soon`, puis `claude plugin update plugin-flutter@soon`.
 
 Démarrée le 2026-10-20 sur votre demande (« Démarre la v0.3 de plugin-flutter »). Périmètre fixé par ARCHITECTURE.md (feuille de route) : skills update-project et adopt-existing-project, agent product-architect, détection des divergences docs/code. Critère de sortie : la mise à jour réelle d'un lot de dépendances, avec son rapport avant/après. ARCHITECTURE.md repasse en REVIEW pendant le travail.
 
@@ -39,7 +41,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 - [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
 - [x] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
 - [x] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé) : 6, 10, 11 et 12 réussis, détail ci-dessous
-- [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite. *Fait avant F.2 : docs, CHANGELOG, 0.3.0, rapport (F.2 en attente).*
+- [x] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite (« je valide », 2026-10-20) ; fusion dans `main` et tag `v0.3.0` locaux
 
 ### Phase A v0.3 — Vérifications
 
