@@ -48,6 +48,10 @@ case $agent in
     write_dirs=""
     allowed_commands="git diff, git log, git show, git status, flutter analyze, dart analyze"
     ;;
+  devops-engineer)
+    write_dirs=".github"
+    allowed_commands="flutter build, flutter --version, flutter doctor, flutter devices, gh auth status, gh run list|view|watch, gh pr checks|view, gh workflow list|view, gh repo view, git remote -v, $GIT_READ"
+    ;;
   *) block "no scope is defined for agent $agent." ;;
 esac
 
@@ -83,6 +87,30 @@ command_allowed() {
         case ${1-} in diff | log | show | status) return 0 ;; esac
       fi
       return 1
+      ;;
+    devops-engineer)
+      case "$*" in
+        'flutter --version' | 'flutter devices' | 'flutter doctor' | 'flutter doctor -v' | 'git remote -v') return 0 ;;
+      esac
+      if [[ $1 == flutter && ${2-} == build ]]; then
+        local word
+        for word in "${@:3}"; do [[ $word != -o ]] || return 1; done
+        return 0
+      fi
+      if [[ $1 == gh ]]; then
+        case ${2-}/${3-} in
+          auth/status)
+            local word
+            for word in "${@:4}"; do
+              case $word in -t | --show-token) return 1 ;; esac
+            done
+            return 0
+            ;;
+          run/list | run/view | run/watch | pr/checks | pr/view | workflow/list | workflow/view | repo/view) return 0 ;;
+        esac
+        return 1
+      fi
+      [[ $1 == git ]] && git_read_only "${@:2}"
       ;;
   esac
 }

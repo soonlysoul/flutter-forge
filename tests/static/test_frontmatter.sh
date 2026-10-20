@@ -56,13 +56,13 @@ done
 rm -r "$fixtures"
 
 echo "# agents"
-declare -A expected_model=([flutter-architect]=inherit [test-engineer]=sonnet [code-reviewer]=sonnet)
+declare -A expected_model=([flutter-architect]=inherit [test-engineer]=sonnet [code-reviewer]=sonnet [devops-engineer]=sonnet)
 known_tools=" Read Grep Glob Bash Write Edit "
-agents=$(cd "$PLUGIN_ROOT/agents" 2>/dev/null && ls *.md 2>/dev/null | sort | tr '\n' ' ')
-[[ $agents == "code-reviewer.md flutter-architect.md test-engineer.md " ]] \
-  && pass "exactly the three v0.1 agents" || fail "exactly the three v0.1 agents" "found: ${agents:-none}"
+agents=$(cd "$PLUGIN_ROOT/agents" 2>/dev/null && ls *.md 2>/dev/null | LC_ALL=C sort | tr '\n' ' ')
+[[ $agents == "code-reviewer.md devops-engineer.md flutter-architect.md test-engineer.md " ]] \
+  && pass "exactly the four v0.2 agents" || fail "exactly the four v0.2 agents" "found: ${agents:-none}"
 
-for agent in flutter-architect test-engineer code-reviewer; do
+for agent in flutter-architect test-engineer code-reviewer devops-engineer; do
   file="$PLUGIN_ROOT/agents/$agent.md"
   if [[ ! -f $file ]] || ! read_frontmatter "$file"; then
     fail "$agent: readable frontmatter" "${FM_ERROR:-missing file}"
@@ -103,11 +103,11 @@ for agent in flutter-architect test-engineer code-reviewer; do
 done
 
 echo "# skills"
-skills=$(cd "$PLUGIN_ROOT/skills" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | sort | tr '\n' ' ')
-[[ $skills == "bootstrap-project create-feature git-workflow recover-session " ]] \
-  && pass "exactly the four v0.1 skills" || fail "exactly the four v0.1 skills" "found: ${skills:-none}"
+skills=$(cd "$PLUGIN_ROOT/skills" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | LC_ALL=C sort | tr '\n' ' ')
+[[ $skills == "bootstrap-project create-feature debug-project git-workflow github-workflow recover-session " ]] \
+  && pass "exactly the six v0.2 skills" || fail "exactly the six v0.2 skills" "found: ${skills:-none}"
 
-for skill in bootstrap-project create-feature git-workflow recover-session; do
+for skill in bootstrap-project create-feature git-workflow recover-session github-workflow debug-project; do
   file="$PLUGIN_ROOT/skills/$skill/SKILL.md"
   if [[ ! -f $file ]] || ! read_frontmatter "$file"; then
     fail "$skill: readable frontmatter" "${FM_ERROR:-missing file}"
