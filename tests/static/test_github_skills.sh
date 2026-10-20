@@ -85,7 +85,11 @@ echo "# devops-engineer build"
 # Scenario 11 (v0.3): doctor showed `[✗] Android toolchain`, the agent built android anyway and
 # reported it failed. The step that runs builds must itself leave out a platform doctor rules out.
 DEVOPS="$PLUGIN_ROOT/agents/devops-engineer.md"
-says "$DEVOPS" "builds only the platforms doctor does not rule out" "whose toolchain \`flutter doctor -v\` does not mark \`[✗]\`"
+# The rerun then blocked web on `[✗] Chrome`, which only runs a web app: each platform is tied to
+# the doctor section its build needs.
+says "$DEVOPS" "builds only the platforms doctor does not rule out" "whose build section in \`flutter doctor -v\` is not marked \`[✗]\`"
 says "$DEVOPS" "a platform doctor rules out is blocked, its build not run" "is **blocked**, with that line as the reason: do not run its build"
+says "$DEVOPS" "names the doctor section each platform's build needs" "| android | \`flutter build apk --debug\` | Linux, macOS, Windows | Android toolchain |"
+says "$DEVOPS" "a missing Chrome does not block the web build" "a missing Chrome does not block \`flutter build web\`"
 
 finish

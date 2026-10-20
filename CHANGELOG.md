@@ -27,7 +27,7 @@ Mettre à jour les dépendances par lots validés, adopter une app existante san
 - `bootstrap-project` : en mode non interactif, `.forge/config.yaml` n'était jamais créé, puisque protect-sensitive refuse l'écriture sans proposer d'autre voie. Le skill donne désormais la commande à lancer vous-même.
 - `github-workflow` : la commande `sed` qui remplit le gabarit de CI cassait sur un nom de branche contenant `/`. Elle utilise désormais `|` comme délimiteur.
 - Checkpoint en fin de workflow : il était mis à jour après le dernier commit, à la demande de `git-workflow` comme du hook `checkpoint-reminder`. L'arbre restait donc modifié, et un `git switch` vers la branche principale était refusé. Le dernier commit porte désormais le checkpoint dans son état final, qui n'est plus modifié ensuite ; le hook l'accepte, et `recover-session` ne signale plus ce commit comme une incohérence.
-- `devops-engineer` ne lance plus le build d'une plateforme que `flutter doctor` marque `[✗]` : il la déclare bloquée, avec la ligne de doctor comme raison.
+- `devops-engineer` ne lance plus le build d'une plateforme dont la section de build est marquée `[✗]` par `flutter doctor` (Android toolchain, Linux toolchain, Visual Studio, Xcode) : il la déclare bloquée, avec la ligne de doctor comme raison. Un Chrome absent ne bloque pas `flutter build web`.
 - `flutter-architect` ne cite plus de chemin absolu de la machine dans les documents. Pour une app adoptée, le plan d'adoption annonce aussi les ADR des écarts aux choix par défaut (état, navigation, organisation), que l'agent écrivait sans qu'ils aient été approuvés.
 
 ## [0.2.0] — 2026-10-20
