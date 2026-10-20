@@ -11,7 +11,10 @@ name and the visibility. Deleting the repository afterwards is the user's.
 
 ## Setup, without quota, then GitHub (after the agreement)
 
-A project whose `main` is green, and a pull request whose branch breaks a test.
+A project whose `main` is green, and a pull request whose branch breaks a test. Check the four CI
+commands locally before pushing (`dart format --output=none --set-exit-if-changed .` included), or
+the CI fails on the format first. In auto mode, `gh repo create` run by Claude may be refused by the
+permission classifier: the user then runs the GitHub commands (creation, pushes, pull request).
 
 ```bash
 P=$(mktemp -d) && cd "$P" && flutter create --org com.example --project-name ci_red --platforms linux . >/dev/null
@@ -70,7 +73,10 @@ grep -rnE 'gh[pousr]_[A-Za-z0-9]{20}|github_pat_' "$WORK"/s12-*.jsonl           
 - Its report classifies the failure as **test**, citing `sums the values` with expected 6 and
   actual 7, and the commit compared with `git rev-parse HEAD`.
 - The main session reruns `gh run view <id> --log-failed` itself and reads the cited lines.
-- The fix is sent to the code (debug-project), not to the workflow, and no rerun is proposed.
+- The fix is sent to the code (debug-project), not to the workflow, and no rerun is proposed. As the
+  skill says, the session may go on: reproduce locally, fix on the PR branch whose own commit broke
+  the test, review, then stop at the commit or ask for it. Observed on 2026-10-20: it also noticed
+  that the fix leaves the PR identical to `main`.
 
 **Passed** when the class and the evidence are right, the main session verified them, and nothing
 was rerun, pushed or merged.

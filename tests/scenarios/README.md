@@ -68,4 +68,11 @@ jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_res
 - In a folder that was never trusted, stderr says `Ignoring N permissions.allow entries from .claude/settings.json: this workspace has not been trusted`.
 - 2026-10-20 (scenarios 7 to 9): the user's own `~/.claude/settings.json` rule `ask` on `git push` becomes a denial in `dontAsk`, so the user pushes; a `PreToolUse` hook `ask` (protect-sensitive) becomes a denial whose reason Claude reads; a command piped to a tool outside `--allowedTools` (`| tail`) is denied. Already installed plugins load too (here `flutter-forge` 0.1.1).
 - 2026-10-20 (v0.3 setup): the installed secret-scan refuses `git init` on the line of a `git commit`, and a commit whose directory is held in a variable (`cd "$P"`, `git -C "$P"`). The setups of scenarios 6 and 10 to 12 therefore split `git init` into its own block, and write the project path literally (`<P>`) when Claude runs them.
+- 2026-10-20 (v0.3, scenarios 6, 10 to 12): with `--plugin-dir`, `system/init` lists only
+  `plugin-flutter@inline` 0.3.0, the installed `plugin-flutter@soon` 0.2.0 being shadowed: the
+  scenarios test this checkout's hooks and agents. The `result` of a turn is its last message: when
+  the Stop hook resumes Claude, it holds only the checkpoint update. Each turn reports its own
+  `total_cost_usd`; a long resumed session costs more per turn (scenario 6: 0.79, 1.15, 3.73 and
+  4.51 $). In auto mode, the permission classifier refused `gh repo create` to the operating
+  session: the user ran the GitHub setup of scenario 12.
 - Still not verified: whether `stream-json` requires `--verbose` (always passed); `--max-turns` (never used); the `!` prefix against `PreToolUse` (interactive only).

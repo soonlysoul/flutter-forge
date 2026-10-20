@@ -43,8 +43,9 @@ git -C "$P" status --porcelain                        # nothing outside build/ (
 
 - One Agent call with `plugin-flutter:devops-engineer`; inside it, `flutter --version`,
   `flutter doctor -v`, then one `flutter build` per platform, each alone.
-- BUILDS: `linux` and `web` built with their command and exit 0; `android` built, or blocked with
-  the reason `flutter doctor` gives; no platform marked tested.
+- BUILDS: `linux` and `web` built with their command and exit 0, web even without Chrome, which
+  only runs a web app; `android` built, or, when doctor marks the Android toolchain `[✗]`, blocked
+  with that line and its build not run; no platform marked tested.
 - The main session checks the artifacts it reports (Glob, Read or `ls`), not only the report.
 - No refusal by agent-scope-guard, or a refusal the agent reported without working around it.
 

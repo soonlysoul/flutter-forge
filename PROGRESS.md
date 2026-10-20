@@ -38,7 +38,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 - [x] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
 - [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
 - [x] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
-- [ ] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé)
+- [x] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé) : 6, 10, 11 et 12 réussis, détail ci-dessous
 - [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite. *Fait avant F.2 : docs, CHANGELOG, 0.3.0, rapport (F.2 en attente).*
 
 ### Phase A v0.3 — Vérifications
@@ -162,6 +162,32 @@ Suite complète : exit 0 — 18 réussis (14 suites, 1 061 assertions, 4 validat
 | `sed` donnés à l'utilisateur pour `.forge/config.yaml` | délimiteur `\|` : seules les lignes `default_branch` et `enabled` changent, y compris avec `release/2.x` |
 
 Non vérifiable sans session : le comportement du modèle face aux nouveaux skills, et la correspondance de `Bash(x *)` avec un `x` nu en 2.1.296 : phase F.2.
+
+### Phase F.2 v0.3 — Scénarios headless
+
+Accord : « le compte que tu veux. Les 4. Je valide scénario 12. » Profil `~/.claude`, celui de cette session (`CLAUDE_CONFIG_DIR` non défini). `~/.claude.json` copié dans le scratchpad avant : 36 projets avant, 36 après, mêmes clés. Scénarios lancés un par un, jamais deux sessions headless en même temps. Le `system/init` liste seulement `plugin-flutter@inline` 0.3.0 (5 agents, 8 skills) : la copie installée `plugin-flutter@soon` 0.2.0 est masquée, comme la phase A l'avait lu.
+
+| Scénario | Tours | Résultat | Coût |
+| --- | --- | --- | --- |
+| 11 — tâche `build` | 1 | Réussi avec un écart : android construit malgré `[✗] Android toolchain`, déclaré « failed » au lieu de « blocked » → `b112a9e` | 0,65 $ |
+| 11, rejoué | 1 | Régression de `b112a9e` : web bloqué sur `[✗] Chrome`, qui ne sert qu'à lancer l'app → `dfeaa98`. Le hook Stop ne réclame plus le checkpoint (D42) | 0,72 $ |
+| 11, 3ᵉ passage | 1 | **Réussi** : android bloqué sans build, web et linux construits, artefacts présents, aucune plateforme « testée » ; un `git -C` de l'agent refusé par agent-scope-guard, non contourné | 0,59 $ |
+| 10 — mise à jour | 1 | Arrêt correct sur une référence rouge : `dart format` exit 1, défaut de **ma** préparation (code non formaté). Préparation corrigée, projet refait | 0,52 $ |
+| 10, rejoué | 2 | **Réussi, critère de sortie atteint** : plan (lot compatible + 4 majeures, liens de changelog, Nix signalé) sans rien modifier ; puis `chore/deps-2026-10` avec `chore(deps): upgrade compatible dependencies` (lock seul), `chore(deps): upgrade http to 1.6.0` (contrainte, lock, ADR-002), `docs(deps): report the dependency update` ; tests verts après chaque lot ; go_router reste en 12.1.3 ; aucune commande interdite | 2,89 $ |
+| 6 — adoption | 4 | **Réussi** : tour 1 sans écriture (`git status` vide, 21 fichiers intacts, `--enforce-lockfile` et `--no-pub` seulement) ; tour 2, `.forge/config.yaml` refusé par protect-sensitive, commande `! sed …` donnée et lancée par l'opérateur ; tour 3, product-architect puis flutter-architect, 8 fichiers ajoutés, aucun fichier existant modifié ; point de validation non prévu (3 ADR hors plan, chemins `/home/…`) → `eed69af` ; tour 4, commit `chore: adopt plugin-flutter` | 10,18 $ |
+| 12 — CI rouge | 1 | **Réussi** : `gh pr checks 1` → échec, `ci-diagnosis` délégué, classé **test** (« sums the values », 6 attendu, 7 obtenu, `headSha` comparé à `HEAD`), `--log-failed` relu par la session ; correctif dans le code par debug-project sur la branche de la PR, comme le prévoit le skill, arrêté avant le commit ; ni relance, ni push, ni fusion, aucun jeton | 1,29 $ |
+
+Total : 16,85 $ en équivalent API, au-delà de l'estimation (6 à 12 $), surtout à cause du scénario 6 (deux derniers tours à 3,73 $ et 4,51 $). Dépôt de test `soonlysoul/plugin-flutter-ci-red` (privé) : `gh repo create` lancé par Claude a été refusé par le classifieur du mode automatique ; création, push et PR faits par l'utilisateur. CI : `main` vert, PR rouge sur la seule étape « Run flutter test ».
+
+Corrections issues de F.2, chacune avec un test ROUGE d'abord puis des mutations :
+
+| Commit | Défaut | Mutations |
+| --- | --- | --- |
+| `b112a9e`, puis `dfeaa98` | devops-engineer construisait une plateforme que doctor exclut ; puis bloquait web sur Chrome. Chaque plateforme est liée à la section de doctor dont son build a besoin | 1 sur 1, puis 3 sur 3 |
+| `eed69af` | Plan d'adoption muet sur les ADR d'écart aux choix par défaut, que l'agent écrivait ; chemins absolus de la machine dans DECISIONS.md. Préparation du scénario 10 formatée ; scénario 6 confirme la branche par défaut | 3 sur 3 |
+| `2ee6455` (D42) | Checkpoint modifié après le dernier commit d'un workflow : arbre sale, `git switch main` refusé. checkpoint-reminder accepte un checkpoint porté par le dernier commit ; git-workflow, update-project, adopt-existing-project, recover-session | 4 sur 4 (hook), 4 sur 4 (skills) |
+
+Observé aussi : la réponse finale d'un tour `-p` est le dernier message ; quand le hook Stop relance Claude, elle ne porte plus que la mise à jour du checkpoint (scénario 11, avant D42). Les commandes hors `--allowedTools` (`cat …; echo`, `date`, `file`) sont refusées en `dontAsk`, sans effet sur les résultats.
 
 ### Phase G v0.3 — Docs (avant F.2)
 
