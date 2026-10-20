@@ -53,7 +53,7 @@ Projet jetable `flutter create` (Linux) dans le scratchpad, dépendances ancienn
 | `flutter pub outdated` | exit 0, même avec des paquets en retard. Texte et `--json` ne modifient ni `pubspec.yaml` ni `pubspec.lock` (sha256). Sans `pubspec.yaml` : exit 1 | sonde |
 | `flutter pub outdated --json` | `{packages: [{package, kind, isDiscontinued, isCurrentRetracted, isCurrentAffectedByAdvisory, current, upgradable, resolvable, latest}]}`, chaque version `{version}` ou `null` ; `kind` : `direct`, `dev`, `transitive` ; sans `--show-all`, seuls les paquets en retard ; paquets du SDK en `0.0.0` | sonde |
 | `flutter pub upgrade` | `-n/--dry-run` : rien de modifié, exit 0. `upgrade <paquet>` ne déplace que lui (ses implémentations fédérées restent verrouillées, sauf `--unlock-transitive`). `--major-versions <paquet>` réécrit sa contrainte dans `pubspec.yaml` (`http: ^0.13.6 -> ^1.6.0`) et le lock. `--tighten` relève les bornes basses. Exit 0 partout | `--help`, sonde |
-| `flutter pub deps --json` | exit 0 ; `{root, packages: [{name, version, kind, source, dependencies, directDependencies}], sdks: [{name, version}], executables}` ; `kind` : `root`, `direct`, `dev`, `transitive` | sonde |
+| `flutter pub deps --json` | exit 0 ; `{root, packages: [{name, version, kind, source, dependencies, directDependencies}], sdks: [{name, version}], executables}` ; `kind` : `root`, `direct`, `dev`, `transitive`. *(Corrigé après la revue : mesuré ici sur un lock à jour seulement. Sur un lock périmé, il **réécrit `pubspec.lock`**, comme `pub get` ; `pub outdated` ne le fait pas.)* | sonde, revue |
 | `dart pub …` dans un projet Flutter | **exit 69** : « the Flutter SDK is not available », y compris avec le `dart` du SDK Flutter de Nix | sonde |
 | `pubspec.lock` | `packages: <nom>: {dependency: "direct main" \| "direct dev" \| transitive, description: {name, sha256, url}, source, version}`, puis `sdks: {dart, flutter}`. Versionné par `flutter create`, comme `linux/flutter/generated_plugin_registrant.{cc,h}` et `generated_plugins.cmake` | sonde, `git ls-files` |
 | Lecture seule d'un dépôt existant | Lock périmé : `flutter analyze`, qui lance `pub get`, **réécrit `pubspec.lock`**. `flutter pub get --enforce-lockfile` : lock périmé → exit 65, rien modifié ; pas de lock → exit 1, rien créé ; lock valide → exit 0, seuls des fichiers ignorés écrits (`.dart_tool/`, `.flutter-plugins-dependencies`, `linux/flutter/ephemeral/`). Ensuite `flutter analyze --no-pub` et `flutter test --no-pub` : exit 0. Sans résolution préalable, `analyze --no-pub` : exit 1 et 55 faux constats | 3 clones jetables |
@@ -105,6 +105,29 @@ Le contrôle « avant le plan, `flutter analyze`, `test` et `pub get` seulement 
 Scénarios ajoutés : 6 (adoption), 10 (mise à jour, critère de sortie), 11 (builds), 12 (CI rouge). Leurs préparations séparent `git init` et écrivent le chemin en clair, à cause de secret-scan (README des scénarios, « Observed »).
 
 Suite complète : exit 0 — 18 réussis (14 suites, 1 018 assertions, 4 validations).
+
+### Phase E v0.3 — Revue indépendante
+
+Un sous-agent relecteur, sans l'historique de cette session, a relu `main..50ccdb3` avec le périmètre et D27–D41 pour exigences. Il a rejoué les commandes des skills sur des projets Flutter jetables et le hook sur des entrées non testées. Verdict : « avec corrections », aucun constat critique, 10 importants, 12 mineurs. Chaque constat retenu a d'abord été reproduit par un test ROUGE (31 échecs dans `test_maintenance_skills` et `test_settings_template`), puis corrigé.
+
+| Constat | Vérification | Traitement |
+| --- | --- | --- |
+| **I1** `flutter pub deps`, cité à flutter-architect pendant l'adoption, réécrit un lock périmé | reproduit : exit 0, `sha256sum -c` → FAILED, ` M pubspec.lock` | La règle « pas de pub get » le nomme ; flutter-architect ne le lance que sur un lock à jour, ce que la session lui dit ; ligne de phase A corrigée |
+| **I2** `.forge/config.yaml` : protect-sensitive demande confirmation, refusée en `-p`, sans repli | lu dans le hook | Commande `! mkdir -p .forge && sed … > .forge/config.yaml` donnée à l'utilisateur, dans adopt **et** bootstrap (trou présent depuis la v0.2) ; scénario 6 complété |
+| **I3** l'adoption reste sur sa branche ; les autres skills partent de la branche principale | lu | Prochaine étape : PR (`github-workflow pr`) ou fusion locale par l'utilisateur ; « The merge is the user's » |
+| **I4** chemin « pas de dépôt » cassé (`git status` exit 128, `main` jamais né) | reproduit par le relecteur | Arrêt : le premier commit d'un arbre existant revient à l'utilisateur |
+| **I5** un lot majeur abandonné laissait le code migré | lu | Tous les fichiers du lot sont restaurés, puis analyse et tests comparés à la référence |
+| **I6** le « après » du rapport venait de `pub outdated --json`, qui omet les paquets à jour ; `--stat` comptait des lignes | reproduit par le relecteur | `--json --show-all` ; transitifs comptés par lignes `version:` |
+| **I7** adoption contraire à git-workflow (branche de départ, modifications non commitées, nom de branche) | lu | Arrêt sur toute modification ; branche principale par `origin/HEAD`, confirmée dans le plan ; `chore/adopt-plugin-flutter` et `chore/ci` ajoutées à git-workflow |
+| **I8** adoption interrompue impossible à reprendre | lu | Reprise depuis le checkpoint, qui liste les items approuvés |
+| **I9** trois contrôles négatifs contournables | reproduit : 3 mutations du relecteur, 0 échec | Phrases d'interdiction retirées mot pour mot (`only_in`), puis plus rien ne doit rester. Mutations : 5 sur 5 détectées |
+| **I10** version, docs utilisateur, scénario 10 non faits | — | Prévu en F.2 et G : non traité ici |
+
+Mineurs traités : resynchronisation d'un lock périmé (commit à part, sur la branche) ; commande du lot « signalé » ; checkpoint exempté du contrôle des fichiers d'un lot ; `Bash(git status *)` en `allow` ; `Bash(flutter pub upgrade)` en `ask` ; fichiers non suivis (golden en échec) détectés par `--untracked-files=all`, aussi pour vérifier le travail d'un agent ; create-feature : un changement du PRD ou du TRD est un point de validation ; résultats d'analyse et de tests par lot dans le rapport ; méthode pour un paquet retenu (`flutter pub add --dry-run '<paquet>:^<latest>'`, exit 65, aucun fichier modifié, vérifié) ; `dart format` après un changement de SDK ; scénario 10 (le checkpoint change au tour 1) ; argument « paquets » du skill.
+
+Écarté par le relecteur, et maintenu hors périmètre : le comportement réel du modèle (F.2), la sémantique de `Bash(x *)` sur un `x` nu en 2.1.296 (non vérifiable sans session ; les deux formes sont désormais listées pour `flutter pub upgrade`), le contournement par lien symbolique d'agent-scope-guard (antérieur, dans SECURITY.md).
+
+Suite complète : exit 0 — 18 réussis (14 suites, 1 046 assertions, 4 validations).
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 

@@ -30,7 +30,7 @@ When a blocked command is really needed, explain why it is blocked and what it w
 
 ## Branch
 
-Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>`, `docs/<slug>` (prefix of features from `project.branch_prefix`). Start from the default branch (`project.default_branch`): `git switch <default branch>`, then `git switch -c <name>`. Changes to `.forge/checkpoint.md` and `.forge/reports/` are workflow state: carry them along. With any other uncommitted change, stop and ask: commit it, carry it to the new branch, or stop. Never `git stash` silently.
+Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>` (update-project), `docs/<slug>`, `chore/ci` (github-workflow) and `chore/adopt-plugin-flutter` (adopt-existing-project); the prefix of features comes from `project.branch_prefix`. Start from the default branch (`project.default_branch`): `git switch <default branch>`, then `git switch -c <name>`. Changes to `.forge/checkpoint.md` and `.forge/reports/` are workflow state: carry them along. With any other uncommitted change, stop and ask: commit it, carry it to the new branch, or stop. Never `git stash` silently.
 
 ## Diff report
 

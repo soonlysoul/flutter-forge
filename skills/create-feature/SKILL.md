@@ -84,7 +84,7 @@ Fix every blocking finding, stage the fixes, then run the commands of step 11 an
 
 ### Step 14 — Documentation
 
-Update `docs/engineering/IMPLEMENTATION_PLAN.md` (status, branch, tests) and `docs/engineering/DECISIONS.md` for any new choice, starting from the DOCS_TO_UPDATE and the DIVERGENCES the code-reviewer listed: a divergence is resolved by updating the document when the code is right, or reported to the user when the document is. Create `docs/engineering/TRACEABILITY.md` once the PRD has more than ten acceptance criteria. Report any divergence between the documents and the code. Stage the updated documents.
+Update `docs/engineering/IMPLEMENTATION_PLAN.md` (status, branch, tests) and `docs/engineering/DECISIONS.md` for any new choice, starting from the DOCS_TO_UPDATE and the DIVERGENCES the code-reviewer listed. A divergence in the plan or DECISIONS.md is resolved by updating the document when the code is right. A change to the PRD or the TRD — a criterion added because a test cites it, for example — is a validation point, since only the user approves them. A divergence where the document is right is reported to the user. Create `docs/engineering/TRACEABILITY.md` once the PRD has more than ten acceptance criteria. Report any divergence between the documents and the code. Stage the updated documents.
 
 ### Step 15 — Commit and report
 

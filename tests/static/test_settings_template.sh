@@ -54,19 +54,21 @@ else
 
   missing=""
   for rule in 'Bash(flutter pub outdated)' 'Bash(flutter pub outdated *)' 'Bash(flutter pub deps)' 'Bash(flutter pub deps *)' \
-    'Bash(flutter pub get --enforce-lockfile)' 'Bash(flutter --version --machine)'; do
+    'Bash(flutter pub get --enforce-lockfile)' 'Bash(flutter --version --machine)' 'Bash(flutter pub add --dry-run *)' \
+    'Bash(git status *)'; do
     grep -qxF "$rule" <<<"$allow" || missing+=" $rule"
   done
-  [[ -z $missing ]] && pass "read-only pub and SDK commands of the v0.3 skills run without asking" \
-    || fail "read-only pub and SDK commands of the v0.3 skills run without asking" "missing:$missing"
+  # flutter pub deps, like flutter test, resolves first: it rewrites a stale lockfile.
+  [[ -z $missing ]] && pass "commands of the v0.3 skills that change no file on a matching lockfile run without asking" \
+    || fail "commands of the v0.3 skills that change no file on a matching lockfile run without asking" "missing:$missing"
 
   missing=""
-  for rule in 'Bash(flutter upgrade*)' 'Bash(flutter downgrade*)' 'Bash(flutter channel *)'; do
+  for rule in 'Bash(flutter upgrade*)' 'Bash(flutter downgrade*)' 'Bash(flutter channel *)' 'Bash(flutter pub upgrade)'; do
     grep -qxF "$rule" <<<"$ask" || missing+=" $rule"
   done
-  [[ -z $missing ]] && pass "changing the machine's Flutter SDK asks first" || fail "changing the machine's Flutter SDK asks first" "missing:$missing"
+  [[ -z $missing ]] && pass "changing the machine's Flutter SDK, or every dependency at once, asks first" || fail "changing the machine's Flutter SDK, or every dependency at once, asks first" "missing:$missing"
 
-  risky=$(grep -nE 'upgrade|downgrade|channel' <<<"$allow")
+  risky=$(grep -nE 'upgrade|downgrade|channel|pub add( [^-]|\)$| \*\)$)' <<<"$allow" | grep -vxF 'Bash(flutter pub add --dry-run *)')
   [[ -z $risky ]] && pass "no allow rule upgrades a dependency or the SDK" || fail "no allow rule upgrades a dependency or the SDK" "$risky"
 
   risky=$(grep -nE 'gh (pr (create|edit)|repo create|issue create|workflow run|run (rerun|cancel|download)|api|auth token)|show-token|^Bash\(gh \*\)$' <<<"$allow")

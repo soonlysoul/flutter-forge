@@ -14,9 +14,25 @@ FA="$PLUGIN_ROOT/agents/flutter-architect.md"
 CF="$PLUGIN_ROOT/skills/create-feature/SKILL.md"
 DBG="$PLUGIN_ROOT/skills/debug-project/SKILL.md"
 BS="$PLUGIN_ROOT/skills/bootstrap-project/SKILL.md"
+GW="$PLUGIN_ROOT/skills/git-workflow/SKILL.md"
 
 # says <file> <label> <fixed string>
 says() { grep -qiF -- "$3" "$1" && pass "$2" || fail "$2" "missing: $3"; }
+
+# only_in <file> <label> <regex> <sentence>...: the regex appears nowhere once the exact sentences
+# that forbid the command or hand it to the user are removed. A line merely containing "never"
+# proves nothing ("run it yourself, never ask"), so the allowed sentences are pinned word for word.
+only_in() {
+  local file=$1 label=$2 regex=$3 text sentence bad
+  shift 3
+  text=$(<"$file")
+  for sentence in "$@"; do
+    [[ $text == *"$sentence"* ]] || { fail "$label" "allowed sentence missing: $sentence"; return; }
+    text=${text//"$sentence"/}
+  done
+  bad=$(grep -nE -- "$regex" <<<"$text")
+  [[ -z $bad ]] && pass "$label" || fail "$label" "$bad"
+}
 
 echo "# product-architect"
 if [[ -f $PA ]]; then
@@ -73,10 +89,25 @@ if [[ -f $UP ]]; then
   says "$UP" "two identical failures stop" "fails twice with the same error"
   says "$UP" "writes the checkpoint" "skill: update-project"
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$UP" "report category $category" "$category"; done
-  bad=$(grep -n 'flutter upgrade\|flutter downgrade' "$UP" | grep -viE 'never|! flutter upgrade')
-  [[ -z $bad ]] && pass "never runs flutter upgrade or downgrade itself" || fail "never runs flutter upgrade or downgrade itself" "$bad"
-  bad=$(grep -n 'dart pub' "$UP" | grep -viE 'never|exit 69')
-  [[ -z $bad ]] && pass "uses flutter pub, never dart pub" || fail "uses flutter pub, never dart pub" "$bad"
+  only_in "$UP" "never runs flutter upgrade, downgrade or channel itself" 'flutter (upgrade|downgrade|channel)' \
+    'Never run `flutter upgrade`, `flutter downgrade` or `flutter channel <name>`' \
+    'the user runs `! flutter upgrade` themselves'
+  only_in "$UP" "uses flutter pub, never dart pub" 'dart pub' \
+    '**`flutter pub`, never `dart pub`.** In a Flutter project, `dart pub` fails with exit 69'
+  only_in "$UP" "never forces a resolution with dependency_overrides (no other mention)" 'dependency_overrides' \
+    'never add `dependency_overrides` to force a resolution'
+  # Review of v0.3 (Important 5, 6; minor items).
+  says "$UP" "dropping a batch restores every file it changed" "every file the batch changed"
+  says "$UP" "after a drop, analysis and tests are compared with the baseline again" "compare them with the baseline"
+  says "$UP" "the after versions include up-to-date packages" "flutter pub outdated --json --show-all"
+  says "$UP" "a stale lockfile is synced in its own commit, on the branch" "chore(deps): sync pubspec.lock with pubspec.yaml"
+  says "$UP" "a flagged package moves alone" "\`flutter pub upgrade <package>\`"
+  step7=$(awk '/^## Step 7 /{f=1; print; next} /^## /{f=0} f' "$UP")
+  [[ $step7 == *".forge/checkpoint.md"* ]] && pass "the file check of a batch exempts the checkpoint" \
+    || fail "the file check of a batch exempts the checkpoint" "step 7 does not name .forge/checkpoint.md"
+  says "$UP" "explains a held-back package without changing a file" "flutter pub add --dry-run"
+  says "$UP" "checks formatting after an SDK change" "dart format --output=none --set-exit-if-changed ."
+  says "$UP" "a package argument narrows the plan" "When the request names packages"
 else
   fail "skills/update-project/SKILL.md exists"
 fi
@@ -91,6 +122,8 @@ if [[ -f $REPORT ]]; then
   says "$REPORT" "SDK before and after" "| Flutter |"
   says "$REPORT" "says whether the lockfile is committed" "| Lockfile |"
   says "$REPORT" "records the CI pin" "| CI pin |"
+  says "$REPORT" "analysis and tests after each batch" "| # | Command | Packages | Commit | analyze | test | Result |"
+  says "$REPORT" "counts transitive changes by version lines, not diff lines" "changed \`version:\` lines"
 else
   fail "skills/update-project/reference/deps-report.md exists"
 fi
@@ -126,14 +159,26 @@ if [[ -f $AD ]]; then
   says "$AD" "two identical failures stop" "fails twice with the same error"
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$AD" "report category $category" "$category"; done
   # Before the plan (steps 1 to 4), every flutter command that could run pub get must not.
-  # Lines that forbid a command (never …) are not commands to run.
-  before_plan=$(awk '/^## Step 5 /{exit} {print}' "$AD" | grep -viE 'never')
+  # The one sentence that forbids the plain forms is removed word for word, nothing else.
+  rule='never run `flutter pub get` without `--enforce-lockfile`, nor `flutter analyze` or `flutter test` without `--no-pub`'
+  before_plan=$(awk '/^## Step 5 /{exit} {print}' "$AD")
+  [[ $before_plan == *"$rule"* ]] && pass "states the no pub get rule" || fail "states the no pub get rule" "missing: $rule"
+  before_plan=${before_plan//"$rule"/}
   bad=$(grep -oE '`flutter (analyze|test)[^`]*`' <<<"$before_plan" | grep -v -- '--no-pub')
   [[ -z $bad ]] && pass "before the plan, flutter analyze and test always carry --no-pub" || fail "before the plan, flutter analyze and test always carry --no-pub" "$bad"
   bad=$(grep -oE '`flutter pub get[^`]*`' <<<"$before_plan" | grep -v -- '--enforce-lockfile')
   [[ -z $bad ]] && pass "before the plan, flutter pub get always carries --enforce-lockfile" || fail "before the plan, flutter pub get always carries --enforce-lockfile" "$bad"
-  bad=$(grep -n 'dart pub' "$AD" | grep -viE 'never|exit 69')
-  [[ -z $bad ]] && pass "uses flutter pub, never dart pub" || fail "uses flutter pub, never dart pub" "$bad"
+  only_in "$AD" "uses flutter pub, never dart pub" 'dart pub' '**`flutter pub`, never `dart pub`**, which fails with exit 69'
+  # Review of v0.3 (Important 1 to 4, 7, 8; minor items).
+  says "$AD" "flutter pub deps rewrites a stale lockfile too" "\`flutter pub deps\` rewrites it too"
+  says "$AD" "tells the flutter-architect whether the lockfile matches" "whether the lockfile matches"
+  says "$AD" "gives a command when the .forge/config.yaml write is refused" "templates/forge-config.yaml > .forge/config.yaml"
+  says "$AD" "the adoption reaches the default branch by the user's merge" "The merge is the user's"
+  says "$AD" "outside a Git repository, stops" "Outside a Git repository, stop"
+  says "$AD" "any uncommitted change stops the adoption" "Any uncommitted change stops the adoption"
+  says "$AD" "finds the default branch from the remote" "origin/HEAD"
+  says "$AD" "resumes an interrupted adoption from its checkpoint" "resume from its next action"
+  says "$AD" "lists new untracked files too" "--untracked-files=all"
 else
   fail "skills/adopt-existing-project/SKILL.md exists"
 fi
@@ -161,6 +206,14 @@ says "$DBG" "debug-project reports the reviewer's DIVERGENCES" "DIVERGENCES"
 
 echo "# delegation and flutter pub"
 says "$BS" "bootstrap-project delegates a long brief to the product-architect" "product-architect"
+says "$BS" "bootstrap-project gives a command when the .forge/config.yaml write is refused" "templates/forge-config.yaml > .forge/config.yaml"
+says "$BS" "bootstrap-project checks the agent's files with untracked files listed" "--untracked-files=all"
+says "$FA" "flutter-architect runs flutter pub deps only on a matching lockfile" "rewrites \`pubspec.lock\`"
+says "$GW" "git-workflow names the adoption branch" "chore/adopt-plugin-flutter"
+says "$GW" "git-workflow names the CI branch" "chore/ci"
+step14=$(awk '/^### Step 14 /{f=1; print; next} /^### Step 15 /{f=0} f' "$CF")
+[[ $step14 == *"validation point"* ]] && pass "create-feature step 14: a PRD or TRD change is a validation point" \
+  || fail "create-feature step 14: a PRD or TRD change is a validation point" "$step14"
 says "$FA" "flutter-architect lists resolved packages with flutter pub deps" "\`flutter pub deps\` lists"
 says "$FA" "flutter-architect documents the stack of an adopted app as pre-existing" "pre-existing"
 

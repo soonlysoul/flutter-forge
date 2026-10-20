@@ -56,7 +56,7 @@ git -C <P> ls-files -z | (cd <P> && xargs -0 sha256sum) >"$WORK/s6-tracked.sha"
    nothing changed:
 
    ```bash
-   git -C "$P" status --porcelain                      # empty
+   git -C "$P" status --porcelain --untracked-files=all   # empty
    (cd "$P" && sha256sum --quiet -c "$WORK/s6-tracked.sha") && echo unchanged
    test ! -e "$P/.forge" && echo "no .forge yet"
    jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | "\(.name) \(.input.command // .input.file_path // "")"' "$WORK/s6-1.jsonl"
@@ -69,6 +69,14 @@ git -C <P> ls-files -z | (cd <P> && xargs -0 sha256sum) >"$WORK/s6-tracked.sha"
 
    ```bash
    "$H" "$P" "$SID" resume "$WORK/s6-2.jsonl" "J'approuve les items 1, 2, 3 et 6 du plan. Je refuse les items 4 et 5 : ne touche ni à CLAUDE.md, ni à .gitignore, ni à analysis_options.yaml, ni à .claude/." "${TOOLS[@]}"
+   ```
+
+   In `-p`, protect-sensitive refuses the write of `.forge/config.yaml`: the skill must stop and
+   give a `! mkdir -p .forge && sed … > .forge/config.yaml` command instead of writing the file
+   another way. Run it yourself, as the user, then go on:
+
+   ```bash
+   "$H" "$P" "$SID" resume "$WORK/s6-3.jsonl" "C'est fait, .forge/config.yaml existe. Continue." "${TOOLS[@]}"
    ```
 
 ## Checks

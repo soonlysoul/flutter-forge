@@ -71,7 +71,7 @@ sha256sum <P>/pubspec.yaml <P>/pubspec.lock >"$WORK/s10-pub.sha"
    changelog link. Before answering:
 
    ```bash
-   sha256sum -c "$WORK/s10-pub.sha"; git -C "$P" status --porcelain; git -C "$P" branch --show-current   # unchanged, main
+   sha256sum -c "$WORK/s10-pub.sha"; git -C "$P" status --porcelain; git -C "$P" branch --show-current   # OK, only ` M .forge/checkpoint.md`, main
    ```
 
 2. Approve two batches only.

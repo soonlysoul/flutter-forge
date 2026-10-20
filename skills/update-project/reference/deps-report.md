@@ -11,10 +11,10 @@
 
 ## Batches
 
-| # | Command | Packages | Commit | Result |
-| --- | --- | --- | --- | --- |
-| 1 | `flutter pub upgrade` | compatible updates | <short hash> | done / dropped (reason) |
-| 2 | `flutter pub upgrade --major-versions <package>` | <package> | <short hash> | done / dropped (reason) |
+| # | Command | Packages | Commit | analyze | test | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `flutter pub upgrade` | compatible updates | <short hash> | exit <code>, <n> issues | exit <code>, <summary> | done / dropped (reason) |
+| 2 | `flutter pub upgrade --major-versions <package>` | <package> | <short hash> | exit <code>, <n> issues | exit <code>, <summary> | done / dropped (reason) |
 
 ## Direct and dev dependencies
 
@@ -22,7 +22,7 @@
 | --- | --- | --- | --- | --- | --- |
 | <package> | direct / dev | <version> | <version> | patch / minor / major / unchanged | <n> |
 
-Transitive dependencies changed: <n> (`git diff --stat <default branch> -- pubspec.lock`).
+Transitive dependencies changed: <n> (changed `version:` lines of `git diff <default branch> -- pubspec.lock`, direct dependencies excluded).
 
 ## Not updated
 
