@@ -87,7 +87,7 @@ No document is approved by this skill: create-feature needs the PRD and the TRD 
 
 ## Step 6 — Commit and report
 
-Stage the files explicitly through the git-workflow skill — never `git add -A` — and commit `chore: adopt plugin-flutter`, with the created and modified files in the body. The commit asks for confirmation.
+Stage the files explicitly through the git-workflow skill — never `git add -A` — and commit `chore: adopt plugin-flutter`, with the created and modified files in the body, and the checkpoint in its final state: write it before staging it — every approved item done, this commit announced, the next action — and do not change it after the commit, or `git switch <default branch>` would refuse to leave the branch. The commit asks for confirmation.
 
 Final report:
 

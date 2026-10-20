@@ -113,7 +113,7 @@ When the user asks to update Flutter, or when packages are held back by the SDK:
 1. `flutter pub outdated --json --show-all`: its `current` column gives the "after" of every direct and dev dependency, updated ones included (without `--show-all`, an up-to-date package is left out); a newer `latest` marks what was not updated.
 2. Call `<base>` the default branch, or the sync commit when step 3 made one. `git diff <base> -- pubspec.lock`: count the packages whose `version:` changed (one `+    version:` line each), the direct dependencies apart, for the transitive changes. `git log --oneline <default branch>..HEAD` for the batch commits.
 3. Write `.forge/reports/deps-<YYYY-MM-DD>-<slug>.md` from `${CLAUDE_PLUGIN_ROOT}/skills/update-project/reference/deps-report.md`: toolchain before and after, batches with their commits, versions before and after, packages not updated and why, analysis and tests at the baseline and after the last batch, breaking changes handled.
-4. Commit the report with the updated checkpoint through git-workflow: `docs(deps): report the dependency update`.
+4. Commit the report with the checkpoint in its final state through git-workflow: `docs(deps): report the dependency update`. Write that checkpoint before staging it — every step done, this commit announced, the next action — and do not change it after the commit.
 
 ## Final report
 

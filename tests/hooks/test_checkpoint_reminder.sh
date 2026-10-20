@@ -34,6 +34,15 @@ make_repo() {
   printf '%s' "$repo"
 }
 
+# commit_later <repo>: a commit on 2026-01-20 that leaves the checkpoint out, as a commit made
+# outside the workflow would.
+commit_later() {
+  echo "// later" >>"$1/lib/main.dart"
+  git -C "$1" add lib/main.dart
+  GIT_AUTHOR_DATE="2026-01-20T12:00:00" GIT_COMMITTER_DATE="2026-01-20T12:00:00" \
+    git -C "$1" commit -qm later
+}
+
 expect_reminder() {
   local label=$1 needle=$2 context
   context=$(jq -r 'select(.hookSpecificOutput.hookEventName == "Stop" and (has("decision") | not))
@@ -51,9 +60,22 @@ run_hook "$REMIND" "$(stop_input "$repo")"
 expect_silent_allow "checkpoint newer than the commit and no changes: silent"
 
 repo=$(make_repo)
+commit_later "$repo"
+run_hook "$REMIND" "$(stop_input "$repo")"
+expect_reminder "checkpoint older than a last commit that leaves it out" "last commit"
+
+# Scenarios 6 and 10 (v0.3): the last commit of a workflow carries the checkpoint, written just
+# before it, so the commit is always newer; reminding then dirtied the tree after every workflow.
+repo=$(make_repo)
 touch -t 202601050000 "$repo/.forge/checkpoint.md"
 run_hook "$REMIND" "$(stop_input "$repo")"
-expect_reminder "checkpoint older than the last commit" "last commit"
+expect_silent_allow "the last commit carries the checkpoint, unchanged since: silent"
+
+repo=$(make_repo)
+echo "- [x] 2 something else" >>"$repo/.forge/checkpoint.md"
+touch -t 202601050000 "$repo/.forge/checkpoint.md"
+run_hook "$REMIND" "$(stop_input "$repo")"
+expect_reminder "the last commit carries the checkpoint, changed since but older" "last commit"
 
 repo=$(make_repo)
 echo "// changed" >>"$repo/lib/main.dart"
@@ -127,7 +149,7 @@ run_hook "$REMIND" "$(stop_input "$fresh")"
 expect_silent_allow "repository without commits"
 
 repo=$(make_repo)
-touch -t 202601050000 "$repo/.forge/checkpoint.md"
+commit_later "$repo"
 run_hook "$REMIND" "$(stop_input "$plain")" CLAUDE_PROJECT_DIR="$repo"
 expect_reminder "CLAUDE_PROJECT_DIR is used before cwd" "last commit"
 

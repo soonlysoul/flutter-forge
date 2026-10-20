@@ -17,10 +17,17 @@ git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 
 mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
 
+# The last commit of a workflow carries the checkpoint, written just before it: the commit is
+# always newer, yet the checkpoint is up to date as long as it has not changed since.
+carried_by_head() {
+  [[ -n $(git -C "$root" diff-tree --root --no-commit-id --name-only -r HEAD -- .forge/checkpoint.md 2>/dev/null) ]] \
+    && git -C "$root" diff --quiet HEAD -- .forge/checkpoint.md 2>/dev/null
+}
+
 reason=""
 commit_time=$(git -C "$root" log -1 --format=%ct 2>/dev/null)
 checkpoint_time=$(mtime "$checkpoint")
-if [[ -n $commit_time && -n $checkpoint_time ]] && ((commit_time > checkpoint_time)); then
+if [[ -n $commit_time && -n $checkpoint_time ]] && ((commit_time > checkpoint_time)) && ! carried_by_head; then
   reason="the last commit ($(git -C "$root" log -1 --format=%h)) is newer than it"
 else
   while IFS= read -r -d '' entry; do

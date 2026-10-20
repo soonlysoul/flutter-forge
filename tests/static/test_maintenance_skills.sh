@@ -251,4 +251,16 @@ says "$FA" "flutter-architect records each deviation of an adopted app as an ADR
 # DECISIONS.md cited /home/<user>/.pub-cache/…: a committed document carried a path of this machine.
 says "$FA" "flutter-architect never cites an absolute path of this machine" "never by an absolute path of this machine"
 
+echo "# scenarios 6 and 10 (v0.3): the checkpoint of the last commit (D42)"
+# The checkpoint was updated after the last commit, as git-workflow asked: a dirty tree, and the
+# `! git switch main` the adoption proposes was refused.
+RS="$PLUGIN_ROOT/skills/recover-session/SKILL.md"
+says "$GW" "git-workflow: a committed checkpoint is not changed after the commit" "do not change it after the commit"
+grep -qF "once \`.forge/checkpoint.md\` is updated, its \`last_commit\` matches that hash" "$GW" \
+  && fail "git-workflow no longer updates the checkpoint after the commit" "the old sentence is still there" \
+  || pass "git-workflow no longer updates the checkpoint after the commit"
+says "$UP" "update-project: the report commit carries the final checkpoint" "the checkpoint in its final state"
+says "$AD" "adopt-existing-project: the adoption commit carries the final checkpoint" "the checkpoint in its final state"
+says "$RS" "recover-session: the commit carrying the checkpoint is not an inconsistency" "apart from the one that carries the checkpoint itself"
+
 finish

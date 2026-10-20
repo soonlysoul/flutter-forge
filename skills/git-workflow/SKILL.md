@@ -45,7 +45,7 @@ Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>` (update-proje
 - One logical change per commit, with its tests.
 - Conventional Commits: `type(scope): summary`, with the acceptance criterion in parentheses when there is one: `feat(notes): list notes offline (AC-012)`. Types: feat, fix, test, refactor, docs, chore.
 - Show the message and the file list, then run `git commit -m "<message>"`. For a message with a body, use `git commit -F -` with a quoted heredoc (`<<'EOF'`), so that nothing in the message is expanded or run.
-- After the commit, `git log --oneline -1`; once `.forge/checkpoint.md` is updated, its `last_commit` matches that hash.
+- After the commit, `git log --oneline -1`. When the commit carries `.forge/checkpoint.md`, write the checkpoint before staging it: the steps done, this commit announced, the next action; its `last_commit` names the commit before. Then do not change it after the commit: the working tree stays clean, so that a later `git switch` works, and the checkpoint-reminder hook accepts a checkpoint carried by the last commit.
 
 ## Push
 

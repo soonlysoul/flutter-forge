@@ -148,7 +148,7 @@ Tant que ce n'est pas fait, aucune règle du projet ne s'applique, y compris la 
 
 **Symptôme** : en fin de tour, « Stop hook feedback » demande de mettre à jour `.forge/checkpoint.md`.
 
-**Cause** : le checkpoint est plus ancien que le dernier commit ou qu'un fichier modifié, y compris un fichier que vous avez modifié vous-même dans l'éditeur.
+**Cause** : le checkpoint est plus ancien que le dernier commit ou qu'un fichier modifié, y compris un fichier que vous avez modifié vous-même dans l'éditeur. Un dernier commit qui contient le checkpoint lui-même, inchangé depuis, ne déclenche rien : le checkpoint est écrit juste avant le commit qui le porte, et n'est plus modifié ensuite (depuis la v0.3).
 
 **Solution** : laisser Claude le mettre à jour (une seule reprise par fin de tour, jamais deux de suite), ou le mettre à jour vous-même. Le hook se tait dès que le checkpoint est à jour, et ne parle jamais dans un projet sans `.forge/checkpoint.md`.
 

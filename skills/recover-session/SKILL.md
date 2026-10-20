@@ -21,7 +21,7 @@ Run `git rev-parse --short HEAD`, `git branch --show-current` and `git status --
 
 Flag each one:
 
-- commits newer than `last_commit` (`git log --oneline <last_commit>..HEAD`);
+- commits newer than `last_commit` (`git log --oneline <last_commit>..HEAD`), apart from the one that carries the checkpoint itself (`git log -1 --format=%h -- .forge/checkpoint.md`): the checkpoint is written just before the commit that includes it;
 - a current branch different from the checkpoint's;
 - uncommitted changes that the checkpoint does not mention;
 - a step ticked without its command or exit code.

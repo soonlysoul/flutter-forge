@@ -28,6 +28,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 | D39 | product-architect est délégué par adopt-existing-project (PRD reconstruit depuis le code) et par bootstrap-project quand le besoin fourni est long ; create-feature écrit lui-même un AC isolé, moins coûteux |
 | D40 | Le code-reviewer rend un bloc `DIVERGENCES` : dépendance ajoutée ou passée à une majeure sans ADR, AC visé sans test ou test citant un AC absent du PRD, entrée du plan contredite par le diff. create-feature (étape 14) le traite avec les mises à jour de docs |
 | D41 | Scénarios v0.3 : 6 adoption, 10 mise à jour de dépendances (critère de sortie), 11 tâche `build` de devops-engineer, 12 diagnostic d'une CI rouge (dépôt GitHub et minutes de CI : accord séparé) |
+| D42 | *(phase F.2, scénarios 6 et 10)* Le checkpoint est écrit **avant** le commit qui le porte (étapes faites, ce commit annoncé, prochaine action ; `last_commit` nomme le commit précédent) et n'est plus modifié après : l'arbre reste propre et `git switch` fonctionne. checkpoint-reminder se tait quand le dernier commit contient le checkpoint, inchangé depuis ; recover-session ne compte pas ce commit comme une incohérence |
 
 ### Phases v0.3
 
