@@ -50,6 +50,8 @@ COMMIT_DIRS=() COMMIT_LOCS=() COMMIT_SCOPES=()
 STAGE_DIRS=() STAGE_LOCS=() STAGE_SCOPES=() STAGE_UNTRACKED=()
 # Set when the line does something the hook cannot see before it runs.
 REFUSE=""
+# Every directory the line moves to, for the subshell fallback.
+SEEN_DIRS=("$cwd")
 
 # resolve_dir <base> <cd argument>: set DIR, or empty when it cannot be known statically.
 resolve_dir() {
@@ -77,7 +79,7 @@ scan_code() {
     sw_program "${SW_WORDS[@]}" || continue
     local -a cmd=("${SW_WORDS[@]:SW_AT}")
     case ${cmd[0]##*/} in
-      cd | pushd) cd_target "$dir" "${cmd[@]:1}"; dir=$DIR ;;
+      cd | pushd) cd_target "$dir" "${cmd[@]:1}"; dir=$DIR; SEEN_DIRS+=("$dir") ;;
       git) git_command "$depth" "$dir" "${cmd[@]:1}" ;;
       eval) scan_code "${cmd[*]:1}" $((depth + 1)) "$dir" ;;
       bash | sh | zsh | dash | ksh | ash) shell_command "$depth" "$dir" "${cmd[@]:1}" ;;
@@ -158,14 +160,14 @@ has_word() {
 add_scope_path() {
   [[ $SCOPE == ALL ]] && return 0
   case $1 in
-    *'$'* | *'`'*) SCOPE=ALL ;;
+    *'$'* | *'`'* | *'{'*) SCOPE=ALL ;;
     *) SCOPE=${SCOPE:-P}$SW_SEP$1 ;;
   esac
 }
 
 # add_command <dir> <loc> <git add arguments...>
 add_command() {
-  local dir=$1 loc=$2 word past=0 all=0 untracked=1
+  local dir=$1 loc=$2 word past=0 untracked=1
   shift 2
   SCOPE=""
   for word in "$@"; do
@@ -173,24 +175,20 @@ add_command() {
     case $word in
       --) past=1 ;;
       --force) REFUSE="git add -f stages an ignored file on the same line as the commit, which the index does not show yet. Run git add -f in a separate command, then commit." ;;
-      --all | --no-ignore-removal) all=1 ;;
-      --update) untracked=0 all=1 ;;
+      --update) untracked=0 ;;
       --pathspec-from-file | --pathspec-from-file=*) SCOPE=ALL ;;
       --*) ;;
       -?*)
         if [[ $word == *f* ]]; then
           REFUSE="git add -f stages an ignored file on the same line as the commit, which the index does not show yet. Run git add -f in a separate command, then commit."
         fi
-        if [[ $word == *A* ]]; then all=1; fi
-        if [[ $word == *u* ]]; then untracked=0 all=1; fi
+        if [[ $word == *u* ]]; then untracked=0; fi
         ;;
       *) add_scope_path "$word" ;;
     esac
   done
-  if [[ -z $SCOPE ]]; then
-    ((all)) || return 0
-    SCOPE=ALL
-  fi
+  # No path on the line: -A, -u, or paths that xargs supplies at run time.
+  if [[ -z $SCOPE ]]; then SCOPE=ALL; fi
   STAGE_DIRS+=("$dir") STAGE_LOCS+=("$loc") STAGE_SCOPES+=("$SCOPE") STAGE_UNTRACKED+=("$untracked")
 }
 
@@ -296,6 +294,7 @@ git_list() {
 pathspecs() {
   local rest
   PATHS=()
+  if [[ $1 == ALL ]]; then PATHS=(-- :/); return 0; fi
   [[ $1 == P* ]] || return 0
   PATHS=(--)
   rest=${1#P"$SW_SEP"}
@@ -306,26 +305,35 @@ pathspecs() {
 DIFF_OPTS=(--no-color --no-ext-diff --no-textconv --text -U0 --diff-filter=ACMR)
 
 # scan_diff <mode> <note> <pathspec arguments...>: mode is "--cached" for the index, "" for the work tree.
-# One diff for every file; the files are read one by one only when it holds a pattern.
+# One diff for every file; on a hit, git grep narrows the files to read one by one.
+# Sets SCOPED_NAMES to the files of the scan, \001-separated.
 scan_diff() {
-  local mode=$1 note=$2 file list diff
+  local mode=$1 note=$2 file list diff candidates status
+  local -a specs=()
   shift 2
   git_list diff $mode --name-only --diff-filter=ACMR -z "$@" || block "cannot list the changes to commit."
+  SCOPED_NAMES=$LIST
   list=$LIST
   [[ -n $list ]] || return 0
   while [[ -n $list ]]; do
     file=${list%%$'\001'*}
     list=${list#*$'\001'}
     check_name "$file" "$note"
+    specs+=(":(top,literal)$file")
   done
-  diff=$(set -o pipefail; "${git_cmd[@]}" diff $mode "${DIFF_OPTS[@]}" "$@" | added_lines) \
+  diff=$(set -o pipefail; "${git_cmd[@]}" diff $mode "${DIFF_OPTS[@]}" "$@" | tr -d '\000' | added_lines) \
     || block "cannot read the changes to commit."
   matches "$ANY_RULE" "$diff" || return 0
-  list=$LIST
+  candidates=$(set -o pipefail; "${git_cmd[@]}" grep $mode -l -z -a --full-name -E -e "$ANY_RULE" -- "${specs[@]}" | tr '\0' '\001')
+  status=$?
+  ((status <= 1)) || block "git grep failed (exit $status)."
+  candidates=$'\001'$candidates
+  list=$SCOPED_NAMES
   while [[ -n $list ]]; do
     file=${list%%$'\001'*}
     list=${list#*$'\001'}
-    diff=$(set -o pipefail; "${git_cmd[@]}" diff $mode "${DIFF_OPTS[@]}" -- ":(top,literal)$file" | added_lines) \
+    [[ $candidates == *$'\001'"$file"$'\001'* ]] || continue
+    diff=$(set -o pipefail; "${git_cmd[@]}" diff $mode "${DIFF_OPTS[@]}" -- ":(top,literal)$file" | tr -d '\000' | added_lines) \
       || block "cannot read the changes of $file."
     check_text "$file" "$note" "$diff"
   done
@@ -355,17 +363,20 @@ scan_untracked() {
   done <<<"$hits"
 }
 
-# run_gitleaks <top> [--staged]: add gitleaks findings, summarized without the secret.
+# run_gitleaks <top> <only> [--staged]: add gitleaks findings, summarized without the secret.
+# <only> is empty, or the \001-separated files whose findings count.
 run_gitleaks() {
-  local top=$1 report status summary line
-  shift
+  local top=$1 only=$2 report status summary line
+  shift 2
   report=$(gitleaks git --pre-commit "$@" --redact --no-banner --exit-code 99 \
     --report-format json --report-path - "$top" 2>/dev/null)
   status=$?
   case $status in
     0) ;;
     99)
-      summary=$(jq -r '.[]
+      summary=$(jq -r --arg only "$only" '($only | split("\u0001") | map(select(length > 0))) as $files
+        | .[]
+        | select($only == "" or (.File as $f | $files | index($f)))
         | select((.RuleID == "gcp-api-key"
                   and ((.File | split("/") | last) as $b
                        | ["firebase_options.dart", "google-services.json", "GoogleService-Info.plist"] | index($b))) | not)
@@ -385,7 +396,10 @@ repo_cmd() {
   local -a loc_opts=()
   [[ -n $dir ]] || block "cannot tell which repository this commit runs in (a cd or -C target uses a variable). Run git commit from the project directory."
   # A directory created on the same line belongs to the repository of its nearest existing parent.
-  while [[ -n $dir && ! -d $dir ]]; do dir=${dir%/*}; done
+  while [[ -n $dir && ! -d $dir ]]; do
+    if [[ $dir != */* ]]; then dir=.; break; fi
+    dir=${dir%/*}
+  done
   dir=${dir:-/}
   while [[ $loc == *"$SW_SEP"* ]]; do loc_opts+=("${loc%%"$SW_SEP"*}"); loc=${loc#*"$SW_SEP"}; done
   git_cmd=(git -C "$dir" ${loc_opts[@]+"${loc_opts[@]}"} -c core.quotePath=false --no-pager)
@@ -410,7 +424,7 @@ scan_commit() {
   top=$("${git_cmd[@]}" rev-parse --show-toplevel) || block "cannot find the top of the repository."
   if once "index$SW_SEP$top"; then
     scan_diff --cached ""
-    if command -v gitleaks >/dev/null 2>&1; then run_gitleaks "$top" --staged; fi
+    if command -v gitleaks >/dev/null 2>&1; then run_gitleaks "$top" "" --staged; fi
   fi
   if [[ -n $scope ]] && once "tree$SW_SEP$dir$SW_SEP$scope"; then
     pathspecs "$scope"
@@ -419,9 +433,15 @@ scan_commit() {
   fi
 }
 
-# tree_gitleaks <top> <scope>: gitleaks reads the whole work tree diff, so only for a whole-tree scope.
+# tree_gitleaks <top> <scope>: gitleaks reads the whole work tree diff; for a path scope, only
+# its findings in the files of the last scan_diff count.
 tree_gitleaks() {
-  if [[ $2 == ALL ]] && command -v gitleaks >/dev/null 2>&1 && once "gitleaks-tree$SW_SEP$1"; then run_gitleaks "$1"; fi
+  command -v gitleaks >/dev/null 2>&1 || return 0
+  if [[ $2 == ALL ]]; then
+    if once "gitleaks-tree$SW_SEP$1"; then run_gitleaks "$1" ""; fi
+  elif [[ -n $SCOPED_NAMES ]] && once "gitleaks-tree$SW_SEP$1$SW_SEP$SCOPED_NAMES"; then
+    run_gitleaks "$1" "$SCOPED_NAMES"
+  fi
 }
 
 scan_stage() {
@@ -431,9 +451,9 @@ scan_stage() {
   once "stage$SW_SEP$dir$SW_SEP$scope$SW_SEP$untracked" || return 0
   pathspecs "$scope"
   scan_diff "" "$TRACKED_NOTE" ${PATHS[@]+"${PATHS[@]}"}
-  if ((untracked)); then scan_untracked "$UNTRACKED_NOTE" ${PATHS[@]+"${PATHS[@]}"}; fi
   top=$("${git_cmd[@]}" rev-parse --show-toplevel) || block "cannot find the top of the repository."
   tree_gitleaks "$top" "$scope"
+  if ((untracked)); then scan_untracked "$UNTRACKED_NOTE" ${PATHS[@]+"${PATHS[@]}"}; fi
 }
 
 scan_code "$command" 0 "$cwd"
@@ -443,17 +463,31 @@ for tool in git grep awk tr sort; do
   command -v "$tool" >/dev/null 2>&1 || block "$tool is required to inspect commits and was not found in PATH."
 done
 
-# A cd inside a subshell, ( ... ), does not move the commands after it: scan the starting
-# directory too when a commit seems to run elsewhere.
+# A secret in the command text is written by the line itself, before the commit reads it.
+check_text "the command line itself" " (written by a command before the commit)" "$command"
+
+# A cd inside a subshell, ( ... ), does not move the commands after it, and the lexer does not
+# see where a subshell ends: then every directory the line moved to is scanned too.
 subshell=0
 if [[ ${command//'$('/} == *'('* ]]; then subshell=1; fi
 
 for k in "${!COMMIT_DIRS[@]}"; do
   scan_commit "${COMMIT_DIRS[k]}" "${COMMIT_LOCS[k]}" "${COMMIT_SCOPES[k]}"
-  if ((subshell)) && [[ ${COMMIT_DIRS[k]} != "$cwd" ]]; then scan_commit "$cwd" "" "${COMMIT_SCOPES[k]}"; fi
+  if ((subshell)); then
+    for seen in "${SEEN_DIRS[@]}"; do
+      if [[ -n $seen && $seen != "${COMMIT_DIRS[k]}" ]]; then scan_commit "$seen" "" "${COMMIT_SCOPES[k]}"; fi
+    done
+  fi
 done
 for k in "${!STAGE_DIRS[@]}"; do
   scan_stage "${STAGE_DIRS[k]}" "${STAGE_LOCS[k]}" "${STAGE_SCOPES[k]}" "${STAGE_UNTRACKED[k]}"
+  if ((subshell)); then
+    for seen in "${SEEN_DIRS[@]}"; do
+      if [[ -n $seen && $seen != "${STAGE_DIRS[k]}" ]]; then
+        scan_stage "$seen" "" "${STAGE_SCOPES[k]}" "${STAGE_UNTRACKED[k]}"
+      fi
+    done
+  fi
 done
 ((${#FINDINGS[@]})) || allow
 

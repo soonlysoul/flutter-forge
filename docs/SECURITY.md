@@ -87,7 +87,8 @@ Pour secret-scan :
 - sans gitleaks, ses motifs sont volontairement peu nombreux : un jeton Slack, Stripe ou une clé secrète AWS (`aws_secret_access_key`) passent. **Installez gitleaks** pour une vraie couverture (sous NixOS : `home.packages = [ pkgs.gitleaks ];` dans Home Manager) ;
 - il ne voit que `git commit` : pas `git commit-tree`, `git merge`, `git cherry-pick`, `git rebase`, `git am`, ni un commit fait par un script lancé par fichier ;
 - un `cd` vers un chemin qui contient une variable bloque le commit, faute de savoir quel dépôt il vise ;
-- un fichier modifié sur la même ligne par une autre commande (`echo … >> f && git commit -a`, `sed -i`, `git apply` sans `--cached`) est lu dans son état d'avant : le hook passe avant toute la ligne ;
+- un fichier modifié sur la même ligne par une autre commande (`sed -i`, `git apply` sans `--cached`, un script) est lu dans son état d'avant : le hook passe avant toute la ligne. Seul le texte de la ligne est analysé, ce qui attrape `printf 'KEY=…' > f && git add f && git commit` ;
+- les fichiers binaires sont lus comme du texte (pour qu'un attribut `-diff` ne masque rien) : une chaîne d'une bibliothèque native commitée peut ressembler à une clé, faux positif qui se lève par `!` ;
 - gitleaks lit l'index, et l'arbre de travail entier pour `-a` ou `git add -A` ; un fichier non suivi n'est lu que par les motifs intégrés ;
 - un faux positif (clé d'exemple dans un test) se lève par vous seul : `! git commit …`.
 

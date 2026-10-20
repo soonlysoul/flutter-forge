@@ -24,6 +24,7 @@ Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** e
 | D22 | secret-scan agit dans **tout** dépôt, comme guard-destructive : un secret commité est un problème partout. Un faux positif ailleurs se lève de la même façon (`! git commit …`) |
 | D24 | *(revue, I3)* Les clés Google des fichiers de configuration Firebase (`firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) passent : elles sont faites pour être livrées avec l'app. Seule la règle Google est levée pour ces trois noms, y compris la règle `gcp-api-key` de gitleaks ; les autres motifs s'y appliquent. Le message de blocage demande de consulter l'utilisateur avant de déplacer quoi que ce soit |
 | D25 | *(revue, C1 et I1)* secret-scan refuse ce qu'il ne peut pas vérifier avant son exécution : `git init` ou `git clone`, `git add -f` et `git apply --cached`/`--index` sur la même ligne qu'un commit. Le message demande de lancer ces commandes à part. Un dossier créé sur la ligne (`mkdir x && cd x && git commit`) est rattaché au dépôt de son plus proche parent existant ; un `cd` dans un sous-shell `( … )` fait aussi lire le dépôt de départ |
+| D26 | *(contre-vérification)* Ce que le hook ne peut pas résoudre élargit la lecture au lieu de la restreindre : `git add` sans chemin (fourni par `xargs`), chemin à variable, à accolades. Le texte même de la commande est analysé |
 | D23 | Avec un dépôt distant, la CI s'ajoute sur une branche `chore/ci` et passe par sa PR, puisque Claude ne pousse jamais la branche principale après sa publication initiale ; sans dépôt distant, elle se commite sur la branche principale, publiée ensuite par `remote`. Trou trouvé en écrivant le scénario 9 |
 
 ### Phases v0.2
@@ -98,11 +99,28 @@ Un sous-agent relecteur, sans l'historique de cette session, a relu `55df72c..7e
 
 Mutations après correction : 7 sur 7 détectées (refus, portée, Firebase, sous-shell, dossier parent, outils requis, gitleaks sur l'arbre).
 
+**Contre-vérification** de `4e66ad9` par le même relecteur : tous les constats initiaux tiennent, les commits ordinaires passent en silence (heredoc de message, `-am` avec un `.env` non suivi, sous-dossier, `git -C`). Elle trouve 5 défauts importants, dont 3 régressions de la réécriture, reproduits par 11 tests ROUGE puis corrigés :
+
+| Constat | Traitement |
+| --- | --- |
+| Régression : `… \| xargs git add && git commit` (pas de chemin visible) | Un `git add` sans chemin vaut tout l'arbre |
+| Régression : accolades `git add lib/{a,b}.dart` | Un chemin à accolades élargit à tout l'arbre |
+| `cd sub && git add -A` ne lisait pas les fichiers non suivis hors de `sub` | Portée « tout l'arbre » = pathspec `:/` |
+| Régression : gitleaks ne lisait plus `git add <fichier> && git commit` | gitleaks relancé sur l'arbre, ses constats filtrés sur les fichiers de la portée |
+| Sous-shell : l'indexation n'était pas relue dans le dossier de départ | Chaque dossier visité par la ligne est relu, pour les commits comme pour l'indexation |
+| Mineur : secret écrit par la ligne elle-même (`printf … > f && git add f && git commit`) | Le texte de la commande est lui aussi analysé |
+| Mineur : avertissement « ignored null byte » sur un binaire | Octets NUL retirés du diff |
+| Mineur : une clé parmi 3 000 fichiers relisait tout (14,9 s) | `git grep` restreint les fichiers à relire : 1,7 s |
+| Mineur : `-w` (= `--web`), `--code-size-directory` | Refusés pour devops-engineer (`-w` reste permis pour `gh run list`, où il vaut `--workflow`) |
+| Mineur : boucle infinie sur un dossier relatif | Corrigée |
+
+Non traité : avec `--text`, une chaîne d'un binaire commité (bibliothèque native embarquée) peut ressembler à une clé ; c'est écrit dans SECURITY.md, et le blocage se lève par `!`. Mutations : 7 sur 7 détectées. Pas de troisième passe de revue.
+
 ### Phase F.1 — Validation sans quota
 
 | Commande | Résultat |
 | --- | --- |
-| `bash tests/run-all.sh` | exit 0 — 17 réussis (13 suites, 826 assertions, 4 validations), 0 échoué |
+| `bash tests/run-all.sh` | exit 0 — 17 réussis (13 suites, 843 assertions après la contre-vérification, 4 validations), 0 échoué |
 | secret-scan avec le vrai gitleaks 8.30.1 (`nix shell nixpkgs#gitleaks`) | jeton Slack bloqué : `slack.dart:1: gitleaks rule slack-bot-token`, secret non affiché ; index propre accepté. Sans gitleaks, ce jeton passe : limite écrite dans SECURITY.md |
 | `claude --plugin-dir . plugin details plugin-flutter` | 6 skills, 4 agents, hooks sur 3 événements ; ~1 236 jetons permanents (v0.1 : ~848) |
 | Gabarit CI sur un projet `flutter create` jetable, Flutter 3.44.3 | `pub get`, `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` : exit 0 ×4 |

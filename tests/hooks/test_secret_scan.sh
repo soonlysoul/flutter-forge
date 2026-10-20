@@ -315,6 +315,42 @@ expect_secret "--pathspec-from-file reads every unstaged change" notes.txt
 scan 'git stage notes.txt && git commit -m x' "$repo"
 expect_secret "git stage counts as git add" notes.txt
 
+echo "# second review: staging forms the first rewrite missed"
+repo=$(make_repo)
+printf '%s\n' "$AWS" >"$repo/new-config.txt"
+scan 'git ls-files --others --exclude-standard | xargs git add && git commit -m x' "$repo"
+expect_secret "xargs git add (paths from stdin) reads the whole tree" new-config.txt
+scan 'git ls-files -z --others | xargs -0 git add -- && git commit -m x' "$repo"
+expect_secret "xargs -0 git add -- reads the whole tree" new-config.txt
+repo=$(make_repo)
+mkdir -p "$repo/lib"
+printf '%s\n' "$AWS" >"$repo/lib/a.dart"
+echo "x" >"$repo/lib/b.dart"
+scan 'git add lib/{a,b}.dart && git commit -m x' "$repo"
+expect_secret "a brace expansion in a path widens the scan" lib/a.dart
+repo=$(make_repo)
+mkdir -p "$repo/sub"
+echo "x" >"$repo/sub/a.txt"
+printf '%s\n' "$AWS" >"$repo/top-secret.txt"
+scan 'cd sub && git add -A && git commit -m x' "$repo"
+expect_secret "git add -A from a subdirectory reads the whole tree" top-secret.txt
+scratch=$(mktemp -d "$work/scratch.XXXXXX")
+repo=$(make_repo)
+printf 'K=%s\n' "$AWS" >"$repo/.env"
+scan "(cd $scratch && ls) && git add .env && git commit -m x" "$repo"
+expect_secret "staging after a cd inside a subshell is scanned in the starting repository" .env
+scan "cd $repo && (cd $scratch && ls) && git add .env && git commit -m x" "$plain"
+expect_secret "staging after a subshell cd is scanned in the directory of the cd before it" .env
+repo=$(make_repo)
+scan "printf 'API_KEY=$AWS' > config.txt && git add config.txt && git commit -m x" "$repo"
+expect_secret "a secret written on the commit line itself is blocked" "command line"
+repo=$(make_repo)
+head -c 4096 /dev/urandom >"$repo/blob.bin"
+printf '\0\0\0' >>"$repo/blob.bin"
+git -C "$repo" add blob.bin
+scan 'git commit -m "add a binary"' "$repo"
+expect_silent_allow "a binary file passes silently, without a null-byte warning"
+
 echo "# git location options"
 inner2=$(make_repo)
 stage "$inner2" lib/aws.dart "$AWS"
@@ -437,8 +473,41 @@ repo=$(make_repo)
 stage "$repo" .env "DEBUG=1"
 run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$repo")" PATH="$fake"
 expect_secret "file names are checked even when gitleaks finds nothing" .env
+repo=$(make_repo)
+mkdir -p "$repo/lib"
+echo "const a = 1;" >"$repo/lib/conf.dart"
+echo "const b = 1;" >"$repo/lib/other.dart"
+git -C "$repo" add lib && git -C "$repo" commit -qm conf
+echo "const token = 2;" >>"$repo/lib/conf.dart"
+echo "const c = 3;" >>"$repo/lib/other.dart"
+cat >"$fake/gitleaks" <<EOF
+#!$BASH
+printf '%s\n' "\$*" >>"$work/gitleaks.log"
+case "\$*" in
+  *--staged*) echo '[]'; exit 0 ;;
+  *) echo '[{"RuleID": "slack-bot-token", "File": "lib/conf.dart", "StartLine": 2, "Secret": "REDACTED"}, {"RuleID": "generic-api-key", "File": "lib/unrelated.dart", "StartLine": 1, "Secret": "REDACTED"}]'; exit 99 ;;
+esac
+EOF
+run_hook "$SCAN" "$(bash_input 'git add lib/conf.dart && git commit -m x' Bash "$repo")" PATH="$fake"
+expect_secret "gitleaks reads a tracked file staged on the same line" lib/conf.dart:2 slack-bot-token
+[[ $HOOK_STDERR != *unrelated.dart* ]] && pass "gitleaks findings outside the staged paths are ignored" \
+  || fail "gitleaks findings outside the staged paths are ignored" "$HOOK_STDERR"
+run_hook "$SCAN" "$(bash_input 'git commit -m x lib/conf.dart' Bash "$repo")" PATH="$fake"
+expect_secret "gitleaks reads the path given to git commit" lib/conf.dart:2
+run_hook "$SCAN" "$(bash_input 'git add lib/other.dart && git commit -m x' Bash "$repo")" PATH="$fake"
+expect_silent_allow "a gitleaks finding in a file the commit does not take passes"
 
 echo "# speed"
+repo=$(make_repo)
+for i in $(seq 1 3000); do printf 'line %s\n' "$i" >"$repo/f$i.txt"; done
+printf '%s\n' "$AWS" >"$repo/f1500.txt"
+git -C "$repo" add .
+start=$(date +%s%N)
+scan 'git commit -m "three thousand files, one key"' "$repo"
+elapsed=$((($(date +%s%N) - start) / 1000000))
+expect_secret "one key among 3000 staged files is found" f1500.txt
+((elapsed < 5000)) && pass "one key among 3000 files is attributed in $elapsed ms (< 5000)" \
+  || fail "one key among 3000 files is attributed in under 5 s" "$elapsed ms"
 repo=$(make_repo)
 for i in $(seq 1 800); do printf 'line %s\n' "$i" >"$repo/file$i.txt"; done
 git -C "$repo" add .

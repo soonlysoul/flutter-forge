@@ -95,12 +95,16 @@ command_allowed() {
       local word
       if [[ $1 == flutter && ${2-} == build ]]; then
         for word in "${@:3}"; do
-          case $word in -o* | --split-debug-info*) return 1 ;; esac
+          case $word in -o* | --split-debug-info* | --code-size-directory*) return 1 ;; esac
         done
         return 0
       fi
       if [[ $1 == gh ]]; then
-        for word in "${@:4}"; do [[ $word != --web ]] || return 1; done
+        for word in "${@:4}"; do
+          [[ $word != --web ]] || return 1
+          # -w is --web everywhere except gh run list, where it is --workflow.
+          [[ $word != -w || ${2-}/${3-} == run/list ]] || return 1
+        done
         case ${2-}/${3-} in
           auth/status)
             # Only the exact forms: gh groups short flags (-at) and accepts --flag=value,
