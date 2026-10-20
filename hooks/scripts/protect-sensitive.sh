@@ -22,13 +22,16 @@ IFS= read -r -d '' input || true
 
 # Without one of these names in the input, the write cannot be sensitive: no need for jq.
 case $input in
-  *key.properties* | *.keystore* | *.jks* | *.entitlements* | *.github/workflows/* | *.forge/config.yaml*) ;;
+  *key.properties* | *.keystore* | *.jks* | *.p12* | *.pfx* | *.entitlements* | *.github/workflows/* | \
+    *.github/actions/* | *.forge/config.yaml*) ;;
   *) allow ;;
 esac
-# Outside a forge project, only .forge/config.yaml is protected.
-if [[ -n ${CLAUDE_PROJECT_DIR-} && ! -d ${CLAUDE_PROJECT_DIR%/}/.forge && $input != *.forge/config.yaml* ]]; then allow; fi
 
-command -v jq >/dev/null 2>&1 || block "jq is required to check sensitive files and was not found in PATH. Install jq."
+if ! command -v jq >/dev/null 2>&1; then
+  # Without jq the file path is unknown: a session root without .forge/ is the best guess left.
+  if [[ -n ${CLAUDE_PROJECT_DIR-} && ! -d ${CLAUDE_PROJECT_DIR%/}/.forge && $input != *.forge/config.yaml* ]]; then allow; fi
+  block "jq is required to check sensitive files and was not found in PATH. Install jq."
+fi
 jq -e 'type == "object" and (.tool_name | type == "string")' >/dev/null 2>&1 <<<"$input" \
   || block "unreadable hook input."
 case $(jq -r '.tool_name' <<<"$input") in
@@ -40,21 +43,33 @@ path=$(jq -er '.tool_input.file_path // .tool_input.notebook_path // "" | string
 root=${CLAUDE_PROJECT_DIR:-$(jq -r '.cwd // "" | strings' <<<"$input")}
 root=${root%/}
 
+abs=$path
+if [[ $abs != /* && -n $root ]]; then abs=$root/$abs; fi
+# The forge project of a file is the nearest parent holding .forge/, whatever the session root.
+project=""
+dir=${abs%/*}
+while [[ -n $dir ]]; do
+  if [[ -d $dir/.forge ]]; then project=$dir; break; fi
+  dir=${dir%/*}
+done
+
 kind=""
 case /$path in
   */.forge/config.yaml) kind="the plugin's preauthorizations, which only the user edits" ;;
 esac
-if [[ -z $kind && -n $root && -d $root/.forge ]]; then
+if [[ -z $kind && -n $project ]]; then
   case /$path in
     */key.properties | *.keystore | *.jks) kind="Android signing material" ;;
+    *.p12 | *.pfx) kind="a signing certificate with its private key" ;;
     *.entitlements) kind="an Apple entitlements file: it grants the app capabilities" ;;
-    */.github/workflows/*) kind="a CI workflow: it runs with the repository's tokens and secrets" ;;
+    */.github/workflows/* | */.github/actions/*) kind="CI code: it runs with the repository's tokens and secrets" ;;
   esac
 fi
 [[ -n $kind ]] || allow
 
 shown=$path
-if [[ -n $root && $path == "$root"/* ]]; then shown=${path#"$root"/}; fi
+base=${root:-$project}
+if [[ -n $base && $abs == "$base"/* ]]; then shown=${abs#"$base"/}; fi
 reason="plugin-flutter protect-sensitive: $shown is $kind. Approve only if this change was requested. If it is refused, Claude must not write the file another way, and tells the user what it wanted to change."
 jq -nc --arg r "$reason" \
   '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $r}}' \

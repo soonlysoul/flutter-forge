@@ -49,7 +49,7 @@ Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>`, `docs/<slug>
 
 ## Push
 
-Only a work branch, never the default branch, never with force. Check the class above first. Run `git remote -v`: without a remote, stop; creating one is an explicit decision of the user, through the github-workflow skill (`remote`). Then `git push -u origin <branch>`, and report the output.
+Only a work branch, never the default branch, never with force. One exception, owned by the github-workflow skill: the first publication of the default branch to a repository it has just created, which the user approved with the creation. Check the class above first. Run `git remote -v`: without a remote, stop; creating one is an explicit decision of the user, through the github-workflow skill (`remote`). Then `git push -u origin <branch>`, and report the output.
 
 ## Report
 

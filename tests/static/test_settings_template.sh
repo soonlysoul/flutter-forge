@@ -36,10 +36,14 @@ else
   [[ -z $missing ]] && pass "commit, push and git add -A ask first" || fail "commit, push and git add -A ask first" "missing:$missing"
 
   missing=""
-  for rule in 'Bash(gh auth status)' 'Bash(gh pr view *)' 'Bash(gh pr checks *)' 'Bash(gh run list *)' 'Bash(gh run view *)'; do
+  for rule in 'Bash(gh --version)' 'Bash(gh auth status)' 'Bash(gh pr view *)' 'Bash(gh pr checks *)' 'Bash(gh run list *)' \
+    'Bash(gh run view *)' 'Bash(gh run watch *)' 'Bash(gh repo view)' 'Bash(gh repo view *)' 'Bash(gh workflow list)' \
+    'Bash(gh workflow view *)' 'Bash(gh issue list *)' 'Bash(gh issue view *)' 'Bash(git remote -v)' 'Bash(git rev-parse *)' \
+    'Bash(git branch --show-current)' 'Bash(flutter --version)' 'Bash(flutter doctor)' 'Bash(flutter doctor *)' \
+    'Bash(flutter devices)' 'Bash(flutter build *)'; do
     grep -qxF "$rule" <<<"$allow" || missing+=" $rule"
   done
-  [[ -z $missing ]] && pass "read-only gh commands run without asking" || fail "read-only gh commands run without asking" "missing:$missing"
+  [[ -z $missing ]] && pass "read-only gh, git and flutter commands of the v0.2 workflows run without asking" || fail "read-only gh, git and flutter commands of the v0.2 workflows run without asking" "missing:$missing"
 
   missing=""
   for rule in 'Bash(gh repo create *)' 'Bash(gh pr edit *)' 'Bash(gh issue create *)' 'Bash(gh run rerun *)' 'Bash(gh workflow run *)'; do

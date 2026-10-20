@@ -52,7 +52,7 @@ expect_step 7 "RED fails on the expected assertion" "assertion" "compil"
 expect_step 9 "GREEN: command, output recorded" "GREEN" "flutter test" "checkpoint" "exit code"
 expect_step 9 "GREEN: at most three iterations" "three"
 expect_step 11 "full test run at this milestone" "flutter test"
-expect_step 12 "format and analyze" "dart format --set-exit-if-changed" "flutter analyze"
+expect_step 12 "format and analyze, warnings fatal as in CI" "dart format --set-exit-if-changed" "flutter analyze" "fatal by default"
 expect_step 13 "code-reviewer on the branch diff" "code-reviewer" "git diff"
 expect_step 15 "commit through git-workflow, final report" "git-workflow" "report"
 

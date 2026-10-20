@@ -238,6 +238,126 @@ expect_secret "a commit from a subdirectory scans the whole index" lib/aws.dart
 scan 'cd "$PROJECT" && git commit -m x' "$repo"
 expect_blocked "a cd target that cannot be resolved blocks the commit"
 
+echo "# a repository or directory created on the same line"
+fresh=$(mktemp -d "$work/fresh.XXXXXX")
+printf 'API=%s\n' "$AWS" >"$fresh/.env"
+echo "void main() {}" >"$fresh/main.dart"
+scan 'git init && git add . && git commit -m "Initial commit"' "$fresh"
+expect_blocked "git init && git add . && git commit cannot be checked: blocked"
+[[ $HOOK_STDERR == *"separate command"* ]] && pass "the reason asks to create the repository first" \
+  || fail "the reason asks to create the repository first" "${HOOK_STDERR:0:300}"
+scan 'git clone https://example.test/r.git r && cd r && git commit -m x' "$fresh"
+expect_blocked "git clone on the same line as the commit is blocked"
+repo=$(make_repo)
+stage "$repo" leak.txt "$AWS"
+scan 'mkdir -p tools/gen && cd tools/gen && git commit -m x' "$repo"
+expect_secret "cd into a directory created on the line scans the enclosing repository" leak.txt
+scan "(cd $plain && ls) && git commit -m x" "$repo"
+expect_secret "a cd inside a subshell does not hide the starting repository" leak.txt
+
+echo "# staging that the index does not show yet"
+repo=$(make_repo)
+echo ".env.production" >"$repo/.gitignore"
+git -C "$repo" add .gitignore && git -C "$repo" commit -qm ignore
+printf 'K=%s\n' "$AWS" >"$repo/.env.production"
+scan 'git add -f .env.production && git commit -m x' "$repo"
+expect_blocked "git add -f on the same line as the commit is blocked"
+[[ $HOOK_STDERR == *"git add -f"* ]] && pass "the reason asks to force-add in a separate command" \
+  || fail "the reason asks to force-add in a separate command" "${HOOK_STDERR:0:300}"
+scan 'git add -fA && git commit -m x' "$repo"
+expect_blocked "a grouped -f is seen"
+scan 'git add --force .env.production' "$repo"
+expect_silent_allow "git add -f alone does not commit"
+printf 'diff --git a/n b/n\n' >"$repo/p.patch"
+scan 'git apply --cached p.patch && git commit -m x' "$repo"
+expect_blocked "git apply --cached on the same line as the commit is blocked"
+
+echo "# only what the commit can include"
+repo=$(make_repo)
+printf 'API=%s\n' "$AWS" >"$repo/.env"
+printf '%s\n' "$GHP" >"$repo/local-secrets.txt"
+echo "more" >>"$repo/notes.txt"
+echo "void main() {}" >"$repo/lib.dart"
+scan 'git commit -am x' "$repo"
+expect_silent_allow "git commit -a does not include untracked files"
+scan 'git add lib.dart && git commit -m x' "$repo"
+expect_silent_allow "git add <file> && git commit reads only that file"
+scan 'git add lib.dart notes.txt && git commit -m x' "$repo"
+expect_silent_allow "several named files are read, and only them"
+scan 'git add . && git commit -m x' "$repo"
+expect_secret "git add . includes every untracked file" .env local-secrets.txt "untracked"
+scan 'git add -A && git commit -m x' "$repo"
+expect_secret "git add -A includes every untracked file" .env
+scan 'git add "$FILES" && git commit -m x' "$repo"
+expect_secret "a path that cannot be resolved widens the scan" local-secrets.txt
+repo=$(make_repo)
+mkdir -p "$repo/sub" "$repo/other"
+printf '%s\n' "$AWS" >"$repo/other/key.txt"
+echo "x" >"$repo/sub/a.txt"
+scan 'git add sub/ && git commit -m x' "$repo"
+expect_silent_allow "git add <dir> reads only that directory"
+scan 'cd other && git add . && git commit -m x' "$repo"
+expect_secret "git add . from a subdirectory reads that directory" other/key.txt
+printf '%s\n' "$AWS" >>"$repo/notes.txt"
+echo "y" >"$repo/sub/b.txt"
+git -C "$repo" add sub/b.txt
+echo "z" >>"$repo/sub/b.txt"
+scan 'git commit -m x sub/b.txt' "$repo"
+expect_silent_allow "git commit <path> reads only that path"
+scan 'git commit -m x notes.txt' "$repo"
+expect_secret "git commit <path> reads that path" notes.txt
+scan 'git commit -i -m x notes.txt' "$repo"
+expect_secret "git commit -i <path> reads that path" notes.txt
+scan 'git commit -o notes.txt -m x' "$repo"
+expect_secret "git commit -o <path> reads that path" notes.txt
+scan 'git commit --pathspec-from-file=list.txt -m x' "$repo"
+expect_secret "--pathspec-from-file reads every unstaged change" notes.txt
+scan 'git stage notes.txt && git commit -m x' "$repo"
+expect_secret "git stage counts as git add" notes.txt
+
+echo "# git location options"
+inner2=$(make_repo)
+stage "$inner2" lib/aws.dart "$AWS"
+scan "git --git-dir=$inner2/.git --work-tree=$inner2 commit -m x" "$plain"
+expect_secret "--git-dir and --work-tree point at the repository" lib/aws.dart
+scan "pushd $inner2 && git commit -m x" "$plain"
+expect_secret "pushd changes the directory like cd" lib/aws.dart
+
+echo "# Firebase client configuration"
+repo=$(make_repo)
+stage "$repo" lib/firebase_options.dart "apiKey: '$GOOG',"
+stage "$repo" android/app/google-services.json "\"current_key\": \"$GOOG\""
+stage "$repo" ios/Runner/GoogleService-Info.plist "<string>$GOOG</string>"
+scan 'git commit -m "chore: configure Firebase"' "$repo"
+expect_silent_allow "Firebase client keys in their configuration files pass"
+stage "$repo" lib/firebase_options.dart "apiKey: '$GOOG', aws: '$AWS'"
+scan 'git commit -m x' "$repo"
+expect_secret "another secret in a Firebase file is still blocked" lib/firebase_options.dart AWS
+repo=$(make_repo)
+stage "$repo" lib/maps.dart "const maps = '$GOOG';"
+scan 'git commit -m x' "$repo"
+expect_secret "a Google key elsewhere is blocked" lib/maps.dart Google
+[[ $HOOK_STDERR == *"ask the user"* ]] && pass "the reason says to ask the user before moving anything" \
+  || fail "the reason says to ask the user before moving anything" "${HOOK_STDERR:0:400}"
+
+echo "# Apple signing files and hidden diffs"
+repo=$(make_repo)
+mkdir -p "$repo/ios"
+printf '\x30\x82\x0a\x00' >"$repo/ios/dist.p12"
+git -C "$repo" add ios/dist.p12
+scan 'git commit -m x' "$repo"
+expect_secret ".p12 certificate is blocked" ios/dist.p12
+repo=$(make_repo)
+stage "$repo" win/sign.pfx "x"
+scan 'git commit -m x' "$repo"
+expect_secret ".pfx certificate is blocked" win/sign.pfx
+repo=$(make_repo)
+stage "$repo" .gitattributes "*.json -diff"
+git -C "$repo" commit -qm attrs
+stage "$repo" config/keys.json "{\"aws\": \"$AWS\"}"
+scan 'git commit -m x' "$repo"
+expect_secret "a -diff attribute does not hide content" config/keys.json
+
 echo "# fail-closed"
 run_hook "$SCAN" '{"tool_name": "Bash", "tool_input": {"command": "git commit -m x"' PATH="$base_path"
 expect_blocked "malformed input that mentions commit is blocked"
@@ -248,6 +368,14 @@ run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$inner")" PATH="$nojq"
 expect_blocked "missing jq blocks a commit"
 [[ $HOOK_STDERR == *jq* ]] && pass "missing jq is named in the reason" || fail "missing jq is named in the reason" "$HOOK_STDERR"
 rm -r "$nojq"
+for tool in grep awk; do
+  partial=$(mktemp -d "$work/no$tool.XXXXXX")
+  cp -P "$base_path"/* "$partial/"
+  rm "$partial/$tool"
+  run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$inner")" PATH="$partial"
+  expect_blocked "missing $tool blocks a commit"
+  [[ $HOOK_STDERR == *"$tool is required"* ]] && pass "missing $tool is named in the reason" || fail "missing $tool is named in the reason" "$HOOK_STDERR"
+done
 nolib=$(mktemp -d "$work/nolib.XXXXXX")
 cp "$SCAN" "$nolib/"
 run_hook "$nolib/secret-scan.sh" "$(bash_input 'git commit -m x' Bash "$repo")" PATH="$base_path"
@@ -263,6 +391,8 @@ case \${FAKE_GITLEAKS:-clean} in
   clean) echo '[]'; exit 0 ;;
   leak) echo '[{"RuleID": "generic-api-key", "File": "lib/conf.dart", "StartLine": 3, "Secret": "REDACTED"}]'; exit 99 ;;
   error) echo "gitleaks: broken config" >&2; exit 1 ;;
+  firebase) echo '[{"RuleID": "gcp-api-key", "File": "lib/firebase_options.dart", "StartLine": 9, "Secret": "REDACTED"}]'; exit 99 ;;
+  maps) echo '[{"RuleID": "gcp-api-key", "File": "lib/maps.dart", "StartLine": 2, "Secret": "REDACTED"}]'; exit 99 ;;
 esac
 EOF
 chmod +x "$fake/gitleaks"
@@ -280,12 +410,29 @@ expect_secret "a gitleaks finding blocks the commit" lib/conf.dart:3 generic-api
 [[ $HOOK_STDERR != *REDACTED* ]] && pass "the gitleaks report is summarized, not copied" || fail "the gitleaks report is summarized, not copied" "$HOOK_STDERR"
 run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$repo")" PATH="$fake" FAKE_GITLEAKS=error
 expect_blocked "a gitleaks error blocks the commit (fail-closed)"
-[[ $HOOK_STDERR == *gitleaks* ]] && pass "the gitleaks error is named" || fail "the gitleaks error is named" "$HOOK_STDERR"
+[[ $HOOK_STDERR == *gitleaks* && $HOOK_STDERR == *8.19* ]] && pass "the gitleaks error is named, with the minimum version" \
+  || fail "the gitleaks error is named, with the minimum version" "$HOOK_STDERR"
+run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$repo")" PATH="$fake" FAKE_GITLEAKS=firebase
+expect_silent_allow "a gitleaks gcp-api-key finding in firebase_options.dart passes"
+run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$repo")" PATH="$fake" FAKE_GITLEAKS=maps
+expect_secret "a gitleaks gcp-api-key finding elsewhere blocks" lib/maps.dart:2
 rm -f "$work/gitleaks.log"
 run_hook "$SCAN" "$(bash_input 'git commit -a -m x' Bash "$repo")" PATH="$fake"
 calls=$(gitleaks_calls)
 [[ $(grep -c -- '--pre-commit' <<<"$calls") == 2 && $(grep -c -- '--staged' <<<"$calls") == 1 ]] \
   && pass "git commit -a also has gitleaks scan the unstaged changes" || fail "git commit -a also has gitleaks scan the unstaged changes" "calls: $calls"
+rm -f "$work/gitleaks.log"
+run_hook "$SCAN" "$(bash_input 'git commit -m x lib/notes.dart' Bash "$repo")" PATH="$fake"
+calls=$(gitleaks_calls)
+[[ $(grep -c -- '--pre-commit' <<<"$calls") == 1 ]] \
+  && pass "a commit limited to a path does not have gitleaks read every unstaged change" \
+  || fail "a commit limited to a path does not have gitleaks read every unstaged change" "calls: $calls"
+rm -f "$work/gitleaks.log"
+run_hook "$SCAN" "$(bash_input 'git add -A && git commit -m x' Bash "$repo")" PATH="$fake"
+calls=$(gitleaks_calls)
+[[ $(grep -c -- '--pre-commit' <<<"$calls") == 2 ]] \
+  && pass "git add -A on the line has gitleaks read the unstaged changes" \
+  || fail "git add -A on the line has gitleaks read the unstaged changes" "calls: $calls"
 repo=$(make_repo)
 stage "$repo" .env "DEBUG=1"
 run_hook "$SCAN" "$(bash_input 'git commit -m x' Bash "$repo")" PATH="$fake"
@@ -293,12 +440,12 @@ expect_secret "file names are checked even when gitleaks finds nothing" .env
 
 echo "# speed"
 repo=$(make_repo)
-for i in $(seq 1 40); do printf 'line %s\n' "$i" >"$repo/file$i.txt"; done
+for i in $(seq 1 800); do printf 'line %s\n' "$i" >"$repo/file$i.txt"; done
 git -C "$repo" add .
 start=$(date +%s%N)
-scan 'git commit -m "forty files"' "$repo"
+scan 'git commit -m "eight hundred files"' "$repo"
 elapsed=$((($(date +%s%N) - start) / 1000000))
-expect_silent_allow "a 40-file commit passes"
-((elapsed < 5000)) && pass "a 40-file commit is scanned in $elapsed ms (< 5000)" || fail "a 40-file commit is scanned in under 5 s" "$elapsed ms"
+expect_silent_allow "an 800-file commit passes"
+((elapsed < 3000)) && pass "an 800-file commit is scanned in $elapsed ms (< 3000)" || fail "an 800-file commit is scanned in under 3 s" "$elapsed ms"
 
 finish

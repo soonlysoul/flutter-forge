@@ -94,7 +94,7 @@ On approval of a document, set its status to APPROVED with the date. On approval
 
 ## Step 8 — Base test, green
 
-Run `flutter pub get`, then `flutter test`: exit code 0 is required. Then `flutter analyze`: zero errors. If the generated test fails, report it as it is, do not edit around it, and stop before the commit. `flutter test` runs on the host Dart VM: it marks no platform as tested.
+Run `flutter pub get`, then `flutter test`: exit code 0 is required. Then `flutter analyze`: exit 0 (infos and warnings are fatal by default, as in CI). If the generated test fails, report it as it is, do not edit around it, and stop before the commit. `flutter test` runs on the host Dart VM: it marks no platform as tested.
 
 ## Step 9 — First commit
 

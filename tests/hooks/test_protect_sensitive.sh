@@ -80,6 +80,19 @@ expect_silent_allow "outside a forge project, a missing jq changes nothing"
 run_hook "$PROTECT" "$(write_input "$forge/lib/main.dart")" CLAUDE_PROJECT_DIR="$forge" PATH="$nojq"
 expect_silent_allow "an ordinary file passes without jq"
 
+echo "# a forge app below the session root, and other CI or signing files"
+parent="$work/parent"
+mkdir -p "$parent/app/.forge"
+run_hook "$PROTECT" "$(write_input "$parent/app/.github/workflows/ci.yml" Write x "$parent")" CLAUDE_PROJECT_DIR="$parent"
+expect_ask "the forge project is found from the file, not from the session root" app/.github/workflows/ci.yml
+run_hook "$PROTECT" "$(write_input "$parent/app/android/key.properties" Write x "$parent")" CLAUDE_PROJECT_DIR="$parent"
+expect_ask "signing files of a forge app below the session root" key.properties
+run_hook "$PROTECT" "$(write_input "$parent/other/.github/workflows/ci.yml" Write x "$parent")" CLAUDE_PROJECT_DIR="$parent"
+expect_silent_allow "a sibling project without .forge/ is not protected"
+check ask "a composite action under .github/actions/" "$(write_input "$forge/.github/actions/setup/action.yml")" .github/actions/setup/action.yml
+check ask "an iOS distribution certificate (.p12)" "$(write_input "$forge/ios/dist.p12")" dist.p12
+check ask "a .pfx certificate" "$(write_input "$forge/windows/sign.pfx")" sign.pfx
+
 echo "# fail-closed"
 run_hook "$PROTECT" "$(write_input "$forge/android/key.properties")" CLAUDE_PROJECT_DIR="$forge" PATH="$nojq"
 expect_blocked "missing jq blocks a write that may be sensitive"

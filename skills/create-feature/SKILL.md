@@ -74,7 +74,7 @@ Run the targeted tests again, then, at this milestone only, the full suite: `flu
 
 ### Step 12 — Quality
 
-Run `dart format --set-exit-if-changed .` and `flutter analyze`. Zero analysis errors; list every warning. The format-dart hook formats the files Claude edits, so a format failure points at a file changed another way: format it and say which.
+Run `dart format --set-exit-if-changed .` and `flutter analyze`. `flutter analyze` must exit 0: infos and warnings are fatal by default, exactly as in the CI of the github-workflow skill. Fix them; one that cannot be fixed is listed with its reason, and the user decides. The format-dart hook formats the files Claude edits, so a format failure points at a file changed another way: format it and say which.
 
 ### Step 13 — Review
 

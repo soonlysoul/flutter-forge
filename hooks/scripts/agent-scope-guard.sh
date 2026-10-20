@@ -92,17 +92,26 @@ command_allowed() {
       case "$*" in
         'flutter --version' | 'flutter devices' | 'flutter doctor' | 'flutter doctor -v' | 'git remote -v') return 0 ;;
       esac
+      local word
       if [[ $1 == flutter && ${2-} == build ]]; then
-        local word
-        for word in "${@:3}"; do [[ $word != -o ]] || return 1; done
+        for word in "${@:3}"; do
+          case $word in -o* | --split-debug-info*) return 1 ;; esac
+        done
         return 0
       fi
       if [[ $1 == gh ]]; then
+        for word in "${@:4}"; do [[ $word != --web ]] || return 1; done
         case ${2-}/${3-} in
           auth/status)
-            local word
-            for word in "${@:4}"; do
-              case $word in -t | --show-token) return 1 ;; esac
+            # Only the exact forms: gh groups short flags (-at) and accepts --flag=value,
+            # so a deny list could not keep --show-token out.
+            shift 3
+            while (($#)); do
+              case $1 in
+                -a | --active) shift ;;
+                -h | --hostname) (($# >= 2)) || return 1; shift 2 ;;
+                *) return 1 ;;
+              esac
             done
             return 0
             ;;

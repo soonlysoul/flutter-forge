@@ -41,10 +41,15 @@ cwd=${cwd:-$PWD}
 
 MAX_DEPTH=4
 
-# Commits found in the command line: directory, git location options, "wide" flag.
-COMMIT_DIRS=() COMMIT_LOCS=() COMMIT_WIDE=()
-# A staging command anywhere on the line can add unstaged or untracked files to the commit.
-STAGING=0
+# Scopes: "" for nothing beyond the index, ALL for the whole work tree, or P followed by
+# $SW_SEP-separated pathspecs, relative to the directory of the command that names them.
+# Commits: directory, git location options, scope of the work tree changes they include.
+COMMIT_DIRS=() COMMIT_LOCS=() COMMIT_SCOPES=()
+# Staging commands on the same line (git add, git stage): directory, location, scope, and
+# whether untracked files are included (not with -u).
+STAGE_DIRS=() STAGE_LOCS=() STAGE_SCOPES=() STAGE_UNTRACKED=()
+# Set when the line does something the hook cannot see before it runs.
+REFUSE=""
 
 # resolve_dir <base> <cd argument>: set DIR, or empty when it cannot be known statically.
 resolve_dir() {
@@ -60,7 +65,7 @@ resolve_dir() {
   esac
 }
 
-# scan_code <code> <depth> <dir>: record the commits of every simple command, then of the nested code.
+# scan_code <code> <depth> <dir>: record the git commands of every simple command, then of the nested code.
 scan_code() {
   local depth=$2 dir=$3 segment nested
   ((depth <= MAX_DEPTH)) || block "command nesting is too deep to analyse."
@@ -123,27 +128,83 @@ git_command() {
     esac
   done
   (($#)) || return 0
-  case $1 in
-    add | stage | rm | mv) STAGING=1 ;;
+  local sub=$1
+  shift
+  case $sub in
+    init | clone)
+      REFUSE="the repository is created on the same line as the commit, so its content cannot be checked. Run git $sub in a separate command, then stage and commit in another one."
+      ;;
+    apply)
+      if has_word --cached "$@" || has_word --index "$@"; then
+        REFUSE="git apply --cached writes the index on the same line as the commit, so the patch cannot be checked. Apply it in a separate command, then commit."
+      fi
+      ;;
+    add | stage) add_command "$dir" "$loc" "$@" ;;
     commit)
-      shift
-      COMMIT_DIRS+=("$dir")
-      COMMIT_LOCS+=("$loc")
-      if commit_is_wide "$@"; then COMMIT_WIDE+=(1); else COMMIT_WIDE+=(0); fi
+      commit_scope "$@"
+      COMMIT_DIRS+=("$dir") COMMIT_LOCS+=("$loc") COMMIT_SCOPES+=("$SCOPE")
       ;;
   esac
 }
 
-# commit_is_wide <commit arguments...>: true when the commit can include more than the index:
-# -a, -i, -o, a path, or --pathspec-from-file.
-commit_is_wide() {
-  local word letters k
+has_word() {
+  local needle=$1 word
+  shift
+  for word in "$@"; do [[ $word == "$needle" ]] && return 0; done
+  return 1
+}
+
+# add_scope_path <path>: append a pathspec to SCOPE; a path that cannot be resolved widens it.
+add_scope_path() {
+  [[ $SCOPE == ALL ]] && return 0
+  case $1 in
+    *'$'* | *'`'*) SCOPE=ALL ;;
+    *) SCOPE=${SCOPE:-P}$SW_SEP$1 ;;
+  esac
+}
+
+# add_command <dir> <loc> <git add arguments...>
+add_command() {
+  local dir=$1 loc=$2 word past=0 all=0 untracked=1
+  shift 2
+  SCOPE=""
+  for word in "$@"; do
+    if ((past)); then add_scope_path "$word"; continue; fi
+    case $word in
+      --) past=1 ;;
+      --force) REFUSE="git add -f stages an ignored file on the same line as the commit, which the index does not show yet. Run git add -f in a separate command, then commit." ;;
+      --all | --no-ignore-removal) all=1 ;;
+      --update) untracked=0 all=1 ;;
+      --pathspec-from-file | --pathspec-from-file=*) SCOPE=ALL ;;
+      --*) ;;
+      -?*)
+        if [[ $word == *f* ]]; then
+          REFUSE="git add -f stages an ignored file on the same line as the commit, which the index does not show yet. Run git add -f in a separate command, then commit."
+        fi
+        if [[ $word == *A* ]]; then all=1; fi
+        if [[ $word == *u* ]]; then untracked=0 all=1; fi
+        ;;
+      *) add_scope_path "$word" ;;
+    esac
+  done
+  if [[ -z $SCOPE ]]; then
+    ((all)) || return 0
+    SCOPE=ALL
+  fi
+  STAGE_DIRS+=("$dir") STAGE_LOCS+=("$loc") STAGE_SCOPES+=("$SCOPE") STAGE_UNTRACKED+=("$untracked")
+}
+
+# commit_scope <commit arguments...>: set SCOPE to the work tree changes the commit includes
+# besides the index: ALL for -a or --pathspec-from-file, the named paths, or nothing.
+commit_scope() {
+  local word letters k all=0
+  SCOPE=""
   while (($#)); do
     word=$1
     shift
     case $word in
-      --) (($#)) && return 0; return 1 ;;
-      --all | --include | --only | --pathspec-from-file | --pathspec-from-file=*) return 0 ;;
+      --) for word in "$@"; do add_scope_path "$word"; done; break ;;
+      --all | --pathspec-from-file | --pathspec-from-file=*) all=1 ;;
       --message | --file | --reuse-message | --reedit-message | --template | --author | --date | \
         --cleanup | --fixup | --squash | --trailer)
         if (($#)); then shift; fi
@@ -153,7 +214,7 @@ commit_is_wide() {
         letters=${word#-}
         for ((k = 0; k < ${#letters}; k++)); do
           case ${letters:k:1} in
-            a | i | o) return 0 ;;
+            a) all=1 ;;
             m | F | C | c | t)
               if ((k == ${#letters} - 1)) && (($#)); then shift; fi
               break
@@ -162,10 +223,10 @@ commit_is_wide() {
           esac
         done
         ;;
-      *) return 0 ;;
+      *) add_scope_path "$word" ;;
     esac
   done
-  return 1
+  if ((all)); then SCOPE=ALL; fi
 }
 
 # Secret patterns, checked on added lines only (POSIX ERE).
@@ -177,7 +238,16 @@ RULE_PATTERNS=(
   '(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}'
   'AIza[0-9A-Za-z_-]{35}'
 )
+GOOGLE_RULE=4
 ANY_RULE=$(IFS='|'; printf '%s' "${RULE_PATTERNS[*]}")
+
+# Firebase client configuration holds Google API keys that are meant to ship with the app.
+firebase_config() {
+  case ${1##*/} in
+    firebase_options.dart | google-services.json | GoogleService-Info.plist) return 0 ;;
+  esac
+  return 1
+}
 
 FINDINGS=()
 
@@ -187,63 +257,107 @@ check_name() {
   case $base in
     .env.example | .env.sample | .env.template) ;;
     .env | .env.*) kind="environment file" ;;
-    *.jks | *.keystore) kind="keystore" ;;
+    *.jks | *.keystore) kind="Android keystore" ;;
     key.properties) kind="Android signing properties" ;;
+    *.p12 | *.pfx) kind="signing certificate with its private key" ;;
   esac
   if [[ -n $kind ]]; then FINDINGS+=("$1: $kind$2"); fi
+}
+
+# matches <pattern> <text>: grep -E, where an error is not a "no match".
+matches() {
+  local status
+  grep -qE -e "$1" <<<"$2"
+  status=$?
+  ((status <= 1)) || block "grep failed (exit $status)."
+  return "$status"
 }
 
 # check_text <path> <note> <text>: name each secret pattern found in the text.
 check_text() {
   local k
-  grep -qE -e "$ANY_RULE" <<<"$3" || return 0
+  matches "$ANY_RULE" "$3" || return 0
   for k in "${!RULE_PATTERNS[@]}"; do
-    if grep -qE -e "${RULE_PATTERNS[k]}" <<<"$3"; then FINDINGS+=("$1: ${RULE_NAMES[k]}$2"); fi
+    if ((k == GOOGLE_RULE)) && firebase_config "$1"; then continue; fi
+    if matches "${RULE_PATTERNS[k]}" "$3"; then FINDINGS+=("$1: ${RULE_NAMES[k]}$2"); fi
   done
 }
 
-# added_lines <diff>: the lines a one-file diff adds, without its header.
-added_lines() { awk '/^@@/ { hunk = 1; next } hunk && /^\+/ { print substr($0, 2) }' <<<"$1"; }
+# added_lines: the lines a diff adds, without the file headers.
+added_lines() { awk '/^diff --git / { hunk = 0; next } /^@@/ { hunk = 1; next } hunk && /^\+/ { print substr($0, 2) }'; }
 
 # git_list <git arguments...>: set LIST to the NUL-separated paths git prints, as \001-separated
-# text (command substitution drops NUL bytes). Works on scan_commit's git_cmd.
+# text (command substitution drops NUL bytes). Works on scan_repo's git_cmd.
 git_list() {
   LIST=$(set -o pipefail; "${git_cmd[@]}" "$@" | tr '\0' '\001')
 }
 
-# scan_diff <mode> <note>: mode is "--cached" for the index, "" for the work tree.
+# pathspecs <scope>: set PATHS to the git arguments that limit a scan to the scope.
+pathspecs() {
+  local rest
+  PATHS=()
+  [[ $1 == P* ]] || return 0
+  PATHS=(--)
+  rest=${1#P"$SW_SEP"}
+  while [[ $rest == *"$SW_SEP"* ]]; do PATHS+=("${rest%%"$SW_SEP"*}"); rest=${rest#*"$SW_SEP"}; done
+  PATHS+=("$rest")
+}
+
+DIFF_OPTS=(--no-color --no-ext-diff --no-textconv --text -U0 --diff-filter=ACMR)
+
+# scan_diff <mode> <note> <pathspec arguments...>: mode is "--cached" for the index, "" for the work tree.
+# One diff for every file; the files are read one by one only when it holds a pattern.
 scan_diff() {
-  local mode=$1 note=$2 file diff list
-  git_list diff $mode --name-only --diff-filter=ACMR -z || block "cannot list the changes to commit."
+  local mode=$1 note=$2 file list diff
+  shift 2
+  git_list diff $mode --name-only --diff-filter=ACMR -z "$@" || block "cannot list the changes to commit."
   list=$LIST
+  [[ -n $list ]] || return 0
   while [[ -n $list ]]; do
     file=${list%%$'\001'*}
     list=${list#*$'\001'}
     check_name "$file" "$note"
-    diff=$("${git_cmd[@]}" diff $mode --no-color --no-ext-diff -U0 -- ":(top,literal)$file") \
+  done
+  diff=$(set -o pipefail; "${git_cmd[@]}" diff $mode "${DIFF_OPTS[@]}" "$@" | added_lines) \
+    || block "cannot read the changes to commit."
+  matches "$ANY_RULE" "$diff" || return 0
+  list=$LIST
+  while [[ -n $list ]]; do
+    file=${list%%$'\001'*}
+    list=${list#*$'\001'}
+    diff=$(set -o pipefail; "${git_cmd[@]}" diff $mode "${DIFF_OPTS[@]}" -- ":(top,literal)$file" | added_lines) \
       || block "cannot read the changes of $file."
-    check_text "$file" "$note" "$(added_lines "$diff")"
+    check_text "$file" "$note" "$diff"
   done
 }
 
+# scan_untracked <note> <pathspec arguments...>
 scan_untracked() {
-  local note=$1 top file list
+  local note=$1 top file list hits status
+  local -a files=()
+  shift
   top=$("${git_cmd[@]}" rev-parse --show-toplevel) || block "cannot find the top of the repository."
-  git_list ls-files --others --exclude-standard --full-name -z || block "cannot list the untracked files."
+  git_list ls-files --others --exclude-standard --full-name -z "$@" || block "cannot list the untracked files."
   list=$LIST
   while [[ -n $list ]]; do
     file=${list%%$'\001'*}
     list=${list#*$'\001'}
     check_name "$file" "$note"
-    if [[ -f $top/$file ]] && grep -qI '' "$top/$file" 2>/dev/null; then
-      check_text "$file" "$note" "$(<"$top/$file")"
-    fi
+    if [[ -f $top/$file ]]; then files+=("$top/$file"); fi
   done
+  ((${#files[@]})) || return 0
+  hits=$(grep -lIE -e "$ANY_RULE" -- "${files[@]}" 2>/dev/null)
+  status=$?
+  ((status <= 1)) || block "grep failed (exit $status)."
+  while IFS= read -r file; do
+    [[ -n $file ]] || continue
+    check_text "${file#"$top"/}" "$note" "$(<"$file")"
+  done <<<"$hits"
 }
 
 # run_gitleaks <top> [--staged]: add gitleaks findings, summarized without the secret.
 run_gitleaks() {
-  local top=$1 report status
+  local top=$1 report status summary line
   shift
   report=$(gitleaks git --pre-commit "$@" --redact --no-banner --exit-code 99 \
     --report-format json --report-path - "$top" 2>/dev/null)
@@ -251,44 +365,99 @@ run_gitleaks() {
   case $status in
     0) ;;
     99)
-      local summary
-      summary=$(jq -r '.[] | "\(.File):\(.StartLine): gitleaks rule \(.RuleID)"' <<<"$report" 2>/dev/null)
-      if [[ -z $summary ]]; then summary="gitleaks reported a secret (no details available)"; fi
-      while IFS= read -r line; do FINDINGS+=("$line"); done <<<"$summary"
+      summary=$(jq -r '.[]
+        | select((.RuleID == "gcp-api-key"
+                  and ((.File | split("/") | last) as $b
+                       | ["firebase_options.dart", "google-services.json", "GoogleService-Info.plist"] | index($b))) | not)
+        | "\(.File):\(.StartLine): gitleaks rule \(.RuleID)"' <<<"$report" 2>/dev/null) \
+        || summary="gitleaks reported a secret (no details available)"
+      while IFS= read -r line; do
+        if [[ -n $line ]]; then FINDINGS+=("$line"); fi
+      done <<<"$summary"
       ;;
-    *) block "gitleaks failed (exit $status), so the commit could not be checked. Fix gitleaks or its configuration (.gitleaks.toml) first." ;;
+    *) block "gitleaks failed (exit $status), so the commit could not be checked. plugin-flutter needs gitleaks 8.19 or later (gitleaks version); fix gitleaks or its configuration (.gitleaks.toml) first." ;;
   esac
 }
 
-scan_commit() {
-  local dir=$1 loc=$2 wide=$3 top
-  local -a loc_opts=() git_cmd
+# repo_cmd <dir> <loc>: set git_cmd for that location, or return 1 outside a work tree.
+repo_cmd() {
+  local dir=$1 loc=$2
+  local -a loc_opts=()
   [[ -n $dir ]] || block "cannot tell which repository this commit runs in (a cd or -C target uses a variable). Run git commit from the project directory."
+  # A directory created on the same line belongs to the repository of its nearest existing parent.
+  while [[ -n $dir && ! -d $dir ]]; do dir=${dir%/*}; done
+  dir=${dir:-/}
   while [[ $loc == *"$SW_SEP"* ]]; do loc_opts+=("${loc%%"$SW_SEP"*}"); loc=${loc#*"$SW_SEP"}; done
   git_cmd=(git -C "$dir" ${loc_opts[@]+"${loc_opts[@]}"} -c core.quotePath=false --no-pager)
   # Outside a repository git commit fails on its own: there is nothing to scan.
-  [[ -d $dir ]] && "${git_cmd[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
-  scan_diff --cached ""
-  if ((wide)); then
-    scan_diff "" " (not staged yet: the commit includes it through -a, a path, or git add on the same line)"
-    scan_untracked " (untracked: git add on the same line would include it)"
+  "${git_cmd[@]}" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+TRACKED_NOTE=" (not staged yet: the commit includes it through -a, a path, or git add on the same line)"
+UNTRACKED_NOTE=" (untracked: the git add on the same line includes it)"
+SCANNED=$SW_SEP
+
+# once <key>: true the first time a key is seen.
+once() {
+  [[ $SCANNED != *"$SW_SEP$1$SW_SEP"* ]] || return 1
+  SCANNED+=$1$SW_SEP
+}
+
+scan_commit() {
+  local dir=$1 loc=$2 scope=$3 top
+  local -a git_cmd
+  repo_cmd "$dir" "$loc" || return 0
+  top=$("${git_cmd[@]}" rev-parse --show-toplevel) || block "cannot find the top of the repository."
+  if once "index$SW_SEP$top"; then
+    scan_diff --cached ""
+    if command -v gitleaks >/dev/null 2>&1; then run_gitleaks "$top" --staged; fi
   fi
-  if command -v gitleaks >/dev/null 2>&1; then
-    top=$("${git_cmd[@]}" rev-parse --show-toplevel) || block "cannot find the top of the repository."
-    run_gitleaks "$top" --staged
-    if ((wide)); then run_gitleaks "$top"; fi
+  if [[ -n $scope ]] && once "tree$SW_SEP$dir$SW_SEP$scope"; then
+    pathspecs "$scope"
+    scan_diff "" "$TRACKED_NOTE" ${PATHS[@]+"${PATHS[@]}"}
+    tree_gitleaks "$top" "$scope"
   fi
+}
+
+# tree_gitleaks <top> <scope>: gitleaks reads the whole work tree diff, so only for a whole-tree scope.
+tree_gitleaks() {
+  if [[ $2 == ALL ]] && command -v gitleaks >/dev/null 2>&1 && once "gitleaks-tree$SW_SEP$1"; then run_gitleaks "$1"; fi
+}
+
+scan_stage() {
+  local dir=$1 loc=$2 scope=$3 untracked=$4 top
+  local -a git_cmd
+  repo_cmd "$dir" "$loc" || return 0
+  once "stage$SW_SEP$dir$SW_SEP$scope$SW_SEP$untracked" || return 0
+  pathspecs "$scope"
+  scan_diff "" "$TRACKED_NOTE" ${PATHS[@]+"${PATHS[@]}"}
+  if ((untracked)); then scan_untracked "$UNTRACKED_NOTE" ${PATHS[@]+"${PATHS[@]}"}; fi
+  top=$("${git_cmd[@]}" rev-parse --show-toplevel) || block "cannot find the top of the repository."
+  tree_gitleaks "$top" "$scope"
 }
 
 scan_code "$command" 0 "$cwd"
 ((${#COMMIT_DIRS[@]})) || allow
+[[ -z $REFUSE ]] || block "$REFUSE"
+for tool in git grep awk tr sort; do
+  command -v "$tool" >/dev/null 2>&1 || block "$tool is required to inspect commits and was not found in PATH."
+done
+
+# A cd inside a subshell, ( ... ), does not move the commands after it: scan the starting
+# directory too when a commit seems to run elsewhere.
+subshell=0
+if [[ ${command//'$('/} == *'('* ]]; then subshell=1; fi
 
 for k in "${!COMMIT_DIRS[@]}"; do
-  scan_commit "${COMMIT_DIRS[k]}" "${COMMIT_LOCS[k]}" $((COMMIT_WIDE[k] || STAGING))
+  scan_commit "${COMMIT_DIRS[k]}" "${COMMIT_LOCS[k]}" "${COMMIT_SCOPES[k]}"
+  if ((subshell)) && [[ ${COMMIT_DIRS[k]} != "$cwd" ]]; then scan_commit "$cwd" "" "${COMMIT_SCOPES[k]}"; fi
+done
+for k in "${!STAGE_DIRS[@]}"; do
+  scan_stage "${STAGE_DIRS[k]}" "${STAGE_LOCS[k]}" "${STAGE_SCOPES[k]}" "${STAGE_UNTRACKED[k]}"
 done
 ((${#FINDINGS[@]})) || allow
 
 block "this commit would include secrets:
 $(printf '  - %s\n' "${FINDINGS[@]}" | sort -u)
-Never print a secret. Unstage each file (git restore --staged <file>, or git rm --cached <file> before the first commit), move the secret out of the code (environment variable, untracked file listed in .gitignore), and tell the user which file held it.
+Never print a secret, and do not move or rewrite anything before you ask the user: tell them which file holds what. Then propose to unstage the file (git restore --staged <file>, or git rm --cached <file> before the first commit; an untracked file only needs to stay out of git add) and to move the secret out of the code (environment variable, untracked file listed in .gitignore).
 If it is a false positive, such as an example key in a test, only the user can commit it: they run the commit themselves with the ! prefix."

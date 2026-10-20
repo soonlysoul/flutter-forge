@@ -59,7 +59,7 @@ On the default branch, create `fix/<slug>` through the git-workflow skill. On a 
 
 ## Step 7 — Regression test, RED
 
-Write a test that reproduces the failure through the public API, next to the existing tests (`test/` mirrors `lib/`). Name it after the bug: `test('regression: <what failed>', ...)`, or with the acceptance criterion id when the bug breaks one. Run it: `flutter test <test file> --plain-name "regression: <what failed>"`. It must fail for the reason found at step 4; record the output in the checkpoint.
+When the failure is an existing test that fails, that test already reproduces it: it is the regression test, do not duplicate it, and record its RED run from step 2. Otherwise, write a test that reproduces the failure through the public API, next to the existing tests (`test/` mirrors `lib/`). Name it after the bug: `test('regression: <what failed>', ...)`, or with the acceptance criterion id when the bug breaks one. Run it: `flutter test <test file> --plain-name "regression: <what failed>"`. It must fail for the reason found at step 4; record the output in the checkpoint.
 
 When no test can capture the failure (a build or toolchain configuration, for example), say so: the reproduction command of step 2 is then the regression check.
 
@@ -69,7 +69,7 @@ Change the minimum, in the files of step 5, to remove the root cause — not its
 
 ## Step 9 — Full check
 
-Run the original failing command again, then the full suite `flutter test`, then `dart format --set-exit-if-changed .` and `flutter analyze`: zero analysis errors, warnings listed. Record each one in the checkpoint.
+Run the original failing command again, then the full suite `flutter test`, then `dart format --set-exit-if-changed .` and `flutter analyze`, which must exit 0: infos and warnings are fatal by default, as in CI. Record each one in the checkpoint.
 
 ## Step 10 — Review
 
