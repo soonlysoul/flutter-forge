@@ -64,38 +64,12 @@ check_code() {
   done
 }
 
-# skip_options <options taking a value>: advance i past option words of a wrapper.
-# Works on check_simple_command's w, i and n (bash scoping is dynamic).
-skip_options() {
-  while ((i < n)) && [[ ${w[i]} == -* ]]; do
-    if [[ " $1 " == *" ${w[i]} "* ]]; then i=$((i + 2)); else i=$((i + 1)); fi
-  done
-}
-
 check_simple_command() {
   local depth=$1
   shift
-  local -a w=("$@")
-  local i=0 n=$#
   # Skip what comes before the program: assignments, keywords, wrapper commands.
-  while ((i < n)); do
-    case ${w[i]} in
-      '{' | '}' | '!' | if | then | else | elif | do | while | until | time) i=$((i + 1)); continue ;;
-    esac
-    if [[ ${w[i]} =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then i=$((i + 1)); continue; fi
-    case ${w[i]##*/} in
-      sudo | doas) i=$((i + 1)); skip_options "-u -g -h -p -C -D -r -t -U -T" ;;
-      env) i=$((i + 1)); skip_options "-u -C -S --unset --chdir --split-string" ;;
-      command | builtin | nohup) i=$((i + 1)); skip_options "" ;;
-      exec) i=$((i + 1)); skip_options "-a" ;;
-      nice) i=$((i + 1)); skip_options "-n --adjustment" ;;
-      timeout) i=$((i + 1)); skip_options "-s -k --signal --kill-after"; i=$((i + 1)) ;;
-      xargs) i=$((i + 1)); skip_options "-I -L -n -P -s -d -E -a --max-args --max-procs --delimiter --arg-file --max-lines --replace" ;;
-      *) break ;;
-    esac
-  done
-  ((i < n)) || return 0
-  local -a cmd=("${w[@]:i}")
+  sw_program "$@" || return 0
+  local -a cmd=("${@:SW_AT+1}")
   local -a args=("${cmd[@]:1}")
   case ${cmd[0]##*/} in
     git) check_git ${args[@]+"${args[@]}"} ;;

@@ -21,6 +21,38 @@ sw_is_shell() {
   return 1
 }
 
+# sw_program <words...>: set SW_AT to the index of the program a simple command runs, past
+# assignments, shell keywords and wrapper commands. Returns 1 when the words run no program.
+sw_program() {
+  local -a w=("$@")
+  local i=0 n=$#
+  while ((i < n)); do
+    case ${w[i]} in
+      '{' | '}' | '!' | if | then | else | elif | do | while | until | time) i=$((i + 1)); continue ;;
+    esac
+    if [[ ${w[i]} =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then i=$((i + 1)); continue; fi
+    case ${w[i]##*/} in
+      sudo | doas) i=$((i + 1)); _sw_skip_options "-u -g -h -p -C -D -r -t -U -T" ;;
+      env) i=$((i + 1)); _sw_skip_options "-u -C -S --unset --chdir --split-string" ;;
+      command | builtin | nohup) i=$((i + 1)); _sw_skip_options "" ;;
+      exec) i=$((i + 1)); _sw_skip_options "-a" ;;
+      nice) i=$((i + 1)); _sw_skip_options "-n --adjustment" ;;
+      timeout) i=$((i + 1)); _sw_skip_options "-s -k --signal --kill-after"; i=$((i + 1)) ;;
+      xargs) i=$((i + 1)); _sw_skip_options "-I -L -n -P -s -d -E -a --max-args --max-procs --delimiter --arg-file --max-lines --replace" ;;
+      *) break ;;
+    esac
+  done
+  SW_AT=$i
+  ((i < n))
+}
+
+# _sw_skip_options <options taking a value>: advance sw_program's i past a wrapper's options.
+_sw_skip_options() {
+  while ((i < n)) && [[ ${w[i]} == -* ]]; do
+    if [[ " $1 " == *" ${w[i]} "* ]]; then i=$((i + 2)); else i=$((i + 1)); fi
+  done
+}
+
 # sw_words <segment>: split a segment into the SW_WORDS array.
 sw_words() {
   local rest=$1
