@@ -12,7 +12,7 @@ Feature requested: $ARGUMENTS
 
 ## Rules for every step
 
-- **Checkpoint after every completed step.** Update `.forge/checkpoint.md` (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`): tick the step with its command and exit code, update the test results table and the next action. Set `skill: create-feature`, the feature and the branch. The checkpoint is workflow state: it is often modified, and that is never a reason to stop.
+- **Checkpoint after every completed step.** Update `.forge/checkpoint.md` (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`): tick the step with its command and exit code, update the test results table and the next action. Set `skill: create-feature`, the feature and the branch. The checkpoint is workflow state: it is often modified, and that is never a reason to stop. A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit.
 - **No result without its command.** Never report a step as done without the output of the command that proves it.
 - **Two identical failures stop the workflow.** If one command fails twice with the same error, stop, write the checkpoint and explain the blocker instead of retrying. This rule also applies inside the three iterations of step 9: the iteration limit is a ceiling, not a licence to repeat a failure.
 - **Validation points.** Ask the question in plain text, write the checkpoint, end your turn and wait. Do not use AskUserQuestion: the same flow works in headless mode.

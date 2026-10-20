@@ -45,7 +45,8 @@ Names: `feature/<ac-id>-<slug>`, `fix/<slug>`, `chore/deps-<slug>` (update-proje
 - One logical change per commit, with its tests.
 - Conventional Commits: `type(scope): summary`, with the acceptance criterion in parentheses when there is one: `feat(notes): list notes offline (AC-012)`. Types: feat, fix, test, refactor, docs, chore.
 - Show the message and the file list, then run `git commit -m "<message>"`. For a message with a body, use `git commit -F -` with a quoted heredoc (`<<'EOF'`), so that nothing in the message is expanded or run.
-- After the commit, `git log --oneline -1`. When the commit carries `.forge/checkpoint.md`, write the checkpoint before staging it: the steps done, this commit announced, the next action; its `last_commit` names the commit before. Then do not change it after the commit: the working tree stays clean, so that a later `git switch` works, and the checkpoint-reminder hook accepts a checkpoint carried by the last commit.
+- After the commit, `git log --oneline -1`.
+- A commit that carries `.forge/checkpoint.md`: write the checkpoint before staging it, with the steps done, the commit step ticked `carried by this commit` instead of an exit code (a commit cannot record its own result), and the next action; its `last_commit` names the commit before. Do not change the checkpoint again for that commit: the next update belongs to the next step, if the workflow has one. After the last commit of a workflow, the working tree thus stays clean, a later `git switch` works, and the checkpoint-reminder hook accepts the checkpoint carried by the last commit.
 
 ## Push
 

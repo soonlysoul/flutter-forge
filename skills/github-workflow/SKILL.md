@@ -16,7 +16,7 @@ Request: $ARGUMENTS
 - **Validation points.** Ask in plain text, write the checkpoint, end your turn and wait. Do not use AskUserQuestion: the same flow works in headless mode.
 - **One command per call.** Run each command alone — no pipe, `;`, `&&` or redirection: the project's permission rules allow plain commands such as `gh pr checks <number>`, and a compound command asks for permission, or is refused in a non-interactive run. The heredoc that feeds `--body-file -` is the one exception.
 - **Configuration.** Read `.forge/config.yaml` first; a missing key counts as false. Never edit that file.
-- **Checkpoint.** After every completed step, update `.forge/checkpoint.md` (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`) with `skill: github-workflow`, the command and its exit code. Record the pull request URL and the CI conclusion in the test results table.
+- **Checkpoint.** After every completed step, update `.forge/checkpoint.md` (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`) with `skill: github-workflow`, the command and its exit code. Record the pull request URL and the CI conclusion in the test results table. A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit.
 - **Tokens.** Never ask for, print or pass a token. Never run `gh auth status --show-token` or `gh auth token`.
 - **Cost.** GitHub Actions minutes are free for public repositories on standard runners. A private repository spends the account's monthly quota: 2,000 minutes on GitHub Free, 3,000 on Pro and Team; a macOS minute costs about ten Linux minutes. Say it before anything that starts a run on a private repository.
 

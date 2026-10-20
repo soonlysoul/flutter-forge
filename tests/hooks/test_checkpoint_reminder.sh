@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # checkpoint-reminder: Stop hook. Resumes Claude once, through additionalContext, when
-# .forge/checkpoint.md is older than the last commit or an uncommitted change. Never fails.
+# .forge/checkpoint.md is older than the last commit or an uncommitted change, unless that last
+# commit carries the checkpoint, unchanged since (D42). Never fails.
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 SUITE=test_checkpoint_reminder
 REMIND="$SCRIPTS/checkpoint-reminder.sh"
@@ -77,6 +78,50 @@ touch -t 202601050000 "$repo/.forge/checkpoint.md"
 run_hook "$REMIND" "$(stop_input "$repo")"
 expect_reminder "the last commit carries the checkpoint, changed since but older" "last commit"
 
+# Review of D42: a carrying commit that is not the root one, then work left uncommitted.
+repo=$(make_repo)
+echo "- [x] 2 done" >>"$repo/.forge/checkpoint.md"
+git -C "$repo" add .forge/checkpoint.md
+GIT_AUTHOR_DATE="2026-01-20T12:00:00" GIT_COMMITTER_DATE="2026-01-20T12:00:00" git -C "$repo" commit -qm step
+touch -t 202601150000 "$repo/.forge/checkpoint.md"
+run_hook "$REMIND" "$(stop_input "$repo")"
+expect_silent_allow "a later commit carries the checkpoint, unchanged since: silent"
+echo "// changed" >>"$repo/lib/main.dart"
+touch -t 202601250000 "$repo/lib/main.dart"
+run_hook "$REMIND" "$(stop_input "$repo")"
+expect_reminder "after the carrying commit, a modified file newer than the checkpoint" "lib/main.dart"
+
+# Review of D42: the project is a subdirectory of the repository, whose status paths start at
+# the repository root.
+mono=$(mktemp -d "$work/mono.XXXXXX")
+git -C "$mono" init -q
+git -C "$mono" config user.email test@example.test
+git -C "$mono" config user.name Test
+git -C "$mono" config commit.gpgsign false
+mkdir -p "$mono/app/lib" "$mono/app/.forge"
+echo "void main() {}" >"$mono/app/lib/main.dart"
+echo "# Checkpoint" >"$mono/app/.forge/checkpoint.md"
+git -C "$mono" add -A
+GIT_AUTHOR_DATE="2026-01-10T12:00:00" GIT_COMMITTER_DATE="2026-01-10T12:00:00" git -C "$mono" commit -qm init
+touch -t 202601050000 "$mono/app/.forge/checkpoint.md"
+run_hook "$REMIND" "$(stop_input "$mono/app")"
+expect_silent_allow "project in a subdirectory, last commit carries the checkpoint: silent"
+mkdir -p "$mono/other"
+echo "notes" >"$mono/other/notes.txt"
+touch -t 202601200000 "$mono/other/notes.txt"
+run_hook "$REMIND" "$(stop_input "$mono/app")"
+expect_silent_allow "a newer file outside the project's directory: silent"
+rm "$mono/other/notes.txt"
+echo "class Note {}" >"$mono/app/lib/note.dart"
+touch -t 202601200000 "$mono/app/lib/note.dart"
+run_hook "$REMIND" "$(stop_input "$mono/app")"
+expect_reminder "project in a subdirectory, a new file newer than the checkpoint" "lib/note.dart"
+echo "// changed" >>"$mono/app/lib/main.dart"
+rm "$mono/app/lib/note.dart"
+touch -t 202601200000 "$mono/app/lib/main.dart"
+run_hook "$REMIND" "$(stop_input "$mono/app")"
+expect_reminder "project in a subdirectory, a modified file newer than the checkpoint" "lib/main.dart"
+
 repo=$(make_repo)
 echo "// changed" >>"$repo/lib/main.dart"
 touch -t 202601200000 "$repo/lib/main.dart"
@@ -127,9 +172,9 @@ expect_silent_allow "deleted file does not break the hook"
 
 echo "# stays silent"
 repo=$(make_repo)
-touch -t 202601050000 "$repo/.forge/checkpoint.md"
+commit_later "$repo"
 run_hook "$REMIND" "$(stop_input "$repo" true)"
-expect_silent_allow "stop_hook_active: no second reminder"
+expect_silent_allow "stop_hook_active: no second reminder, on a state that would remind"
 
 plain=$(mktemp -d "$work/plain.XXXXXX")
 run_hook "$REMIND" "$(stop_input "$plain")"

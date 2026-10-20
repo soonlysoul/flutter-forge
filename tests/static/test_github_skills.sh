@@ -91,5 +91,11 @@ says "$DEVOPS" "builds only the platforms doctor does not rule out" "whose build
 says "$DEVOPS" "a platform doctor rules out is blocked, its build not run" "is **blocked**, with that line as the reason: do not run its build"
 says "$DEVOPS" "names the doctor section each platform's build needs" "| android | \`flutter build apk --debug\` | Linux, macOS, Windows | Android toolchain |"
 says "$DEVOPS" "a missing Chrome does not block the web build" "a missing Chrome does not block \`flutter build web\`"
+# Review (M6): the warning rule, the other platforms, and the old contradictory sentence gone.
+says "$DEVOPS" "a [!] warning does not block a build" "A \`[!]\` warning does not block either"
+says "$DEVOPS" "linux needs the Linux toolchain section" "| linux | \`flutter build linux\` | Linux | Linux toolchain |"
+says "$DEVOPS" "ios needs Xcode" "| ios | \`flutter build ios --no-codesign\` | macOS | Xcode |"
+grep -qiF "run it once anyway" "$DEVOPS" && fail "the old 'run it once anyway' sentence is gone" "still there" \
+  || pass "the old 'run it once anyway' sentence is gone"
 
 finish

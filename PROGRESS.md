@@ -189,6 +189,23 @@ Corrections issues de F.2, chacune avec un test ROUGE d'abord puis des mutations
 
 Observé aussi : la réponse finale d'un tour `-p` est le dernier message ; quand le hook Stop relance Claude, elle ne porte plus que la mise à jour du checkpoint (scénario 11, avant D42). Les commandes hors `--allowedTools` (`cat …; echo`, `date`, `file`) sont refusées en `dontAsk`, sans effet sur les résultats.
 
+**Relecture indépendante des corrections de F.2** (`9c7aa5e..dfeaa98`), sur accord, par un sous-agent sans l'historique de cette session, avec R1 à R3 pour exigences. Verdict : « avec corrections », aucun constat critique, 3 importants, 7 mineurs, tous retenus. Chacun a été reproduit par un test ROUGE ou par une mutation qui passait, puis corrigé.
+
+| Constat | Traitement |
+| --- | --- |
+| **I1** Rappel pour fichier non commité inopérant quand le projet est un sous-dossier du dépôt (chemins de `git status` relatifs à la racine du dépôt ; défaut antérieur, que D42 rend seul rappel après un workflow) | Chemins pris depuis `--show-toplevel`, lecture limitée au dossier du projet (`-- .`). 2 tests ROUGES, puis VERTS |
+| **I2** Test `stop_hook_active` vide depuis D42 (le garde neutralisé passait) | Testé sur un état qui rappellerait (`commit_later`) |
+| **I3** create-feature, debug-project, bootstrap-project, github-workflow, update-project et adopt-existing-project disaient encore de cocher chaque étape, commit compris | Même phrase dans les six : un commit qui porte le checkpoint suit git-workflow |
+| M1 Commit porteur non racine, puis fichier plus récent : non testé | 2 tests |
+| M2 Règle de git-workflow non bornée au commit qui porte le checkpoint ; « write before staging » dans une puce « After the commit » | Puce à part ; « the next update belongs to the next step » |
+| M3 Le checkpoint final ne peut pas porter le code de sortie de son propre commit | Étape cochée `carried by this commit` ; recover-session l'accepte |
+| M4 « every deviation is an ADR » contre la limite à trois écarts de l'adoption | « for an adopted app, only the three named above » |
+| M5 Règle « pas de chemin absolu » limitée à flutter-architect ; scénarios sans contrôle | ADR d'update-project et liste des divergences ; scénarios 6 et 10 : `status` vide et aucun `/home/` |
+| M6 Tests de R1 incomplets (règle `[!]`, autres plateformes, ancienne phrase) | 4 assertions ; le mutant du relecteur échoue désormais (2 échecs) |
+| M7 En-têtes du hook et du test, ARCHITECTURE.md | Mis à jour |
+
+Mutations après correction : hook 5 sur 6 (la 6ᵉ est équivalente : la ligne qui écarte le checkpoint de la boucle ne change rien, un fichier n'étant jamais plus récent que lui-même) ; skills et agents 8 sur 8.
+
 ### Phase G v0.3 — Docs (avant F.2)
 
 Faite sur « continue » sans réponse aux questions de F.2 : la partie locale et gratuite, sans quota ni compte. F.2 reste en attente.

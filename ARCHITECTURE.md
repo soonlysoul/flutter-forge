@@ -332,7 +332,7 @@ Actions toujours soumises à un accord dans la conversation, quelle que soit la 
 
 ## État persistant, reprise et quotas
 
-Le checkpoint est écrit après chaque étape terminée, pas au moment d'une coupure : quand la limite d'usage tombe, la session s'arrête et plus rien ne peut être sauvegardé. La reprise croise donc trois sources : `.forge/checkpoint.md`, l'historique Git et l'état du dépôt.
+Le checkpoint est écrit après chaque étape terminée, pas au moment d'une coupure ; seul le commit qui le porte fait exception : il est écrit juste avant, l'étape du commit cochée `carried by this commit`, et n'est plus modifié pour ce commit (D42). Écrit à chaque étape plutôt qu'à la coupure, car quand la limite d'usage tombe, la session s'arrête et plus rien ne peut être sauvegardé. La reprise croise donc trois sources : `.forge/checkpoint.md`, l'historique Git et l'état du dépôt.
 
 `<projet>/.forge/checkpoint.md` (versionné dans Git) :
 

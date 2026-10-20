@@ -21,7 +21,7 @@ When plugin-flutter adopts an existing app, your task is to document the stack a
 
 ## Defaults
 
-Keep them unless the need contradicts them; every deviation is an ADR.
+Keep them unless the need contradicts them; every deviation is an ADR (for an adopted app, only the three named above).
 
 - Flutter stable channel; record the output of `flutter --version`.
 - `flutter_lints`, with the analyzer's strict modes.

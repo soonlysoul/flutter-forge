@@ -95,6 +95,8 @@ grep -nE '^  (http|go_router|equatable):' "$P/pubspec.yaml"   # http: ^1.x ; go_
 grep -n -A1 '^  go_router:' "$P/pubspec.lock"          # 12.1.x, not a new major
 ls "$P"/.forge/reports/deps-*.md && grep -n '| http |' "$P"/.forge/reports/deps-*.md
 grep -n 'Upgrade http' "$P/docs/engineering/DECISIONS.md"
+git -C "$P" status --porcelain                        # empty: the report commit carries the final checkpoint (D42)
+grep -rn '/home/' "$P"/docs "$P"/.forge             # nothing: no path of this machine
 (cd "$P" && flutter test); echo "exit=$?"              # exit=0
 jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | .input.command // empty' "$WORK"/s10-*.jsonl \
   | grep -nE 'flutter upgrade|flutter downgrade|flutter channel|dart pub|dependency_overrides'   # nothing

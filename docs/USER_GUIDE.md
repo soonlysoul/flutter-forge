@@ -194,7 +194,7 @@ Lit le checkpoint, le compare au dépôt (`HEAD`, branche, fichiers modifiés), 
 | Fichier | Contenu | Qui l'écrit |
 | --- | --- | --- |
 | `config.yaml` | Préautorisations (toutes à `false` par défaut), branche principale, plateformes | **Vous seul.** La règle `deny` `Edit(./.forge/config.yaml)` empêche Claude de le modifier |
-| `checkpoint.md` | Étapes faites avec commande et code de sortie, résultats de tests, prochaine action, blocages | Les workflows, après chaque étape ; versionné dans Git |
+| `checkpoint.md` | Étapes faites avec commande et code de sortie, résultats de tests, prochaine action, blocages | Les workflows, après chaque étape ; versionné dans Git. Le commit qui le porte l'emporte dans son état final, écrit juste avant : il n'est plus modifié après, et l'arbre reste propre |
 | `reports/` | Rapports de revue, de mise à jour des dépendances (`deps-<date>-<slug>.md`), de divergences (`divergences-<date>.md`) | Les workflows |
 
 Une clé absente de `config.yaml` vaut `false`. Les clés `merge` et `publish_release` sont ignorées : fusion et publication demandent toujours un accord explicite.

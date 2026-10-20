@@ -16,7 +16,7 @@ App requested: $ARGUMENTS
 - **Validation points.** Ask in plain text, write the checkpoint once it exists (from step 4 on), end your turn and wait. Do not use AskUserQuestion: the same flow works in headless mode.
 - **Nothing is approved implicitly.** A document becomes APPROVED only on the user's explicit message; then write the date and "approved by the user in conversation" in its header.
 - **No application code before the PRD and the TRD are approved.**
-- **Checkpoint.** From step 4 on, update `.forge/checkpoint.md` after every completed step (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`), with `skill: bootstrap-project`, the command and its exit code.
+- **Checkpoint.** From step 4 on, update `.forge/checkpoint.md` after every completed step (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`), with `skill: bootstrap-project`, the command and its exit code. A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit.
 - **Project root.** The plugin's hooks and the project's permission rules take the directory where Claude Code was launched as the project root (`${CLAUDE_PROJECT_DIR}`). The project is best created right there, in an empty directory.
 - Never display or write a token or a secret.
 

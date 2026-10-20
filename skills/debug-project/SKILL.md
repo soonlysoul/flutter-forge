@@ -16,7 +16,7 @@ Failure reported: $ARGUMENTS
 - **No result without its command.** Never report a step as done without the output of its command.
 - **One command per call.** Run each command alone — no pipe, `;`, `&&` or redirection, no `| tail` to shorten the output: the project's permission rules allow plain commands such as `flutter test <file>`, and a compound command asks for permission, or is refused in a non-interactive run.
 - **Two identical failures stop.** If a command fails twice with the same error after a change meant to fix it, stop, write the checkpoint and expose the blocker: the hypothesis was wrong.
-- **Checkpoint after every completed step**, with `skill: debug-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`). Under "Next action", the current hypothesis.
+- **Checkpoint after every completed step**, with `skill: debug-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`). Under "Next action", the current hypothesis. A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit.
 - **Validation points.** Ask in plain text, write the checkpoint, end your turn and wait. Do not use AskUserQuestion.
 - **Configuration.** Read `.forge/config.yaml` before any external action; a missing key counts as false. Never edit that file.
 - Never `git stash`, reset or discard anything to make a failure disappear.

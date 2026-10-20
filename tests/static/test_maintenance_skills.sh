@@ -255,12 +255,25 @@ echo "# scenarios 6 and 10 (v0.3): the checkpoint of the last commit (D42)"
 # The checkpoint was updated after the last commit, as git-workflow asked: a dirty tree, and the
 # `! git switch main` the adoption proposes was refused.
 RS="$PLUGIN_ROOT/skills/recover-session/SKILL.md"
-says "$GW" "git-workflow: a committed checkpoint is not changed after the commit" "do not change it after the commit"
+says "$GW" "git-workflow: a carrying commit's checkpoint is not changed again for it" "Do not change the checkpoint again for that commit"
+says "$GW" "git-workflow: the commit step is ticked without an exit code it cannot know" "ticked \`carried by this commit\`"
+says "$GW" "git-workflow: the next update belongs to the next step" "the next update belongs to the next step"
 grep -qF "once \`.forge/checkpoint.md\` is updated, its \`last_commit\` matches that hash" "$GW" \
   && fail "git-workflow no longer updates the checkpoint after the commit" "the old sentence is still there" \
   || pass "git-workflow no longer updates the checkpoint after the commit"
 says "$UP" "update-project: the report commit carries the final checkpoint" "the checkpoint in its final state"
 says "$AD" "adopt-existing-project: the adoption commit carries the final checkpoint" "the checkpoint in its final state"
 says "$RS" "recover-session: the commit carrying the checkpoint is not an inconsistency" "apart from the one that carries the checkpoint itself"
+says "$RS" "recover-session: a step ticked carried by this commit is done" "apart from a commit step ticked \`carried by this commit\`"
+# Review of D42 (I3): every skill that checkpoints after each step defers to git-workflow for the
+# commit that carries the checkpoint, or the model ticks the commit step after it.
+for skill in bootstrap-project create-feature debug-project github-workflow update-project adopt-existing-project; do
+  says "$PLUGIN_ROOT/skills/$skill/SKILL.md" "$skill defers to git-workflow for the commit that carries the checkpoint" \
+    "A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit."
+done
+# Review (M4, M5): adopted apps get only the announced ADRs; no machine path in any written document.
+says "$FA" "flutter-architect: an adopted app's deviations stop at the three announced" "for an adopted app, only the three named above"
+says "$UP" "update-project: the upgrade ADR cites the package, not a machine path" "never by an absolute path of this machine"
+says "$AD" "adopt-existing-project: the divergence list cites no machine path" "never by an absolute path of this machine"
 
 finish

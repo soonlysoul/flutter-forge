@@ -24,7 +24,7 @@ Flag each one:
 - commits newer than `last_commit` (`git log --oneline <last_commit>..HEAD`), apart from the one that carries the checkpoint itself (`git log -1 --format=%h -- .forge/checkpoint.md`): the checkpoint is written just before the commit that includes it;
 - a current branch different from the checkpoint's;
 - uncommitted changes that the checkpoint does not mention;
-- a step ticked without its command or exit code.
+- a step ticked without its command or exit code, apart from a commit step ticked `carried by this commit`: that commit is the one that carries the checkpoint.
 
 ## Step 4 — Confirm the real state
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # checkpoint-reminder — Stop hook.
 # When <project>/.forge/checkpoint.md is older than the last commit or than an uncommitted
-# change, asks Claude once to update it, through hookSpecificOutput.additionalContext.
+# change of the project, asks Claude once to update it, through
+# hookSpecificOutput.additionalContext. A last commit that carries the checkpoint, unchanged
+# since, does not count (D42): the checkpoint is written just before the commit that includes it.
 # Inert without a checkpoint or when stop_hook_active is true. Never fails: every problem
 # ends silently with exit 0 (onFailure has no effect on Stop).
 
@@ -14,6 +16,9 @@ root=${CLAUDE_PROJECT_DIR:-$(jq -r '.cwd // "" | strings' <<<"$input" 2>/dev/nul
 checkpoint="$root/.forge/checkpoint.md"
 [[ -n $root && -f $checkpoint ]] || exit 0
 git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+# The project may be a subdirectory of the repository, whose status paths start at its top.
+top=$(git -C "$root" rev-parse --show-toplevel 2>/dev/null) || exit 0
+prefix=$(git -C "$root" rev-parse --show-prefix 2>/dev/null) || exit 0
 
 mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
 
@@ -34,14 +39,14 @@ else
     status=${entry:0:2} path=${entry:3}
     # A rename or copy is followed by its original path.
     if [[ $status == R* || $status == C* ]]; then IFS= read -r -d '' _; fi
-    [[ $path != .forge/checkpoint.md ]] || continue
+    [[ $path != "${prefix}.forge/checkpoint.md" ]] || continue
     # Files only: a directory's date moves when an entry inside it is renamed (as editors save),
     # so an untracked .forge/ would always look newer than the checkpoint it holds.
-    if [[ -f $root/$path && $root/$path -nt $checkpoint ]]; then
-      reason="uncommitted changes are newer than it (for example $path)"
+    if [[ -f $top/$path && $top/$path -nt $checkpoint ]]; then
+      reason="uncommitted changes are newer than it (for example ${path#"$prefix"})"
       break
     fi
-  done < <(git -C "$root" status --porcelain -z --untracked-files=all 2>/dev/null)
+  done < <(git -C "$root" status --porcelain -z --untracked-files=all -- . 2>/dev/null)
 fi
 [[ -n $reason ]] || exit 0
 

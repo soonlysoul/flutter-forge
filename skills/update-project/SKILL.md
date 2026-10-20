@@ -15,7 +15,7 @@ Request: $ARGUMENTS
 - **No result without its command.** Never report a step as done without the output of its command.
 - **One command per call.** Run each command alone — no pipe, `;`, `&&` or redirection: the project's permission rules allow plain commands such as `flutter pub outdated --json`, and a compound command asks for permission, or is refused in a non-interactive run.
 - **Two identical failures stop.** If a command fails twice with the same error, stop, write the checkpoint and expose the blocker.
-- **Checkpoint after every completed step and every batch**, with `skill: update-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`).
+- **Checkpoint after every completed step and every batch**, with `skill: update-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`). A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit.
 - **Validation points.** Ask in plain text, write the checkpoint, end your turn and wait. Do not use AskUserQuestion.
 - **Configuration.** Read `.forge/config.yaml` before any external action; a missing key counts as false. Never edit that file.
 - **`flutter pub`, never `dart pub`.** In a Flutter project, `dart pub` fails with exit 69 when the `dart` on the PATH is not the Flutter one, as on NixOS.
@@ -86,7 +86,7 @@ For each approved batch, in order:
    - After a major, migrate the code that uses the package, in the files that import it: fix, then rerun both, at most three iterations. A change outside those files — another feature, a platform folder, `analysis_options.yaml` — is a **validation point**.
    - After any other batch, a new failure is unexpected: find its cause with the method of the debug-project skill before changing anything.
 5. A batch that stays red is not committed: report it and ask whether to drop it. Dropping restores every file the batch changed, as `git status --short` lists them apart from the workflow state: `pubspec.yaml`, `pubspec.lock`, the registrants, and the code migrated at sub-step 4. That is a `git restore`, which the guard-destructive hook blocks for Claude: give the user `! git restore pubspec.yaml pubspec.lock <other files the batch changed>`, and `! rm <file>` for a file the batch created. Then check that `git status --short` lists only the workflow state and that `flutter pub get --enforce-lockfile` exits 0, and rerun `flutter analyze` and `flutter test` to compare them with the baseline.
-6. For a major, when `docs/engineering/DECISIONS.md` exists: add `ADR-<n> — Upgrade <package> to <version>`, status `proposed`, with the breaking changes that touched the code and the platforms checked.
+6. For a major, when `docs/engineering/DECISIONS.md` exists: add `ADR-<n> — Upgrade <package> to <version>`, status `proposed`, with the breaking changes that touched the code and the platforms checked. Cite the package's files by name and version (`http 1.6.0, CHANGELOG.md`), never by an absolute path of this machine: the document is committed.
 7. Stage the batch's files explicitly through the git-workflow skill — `pubspec.yaml`, `pubspec.lock`, the registrants, migrated code, the ADR — and commit, one commit per batch:
 
    ```
@@ -113,7 +113,7 @@ When the user asks to update Flutter, or when packages are held back by the SDK:
 1. `flutter pub outdated --json --show-all`: its `current` column gives the "after" of every direct and dev dependency, updated ones included (without `--show-all`, an up-to-date package is left out); a newer `latest` marks what was not updated.
 2. Call `<base>` the default branch, or the sync commit when step 3 made one. `git diff <base> -- pubspec.lock`: count the packages whose `version:` changed (one `+    version:` line each), the direct dependencies apart, for the transitive changes. `git log --oneline <default branch>..HEAD` for the batch commits.
 3. Write `.forge/reports/deps-<YYYY-MM-DD>-<slug>.md` from `${CLAUDE_PLUGIN_ROOT}/skills/update-project/reference/deps-report.md`: toolchain before and after, batches with their commits, versions before and after, packages not updated and why, analysis and tests at the baseline and after the last batch, breaking changes handled.
-4. Commit the report with the checkpoint in its final state through git-workflow: `docs(deps): report the dependency update`. Write that checkpoint before staging it — every step done, this commit announced, the next action — and do not change it after the commit.
+4. Commit the report with the checkpoint in its final state through git-workflow: `docs(deps): report the dependency update`. Write that checkpoint before staging it — every step done, the commit step ticked `carried by this commit`, the next action — and do not change it after the commit.
 
 ## Final report
 
