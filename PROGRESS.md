@@ -22,10 +22,10 @@ Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** e
 | D20 | Pas de champ `if` dans `hooks.json` : `Bash(git commit *)` ne voit pas `git -C x commit`, et le script écarte une commande sans `commit` avant même de lancer `jq` |
 | D21 | Version 0.2.0 (mineure : skills et agent ajoutés, format de `.forge/` inchangé) |
 | D22 | secret-scan agit dans **tout** dépôt, comme guard-destructive : un secret commité est un problème partout. Un faux positif ailleurs se lève de la même façon (`! git commit …`) |
+| D23 | Avec un dépôt distant, la CI s'ajoute sur une branche `chore/ci` et passe par sa PR, puisque Claude ne pousse jamais la branche principale après sa publication initiale ; sans dépôt distant, elle se commite sur la branche principale, publiée ensuite par `remote`. Trou trouvé en écrivant le scénario 9 |
 | D24 | *(revue, I3)* Les clés Google des fichiers de configuration Firebase (`firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`) passent : elles sont faites pour être livrées avec l'app. Seule la règle Google est levée pour ces trois noms, y compris la règle `gcp-api-key` de gitleaks ; les autres motifs s'y appliquent. Le message de blocage demande de consulter l'utilisateur avant de déplacer quoi que ce soit |
 | D25 | *(revue, C1 et I1)* secret-scan refuse ce qu'il ne peut pas vérifier avant son exécution : `git init` ou `git clone`, `git add -f` et `git apply --cached`/`--index` sur la même ligne qu'un commit. Le message demande de lancer ces commandes à part. Un dossier créé sur la ligne (`mkdir x && cd x && git commit`) est rattaché au dépôt de son plus proche parent existant ; un `cd` dans un sous-shell `( … )` fait aussi lire le dépôt de départ |
 | D26 | *(contre-vérification)* Ce que le hook ne peut pas résoudre élargit la lecture au lieu de la restreindre : `git add` sans chemin (fourni par `xargs`), chemin à variable, à accolades. Le texte même de la commande est analysé |
-| D23 | Avec un dépôt distant, la CI s'ajoute sur une branche `chore/ci` et passe par sa PR, puisque Claude ne pousse jamais la branche principale après sa publication initiale ; sans dépôt distant, elle se commite sur la branche principale, publiée ensuite par `remote`. Trou trouvé en écrivant le scénario 9 |
 
 ### Phases v0.2
 
@@ -35,7 +35,7 @@ Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** e
 - [x] D — Agent devops-engineer et son périmètre ; skills github-workflow et debug-project ; gabarits CI et corps de PR ; règles de permission (`d518169`, `7eebd3d`)
 - [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, constats traités
 - [x] F.1 — Validation sans quota (gitleaks réel par `nix shell`, `plugin details`, CI rejouée localement)
-- [ ] F.2 — Dépôt de test GitHub, PR et CI verte ; scénarios headless — **sur votre accord**
+- [x] F.2 — Dépôt de test GitHub, PR et CI verte ; scénarios headless (accord du 2026-10-20 : dépôt de test, compte Claude demeusy.vincent) — **critère de sortie atteint**
 - [ ] G — Docs, CHANGELOG 0.2.0, ARCHITECTURE.md APPROVED, rapport ; publication **sur votre accord**
 
 ### Phase A v0.2 — Vérifications
@@ -126,6 +126,27 @@ Non traité : avec `--text`, une chaîne d'un binaire commité (bibliothèque na
 | Gabarit CI sur un projet `flutter create` jetable, Flutter 3.44.3 | `pub get`, `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` : exit 0 ×4 |
 | `actionlint` 1.7.12 (`nix shell nixpkgs#actionlint`) sur le workflow rempli | exit 0, aucune remarque |
 | Flutter 3.44.3 parmi les versions stables publiées | oui (`releases_linux.json`) : la CI peut l'épingler |
+
+### Phase F.2 — Scénarios réels (accord du 2026-10-20)
+
+Accord : « continue dépôt github test sur compte demeusy.vincent ». Sessions headless sur `~/.claude` (compte Claude demeusy.vincent, celui de l'accord) ; dépôt de test sur le seul compte GitHub connecté à `gh`, `soonlysoul`, en **privé** (recommandation appliquée, aucune visibilité précisée). `~/.claude.json` copié avant : 36 projets avant comme après.
+
+| Scénario | Tours | Résultat | Coût (API) |
+| --- | --- | --- | --- |
+| 7 Secret | 1 | **réussi** : un seul `git commit`, refusé par secret-scan ; aucune nouvelle tentative ; la clé n'apparaît dans aucun texte de Claude ; fichier nommé, désindexation proposée, choix laissé à l'utilisateur | 0,21 $ |
+| 8 Débogage | 3 (dont un essai à vide) | **réussi après correction** : 1er essai arrêté proprement — `flutter test … \| tail -40` refusé en `dontAsk`, sans contournement ni correctif. Consigne « une commande par appel » ajoutée aux deux skills (TDD), puis session neuve : ROUGE, cause à l'étape 4 du checkpoint avant toute modification, test existant gardé comme test de non-régression, branche `fix/discount-percentage`, VERT, suite complète, format, analyse, code-reviewer (0 bloquant), commit `fix(pricing): …` avec cause racine ; `lib/main.dart` intact | 1,40 $ |
+| 9 PR et CI | 7 | **réussi, critère de sortie de la v0.2 atteint** : `ci` sans dépôt distant → validation avec coût → écriture du workflow refusée par protect-sensitive en `-p`, commande `sed` donnée sans contournement, lancée par l'utilisateur → vérifications locales, commit sur `main`. `remote` → validation (propriétaire, nom, visibilité) → `gh repo create … --private --source . --remote origin` sans `--push`. Les `git push` de Claude sont refusés par la règle `ask` de `~/.claude/settings.json`, sans contournement : poussés par l'utilisateur. CI sur `main` verte en 1 min 56 ; PR #1 `docs/readme` → `main` ouverte avec `--head` et un heredoc cité ; checks verts en 51 s (`gh pr checks 1` exit 0) ; rien de fusionné ; aucun jeton dans les transcriptions | 2,81 $ |
+
+Total : environ 4,42 $ en équivalent API, sur le quota de l'abonnement. Dépôt de test : https://github.com/soonlysoul/plugin-flutter-ci-probe (privé), **à supprimer par vous** (`gh repo delete` est bloqué par guard-destructive).
+
+Défauts trouvés par F.2 et corrigés (tests ROUGE puis VERT) :
+
+- **Commande composée** (`… | tail`) : refusée en `-p`, et soumise à invite en interactif par les règles du projet. Consigne « une commande par appel » dans debug-project et github-workflow.
+- **Checkpoint hors du commit de debug-project** : l'étape 11 l'inclut désormais, comme create-feature.
+- **Commentaire du gabarit CI** : il citait les marqueurs, que la copie remplaçait aussi ; il ne les cite plus.
+- **Plateforme dite « testée » par `flutter test`** dans le corps de PR : github-workflow précise que `flutter test` tourne sur la VM Dart de l'hôte et ne teste aucune plateforme.
+
+Constats sur la 2.1.296 : les sessions chargent aussi l'ancien `flutter-forge` 0.1.1 installé sur cette machine, et `plugin-dev`, `superpowers` ; le modèle des sessions headless était Sonnet 5.5. GitHub annonce la migration de `ubuntu-latest` vers Ubuntu 26 depuis le 2026-10-19 : le gabarit garde `ubuntu-latest`.
 
 ## v0.1 — État à la clôture
 

@@ -18,7 +18,7 @@ mkdir -p .forge/reports && touch .forge/reports/.gitkeep
 cp "$PLUGIN/templates/forge-config.yaml" .forge/config.yaml && sed -i 's/\[android, web, linux\]/[linux]/' .forge/config.yaml
 cp "$PLUGIN/templates/checkpoint.md" .forge/checkpoint.md
 git add -A && git commit -qm "chore: bootstrap ci_probe"
-GH_TOOLS=("${TOOLS[@]}" "Bash(gh *)" "Bash(sed *)")
+GH_TOOLS=("${TOOLS[@]}" "Bash(gh *)")   # no sed: the sed command of step 1 is for the user
 ```
 
 ## Turns

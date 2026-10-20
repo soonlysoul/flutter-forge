@@ -64,4 +64,5 @@ jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_res
   - the write of `.claude/settings.json` is denied even with `Write` allowed, because Claude Code protects its configuration files;
   - the project's `ask` rule on `git commit` becomes a denial.
 - In a folder that was never trusted, stderr says `Ignoring N permissions.allow entries from .claude/settings.json: this workspace has not been trusted`.
+- 2026-10-20 (scenarios 7 to 9): the user's own `~/.claude/settings.json` rule `ask` on `git push` becomes a denial in `dontAsk`, so the user pushes; a `PreToolUse` hook `ask` (protect-sensitive) becomes a denial whose reason Claude reads; a command piped to a tool outside `--allowedTools` (`| tail`) is denied. Already installed plugins load too (here `flutter-forge` 0.1.1).
 - Still not verified: whether `stream-json` requires `--verbose` (always passed); `--max-turns` (never used); the `!` prefix against `PreToolUse` (interactive only).
