@@ -77,7 +77,7 @@ Create them from the templates, keeping their fixed header:
 | `docs/engineering/IMPLEMENTATION_PLAN.md` | `${CLAUDE_PLUGIN_ROOT}/skills/bootstrap-project/reference/doc-templates/IMPLEMENTATION_PLAN.md` |
 | `docs/engineering/DECISIONS.md` | `${CLAUDE_PLUGIN_ROOT}/skills/bootstrap-project/reference/doc-templates/DECISIONS.md` |
 
-- Fill the PRD from the validated scope, with numbered acceptance criteria `AC-001`, `AC-002`, …
+- Fill the PRD from the validated scope, with numbered acceptance criteria `AC-001`, `AC-002`, … When the user gave a long brief (a document, several features) and the project was created in the current directory, delegate the PRD to the product-architect agent instead (task `draft`, with the brief and the validated scope), wait for its report, and check that it changed only files under `docs/product/`.
 - Fill the TRD with the defaults. When the architecture is not trivial and the project was created in the current directory, delegate the TRD to the flutter-architect agent, wait for its report, and check the files it changed. When the project is in a subdirectory, write the TRD yourself: the agent's write limits are relative to the session root.
 - DECISIONS.md starts with `ADR-001 — Initial stack`: the output of `flutter --version`, the default choices and the platforms.
 - The plan lists the acceptance criteria in delivery order.

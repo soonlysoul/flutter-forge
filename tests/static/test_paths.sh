@@ -82,7 +82,8 @@ done <<<"$cited"
 
 for file in "$PLUGIN_ROOT"/skills/bootstrap-project/reference/doc-templates/{PRD,TRD,IMPLEMENTATION_PLAN,DECISIONS}.md \
   "$PLUGIN_ROOT"/templates/{project-settings.json,forge-config.yaml,checkpoint.md} \
-  "$PLUGIN_ROOT"/skills/update-project/reference/deps-report.md; do
+  "$PLUGIN_ROOT"/skills/update-project/reference/deps-report.md \
+  "$PLUGIN_ROOT"/skills/adopt-existing-project/reference/divergences.md; do
   rel=${file#"$PLUGIN_ROOT"/}
   [[ -f $file ]] && pass "$rel exists" || fail "$rel exists"
 done

@@ -1,4 +1,4 @@
-# Behavioural scenarios — v0.1 and v0.2
+# Behavioural scenarios — v0.1 to v0.3
 
 These scenarios need a Claude Code session and **consume the subscription quota**. They are never
 run by `tests/run-all.sh`. Run them only after the user agreed, with an estimate of the sessions
@@ -11,11 +11,13 @@ and turns, and record each result as passed, failed, blocked (reason) or not run
 | 3 | [Preservation of uncommitted work](03-preservation.md) | 1 turn | the project of scenario 1 |
 | 4 | [Blocking `git reset --hard`](04-blocking.md) | 1 turn | — |
 | 5 | [Recovery after an interruption](05-recovery.md) | 1 turn | the project of scenario 2 |
+| 6 | [Adopt an existing app](06-adoption.md) | 2 turns | — |
 | 7 | [A commit holding a secret is blocked](07-secret-scan.md) | 1 turn | — |
 | 8 | [Debug a failing test](08-debug.md) | 1–2 turns | — |
 | 9 | [Pull request with a green CI](09-github-pr.md) | 5–6 turns, a GitHub repository and CI minutes | the user's approval of owner, name, visibility |
-
-Scenario 6 of ARCHITECTURE.md (existing repository) belongs to adopt-existing-project, v0.3.
+| 10 | [Update a batch of dependencies](10-update-deps.md) | 2 turns, pub.dev | — |
+| 11 | [Local builds by the devops-engineer](11-devops-build.md) | 1 turn | — |
+| 12 | [Diagnose a red CI](12-ci-red.md) | 1 turn, a GitHub repository and CI minutes | the user's approval of owner, name, visibility |
 
 ## Common setup
 
@@ -65,4 +67,5 @@ jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_res
   - the project's `ask` rule on `git commit` becomes a denial.
 - In a folder that was never trusted, stderr says `Ignoring N permissions.allow entries from .claude/settings.json: this workspace has not been trusted`.
 - 2026-10-20 (scenarios 7 to 9): the user's own `~/.claude/settings.json` rule `ask` on `git push` becomes a denial in `dontAsk`, so the user pushes; a `PreToolUse` hook `ask` (protect-sensitive) becomes a denial whose reason Claude reads; a command piped to a tool outside `--allowedTools` (`| tail`) is denied. Already installed plugins load too (here `flutter-forge` 0.1.1).
+- 2026-10-20 (v0.3 setup): the installed secret-scan refuses `git init` on the line of a `git commit`, and a commit whose directory is held in a variable (`cd "$P"`, `git -C "$P"`). The setups of scenarios 6 and 10 to 12 therefore split `git init` into its own block, and write the project path literally (`<P>`) when Claude runs them.
 - Still not verified: whether `stream-json` requires `--verbose` (always passed); `--max-turns` (never used); the `!` prefix against `PreToolUse` (interactive only).

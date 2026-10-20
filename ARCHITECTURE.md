@@ -63,7 +63,9 @@ plugin-flutter/
 │   ├── update-project/
 │   │   ├── SKILL.md
 │   │   └── reference/deps-report.md  # gabarit du rapport avant/après
-│   ├── adopt-existing-project/SKILL.md # (v0.3)
+│   ├── adopt-existing-project/
+│   │   ├── SKILL.md
+│   │   └── reference/divergences.md  # grille et format des divergences
 │   ├── release-project/SKILL.md      # (v0.4)
 │   └── optimize-usage/SKILL.md       # (v0.4)
 ├── hooks/
@@ -184,7 +186,7 @@ Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par 
 | --- | --- | --- | --- | --- | --- | --- |
 | flutter-architect | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `docs/` ; Bash limité à `flutter --version`, `dart --version`, `dart pub deps`, `flutter pub deps`, et git en lecture | `inherit` | Besoin, code existant, PRD | TRD, décisions ADR dans DECISIONS.md, liste de dépendances justifiées |
 | test-engineer | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `test/` et `integration_test/` ; Bash limité à `flutter test`, `dart test`, et git en lecture | `sonnet` | Critères d'acceptation, plan de la feature | Tests écrits, sortie brute de l'exécution ROUGE, liste des cas limites |
-| code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne |
+| code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne ; DOCS_TO_UPDATE ; DIVERGENCES entre docs et diff (D40) |
 | product-architect | v0.3 | Read, Grep, Glob, Write, Edit — pas de Bash | Écriture limitée à `docs/product/` ; aucune commande | `inherit` | Description du besoin (tâche `draft`), ou code d'une app adoptée (tâche `reconstruct`) | `docs/product/PRD.md` en DRAFT, critères AC-xxx numérotés, testables, jamais renumérotés ; bloc ACCEPTANCE_CRITERIA |
 | devops-engineer | v0.2 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `.github/` ; Bash limité à `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status` (sans `--show-token`), `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, `git remote -v` et git en lecture ; option `-o`/`--output` refusée | `sonnet` | Tâche `build`, `ci-diagnosis` ou `workflow-change` ; plateformes activées ; branche, PR ou run | Tableau BUILDS par plateforme ; classe d'un échec de CI avec ses lignes de journal et le correctif à faire |
 
@@ -215,11 +217,15 @@ Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/plugin-flutter:<n
 | github-workflow | v0.2 | Dépôt distant, issue, PR, CI | Création de dépôt (propriétaire, nom, visibilité, à chaque fois), ajout de la CI (avec son coût), PR et push si non préautorisés, relance de CI sur dépôt privé ; jamais de fusion | PR avec résumé, AC, risques, tests en quatre catégories, plateformes en trois états ; état des checks |
 | debug-project | v0.2 | Erreur de build, d'analyse ou test rouge inattendu, CI rouge | Modification hors du périmètre de l'erreur | Cause racine prouvée, test de non-régression ROUGE puis VERT, correctif minimal, commit `fix(…)` |
 | update-project | v0.3 | Mettre à jour Flutter ou dépendances | Plan de lots, toujours, avec chaque majeure et son changelog ; référence rouge ; lock périmé ; plateforme perdue par un plugin ; migration hors des fichiers qui importent le paquet ; abandon d'un lot ; changement de SDK (fait par l'utilisateur) | Branche `chore/deps-<slug>`, un commit par lot avec `pubspec.yaml`, `pubspec.lock` et registres de plugins, ADR par majeure, rapport `.forge/reports/deps-<date>-<slug>.md` |
-| adopt-existing-project | v0.3 | Prendre en main un projet existant | Plan de mise en conformité | `.forge/`, docs reconstruites depuis le code, liste des divergences |
+| adopt-existing-project | v0.3 | Prendre en main un projet Flutter existant, sans `.forge/` | Plan de mise en conformité, approuvé item par item ; chaque fichier existant modifié, approuvé séparément ; fichier suivi changé par la résolution | Branche `chore/adopt-plugin-flutter`, `.forge/`, PRD, TRD, DECISIONS et plan reconstruits en DRAFT, `.forge/reports/divergences-<date>.md` |
 | release-project | v0.4 | Préparer une release | Toute publication, tag poussé, signature | Notes de version, builds vérifiés par plateforme |
 | optimize-usage | v0.4 | Session longue ou coûteuse | Aucune | Recommandations ; résumé de contexte compact |
 
 update-project (D31 à D35) part d'une référence : `flutter pub get --enforce-lockfile`, puis `flutter analyze` et `flutter test`. L'inventaire vient de `flutter pub outdated --json`, qui ne modifie aucun fichier et sort en 0 même avec des paquets en retard. Chaque dépendance directe est classée compatible (`upgradable` plus récente), majeure (`resolvable` change la version majeure, ou la mineure sous 1.0), retenue (`latest` hors d'atteinte, souvent à cause du SDK) ou signalée (avis de sécurité, version retirée, paquet abandonné). Lots : les paquets signalés, puis `flutter pub upgrade` pour tout le compatible, puis un lot par majeure avec `flutter pub upgrade --major-versions <paquet>`. Après chaque lot : fichiers attendus seulement, `CHANGELOG.md` lu dans le cache pub pour une majeure, plateformes d'un plugin comparées à `platforms.enabled`, analyse et tests, commit. Le SDK n'est jamais changé par Claude : `flutter upgrade`, `downgrade` et `channel` demandent confirmation dans les règles du projet, et sous Nix (`flutterRoot` dans `/nix/store/`) la version vient de la configuration Nix de l'utilisateur. Après un changement de SDK, le skill rappelle la ligne `flutter-version` de `.github/workflows/ci.yml`.
+
+adopt-existing-project (D37, D38) ne modifie rien avant l'accord : ses étapes 1 à 4 sont en lecture seule, prouvée par un `git status --porcelain` identique avant et après. La phase A a montré qu'un `flutter analyze` nu, qui lance `pub get`, réécrit un `pubspec.lock` périmé : la référence passe donc par `flutter pub get --enforce-lockfile` (exit 65 sur un lock périmé, 1 sans lock, sans rien écrire), puis `flutter analyze --no-pub` et `flutter test --no-pub`. Après accord, product-architect reconstruit le PRD (tâche `reconstruct`) et flutter-architect le TRD et les ADR, l'un après l'autre ; un document existant est gardé et référencé, jamais remplacé, et aucun code n'est déplacé.
+
+La détection des divergences docs/code est un contrôle de jugement, pas un hook (D28) : une étape d'adopt-existing-project, guidée par `reference/divergences.md` (dépendances, critères, plan, README, plateformes, toolchain, lockfile, structure, analyse, tests, secrets), et le bloc DIVERGENCES du code-reviewer à chaque revue (D40) : dépendance ajoutée ou passée à une majeure sans ADR, critère visé sans test ou test citant un AC absent du PRD, plan contredit par le diff. create-feature le traite à l'étape 14 ; debug-project le reporte.
 
 Règle commune : un skill ne déclare jamais une étape réussie sans la sortie de la commande correspondante. Après deux échecs identiques d'une même commande, il s'arrête, écrit le checkpoint et expose le blocage au lieu de réessayer.
 
@@ -431,7 +437,7 @@ Le cycle rouge-vert-refactor reste dans la session principale ; le test-engineer
 11. **Re-test ciblé** puis, à ce jalon seulement, `flutter test` complet.
 12. **Qualité** : `dart format --set-exit-if-changed .` et `flutter analyze` à exit 0 : infos et avertissements sont bloquants par défaut, comme dans la CI.
 13. **Revue** : rien n'est encore commité, donc les fichiers de la feature sont indexés, puis le code-reviewer relit `git diff --cached <base>`. Les constats bloquants sont corrigés, les étapes 11 et 12 relancées, et les corrections relues une fois ; un constat bloquant qui subsiste arrête le workflow. Le reviewer liste aussi les mises à jour de docs attendues, traitées à l'étape 14.
-14. **Docs** : plan, DECISIONS et traçabilité mis à jour ; signalement de toute divergence avec le code.
+14. **Docs** : plan, DECISIONS et traçabilité mis à jour, à partir des DOCS_TO_UPDATE et DIVERGENCES du code-reviewer ; une divergence se résout en corrigeant le document quand le code a raison, sinon elle est signalée à l'utilisateur.
 15. **Commit** préparé par git-workflow, puis rapport final.
 
 Le rapport final classe chaque test en quatre catégories : réussi, échoué, bloqué (raison : appareil absent, compte manquant, plateforme non disponible) et non exécuté. Une catégorie vide est indiquée comme telle.
@@ -493,7 +499,7 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 | static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; product-architect n'a pas Bash ; aucun agent ne liste `Agent` |
 | static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec ; aucun chemin personnel ni chemin réel du store Nix (`/nix/store/<hash>-…`) |
 | static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean, suppression, ni mise à jour d'une dépendance ou du SDK ; les `deny` attendus sont présents ; `flutter upgrade`, `downgrade` et `channel` demandent confirmation ; aucune règle `Write(…)` |
-| static/test\_maintenance\_skills.sh | product-architect, update-project et son gabarit de rapport, adopt-existing-project énoncent leurs points de validation, commandes et limites ; update-project ne lance jamais `flutter upgrade` ni `dart pub` |
+| static/test\_maintenance\_skills.sh | product-architect, update-project et son gabarit de rapport, adopt-existing-project et sa grille de divergences énoncent leurs points de validation, commandes et limites ; update-project ne lance jamais `flutter upgrade` ni `dart pub` ; avant le plan, adopt-existing-project ne cite `flutter analyze`, `test` et `pub get` qu'avec `--no-pub` ou `--enforce-lockfile` ; le code-reviewer rend ses DIVERGENCES, que create-feature et debug-project traitent |
 | hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée, `jq` absent bloqué, appel `Monitor` couvert |
 | hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des cinq agents ; commandes composées refusées ; un agent sans branche de liste blanche refusé ; erreurs internes bloquantes |
 | hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |
@@ -520,10 +526,13 @@ Outillage de développement : les skills de `plugin-dev` (installé depuis `clau
 3. **Préservation** : un fichier modifié non commité avant le lancement est intact après.
 4. **Blocage** : demande explicite de `git reset --hard` refusée par le hook avec message clair.
 5. **Reprise** : session interrompue après l'étape 7, recover-session propose l'étape 8 sans refaire 1 à 7.
-6. **Dépôt existant** : aucun fichier réécrit sans plan validé (v0.3).
+6. **Dépôt existant** : l'analyse ne modifie aucun fichier, et après un accord partiel seuls les items approuvés sont appliqués ; README et `CLAUDE.md` existants intacts.
 7. **Secret** : un commit qui contient une clé AWS est refusé par secret-scan ; le secret n'apparaît dans aucun message.
 8. **Débogage** : un test rouge inattendu est reproduit, sa cause prouvée avant le correctif, le correctif commité sur `fix/…` après revue.
 9. **PR et CI** : sur un dépôt de test jetable, CI ajoutée, dépôt créé, PR ouverte, checks verts ; rien de fusionné.
+10. **Mise à jour de dépendances** (critère de sortie v0.3) : inventaire sans modification, plan de lots, seuls les lots approuvés appliqués et commités avec leur lockfile, tests verts après chacun, rapport avant/après ; ni `flutter upgrade` ni `dart pub`.
+11. **Builds locaux** : tâche `build` de devops-engineer ; trois états par plateforme, artefacts vérifiés par la session principale.
+12. **CI rouge** : diagnostic `ci-diagnosis` sur une vraie PR rouge, lignes de journal revérifiées, correctif orienté vers le code ; ni relance ni push.
 
 Le rapport de test du plugin sépare trois colonnes : exécuté automatiquement, vérifié manuellement, bloqué (raison). Les scénarios GitHub utilisent un dépôt de test privé jetable, créé uniquement avec accord.
 

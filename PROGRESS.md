@@ -34,7 +34,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 - [x] A — Vérifications (2026-10-20), détail ci-dessous
 - [x] B — Agent product-architect et son périmètre dans agent-scope-guard, en TDD
 - [x] C — Skill update-project ; règles de permission
-- [ ] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
+- [x] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
 - [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
 - [ ] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
 - [ ] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé)
@@ -92,6 +92,19 @@ Deux tests existants ont accroché à tort, et ont été resserrés plutôt que 
 - `test_settings_template` lisait `force` dans `--enforce-lockfile`. Motif `\bforce`. Mutations : `allow` sur `git push --force-with-lease *`, `flutter pub upgrade --force *`, `git checkout --force *` → 1, 2 et 1 échecs.
 
 Suite complète : exit 0 — 18 réussis (14 suites, 951 assertions, 4 validations).
+
+| Cycle | ROUGE | VERT |
+| --- | --- | --- |
+| D1 — contenu d'adopt-existing-project et de sa grille de divergences | 2 échecs (fichiers absents) | 117/117 |
+| D2 — DIVERGENCES : code-reviewer (5 assertions), create-feature étape 14, debug-project | 7 échecs | idem |
+| D3 — délégation de bootstrap-project à product-architect ; flutter-architect : `flutter pub deps`, stack « pre-existing » (D36, D39) | 3 échecs | idem |
+| D4 — frontmatter (8 skills) ; grille citée et présente (`test_paths`) | 2 + 1 échecs | 115/115, 99/99 |
+
+Le contrôle « avant le plan, `flutter analyze`, `test` et `pub get` seulement avec `--no-pub` ou `--enforce-lockfile` » a d'abord attrapé la consigne qui les interdit (« never run `flutter pub get` … without … ») : les lignes « never » sont écartées, comme dans les contrôles `dart pub` et `flutter upgrade`. Mutations : chacune des trois commandes de référence rendue nue → 1, 1 et 2 échecs.
+
+Scénarios ajoutés : 6 (adoption), 10 (mise à jour, critère de sortie), 11 (builds), 12 (CI rouge). Leurs préparations séparent `git init` et écrivent le chemin en clair, à cause de secret-scan (README des scénarios, « Observed »).
+
+Suite complète : exit 0 — 18 réussis (14 suites, 1 018 assertions, 4 validations).
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 

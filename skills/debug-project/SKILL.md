@@ -74,7 +74,7 @@ Run the original failing command again, then the full suite `flutter test`, then
 
 ## Step 10 — Review
 
-Stage the fix and its test explicitly through the git-workflow skill (not `.forge/`). Delegate to the code-reviewer agent: the diff `git diff --cached <base>`, the root cause in one sentence, and the declared scope. Give it nothing else of your reasoning. Fix the blocking findings, then rerun step 9 and have the fixes reviewed once more; a blocking finding that remains stops the workflow.
+Stage the fix and its test explicitly through the git-workflow skill (not `.forge/`). Delegate to the code-reviewer agent: the diff `git diff --cached <base>`, the root cause in one sentence, and the declared scope. Give it nothing else of your reasoning. Fix the blocking findings, then rerun step 9 and have the fixes reviewed once more; a blocking finding that remains stops the workflow. List the DIVERGENCES it reports in the final report; fix only those within the scope of step 5.
 
 ## Step 11 — Commit and report
 

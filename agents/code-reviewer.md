@@ -21,6 +21,12 @@ The diff to review, given as git arguments: `--cached main` for staged changes n
    - correctness: null safety, unhandled async errors, controllers and streams disposed, state used after an `await` without a `mounted` check, platform-specific code guarded for the enabled platforms;
    - architecture: feature-first layout, no Flutter import in `domain/`, every new dependency justified in `docs/engineering/DECISIONS.md`;
    - no secret, token, `.env` file, keystore or `key.properties` in the diff, and no generated file committed by mistake.
+5. Divergences between the documents and the code, for what the diff touches:
+   - a dependency added to `pubspec.yaml`, or moved to a new major version, without an ADR in `docs/engineering/DECISIONS.md`;
+   - a targeted acceptance criterion without a test that cites its id, or a test that cites an id missing from the PRD;
+   - the entry of `docs/engineering/IMPLEMENTATION_PLAN.md` contradicted by the diff: other files, other criteria, a feature the plan does not list.
+
+   A missing test for a targeted criterion stays a blocking finding. Report every divergence under DIVERGENCES, with the document and the line it contradicts.
 
 The documentation is updated after your review: list the updates the change requires (plan, DECISIONS, traceability) under DOCS_TO_UPDATE, not as findings. Do not run the tests: the main session runs them. Do not propose rewrites outside the diff.
 
@@ -53,6 +59,8 @@ FINDINGS:
 - minor: <file:line — finding, or "none">
 DOCS_TO_UPDATE:
 - <document — what to update, or "none">
+DIVERGENCES:
+- <document:line — what it says — what the diff does, or "none">
 STATUS: done | blocked | partial
 FILES_CHANGED:
 - none
