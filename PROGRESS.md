@@ -3,7 +3,9 @@
 Dernière mise à jour : 2026-10-20
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
-## v0.2 — en cours (branche locale `feat/v0.2`)
+## v0.2 — clôturée et publiée le 2026-10-20
+
+**v0.2.0 clôturée le 2026-10-20** (« clôture et publie ») : phases A à G faites, rapport dans `docs/V0.2_REPORT.md`, ARCHITECTURE.md en APPROVED, tag local `v0.2.0`. `feat/v0.2` est fusionnée en avance rapide dans `main` et publiée sur `soonlysoul/plugin-flutter` : un appareil la reçoit par `claude plugin marketplace update soon`, puis `claude plugin update plugin-flutter@soon`. Restent à vous : pousser le tag (`git push origin v0.2.0`), supprimer le dépôt de test `soonlysoul/plugin-flutter-ci-probe`, et, sur cette machine, remplacer l'ancien `flutter-forge@soon` 0.1.1. Prochaine étape : la v0.3 (update-project, adopt-existing-project, product-architect), qui ne démarre que sur votre demande.
 
 Démarrée le 2026-10-20 sur « continue V2 ». Périmètre fixé par ARCHITECTURE.md (feuille de route) : skills github-workflow et debug-project, agent devops-engineer, hooks secret-scan et protect-sensitive, gabarit CI Flutter. Critère de sortie : une PR ouverte sur un dépôt de test, avec une CI verte.
 
@@ -36,7 +38,7 @@ Comme pour la v0.1, les décisions ci-dessous sont appliquées **par défaut** e
 - [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, constats traités
 - [x] F.1 — Validation sans quota (gitleaks réel par `nix shell`, `plugin details`, CI rejouée localement)
 - [x] F.2 — Dépôt de test GitHub, PR et CI verte ; scénarios headless (accord du 2026-10-20 : dépôt de test, compte Claude demeusy.vincent) — **critère de sortie atteint**
-- [ ] G — Docs, CHANGELOG 0.2.0, ARCHITECTURE.md APPROVED, rapport ; publication **sur votre accord**
+- [x] G — Docs, CHANGELOG 0.2.0, ARCHITECTURE.md APPROVED, rapport `docs/V0.2_REPORT.md` ; publication sur votre accord du 2026-10-20
 
 ### Phase A v0.2 — Vérifications
 

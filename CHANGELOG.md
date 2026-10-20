@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/) : correctif pour une consigne, mineure pour un skill ou un agent ajouté, majeure pour un changement de format de `.forge/` qui casse la reprise.
 
-## [0.2.0] — non publiée
+## [0.2.0] — 2026-10-20
 
 Publier sur GitHub avec une CI, ouvrir une pull request, corriger une erreur avec méthode ; deux garde-fous de plus. Le format de `.forge/` ne change pas.
 
