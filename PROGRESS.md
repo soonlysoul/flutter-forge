@@ -36,7 +36,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 - [x] C — Skill update-project ; règles de permission
 - [x] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
 - [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
-- [ ] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
+- [x] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
 - [ ] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé)
 - [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite
 
@@ -148,6 +148,19 @@ Suite complète : exit 0 — 18 réussis (14 suites, 1 046 assertions, 4 validat
 Mutations après correction : 5 sur 5 détectées (M4, M5, délimiteur `sed` remis à `/`, config écrite avant le checkpoint, `allow` sur `pub add --dev`). Écarté par le relecteur : `flutter pub deps` à l'étape 2 de debug-project (antérieur à la v0.3, hors adoption). Pas de troisième passe de revue, comme pour la v0.2. `docs/TROUBLESHOOTING.md` et `docs/INSTALLATION.md` citent encore l'ancienne commande `.claude/` : phase G.
 
 Suite complète : exit 0 — 18 réussis (14 suites, 1 061 assertions, 4 validations).
+
+### Phase F.1 v0.3 — Validation sans quota
+
+| Commande | Résultat |
+| --- | --- |
+| `bash tests/run-all.sh` | exit 0 — 18 réussis (14 suites, 1 061 assertions, 4 validations), 0 échoué |
+| `claude --plugin-dir . plugin details plugin-flutter` | exit 0 — 8 skills, 5 agents, hooks sur 3 événements ; ~1 651 jetons permanents (v0.2 : ~1 236) ; à l'invocation, update-project et adopt-existing-project ~4,7 k chacun |
+| Préparations des scénarios 6 et 10, telles qu'écrites, sur Flutter 3.44.3 | `flutter create`, `pub add`/`pub get`, commit : exit 0 ; `flutter test` exit 0 (2 tests) et `flutter analyze` exit 0 pour le 10 |
+| Référence d'adopt-existing-project sur un clone neuf du projet du scénario 6 | `flutter --version --machine`, `flutter pub get --enforce-lockfile`, `flutter analyze --no-pub`, `flutter test --no-pub` : exit 0 ×4 ; `git status --porcelain` vide avant et après ; seuls `.dart_tool/` et `build/`, ignorés, apparaissent |
+| Commandes d'update-project (phase A, puis rejouées par le relecteur) | classes du scénario 10 conformes ; `pub upgrade` ne change que le lock ; `--major-versions http` que sa contrainte et le lock ; abandon d'un lot (restauration puis `--enforce-lockfile`) → exit 0 ; `pub add --dry-run` sur un paquet retenu → exit 65, cause nommée, aucun fichier modifié |
+| `sed` donnés à l'utilisateur pour `.forge/config.yaml` | délimiteur `\|` : seules les lignes `default_branch` et `enabled` changent, y compris avec `release/2.x` |
+
+Non vérifiable sans session : le comportement du modèle face aux nouveaux skills, et la correspondance de `Bash(x *)` avec un `x` nu en 2.1.296 : phase F.2.
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 
