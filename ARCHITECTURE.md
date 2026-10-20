@@ -6,7 +6,7 @@ Oct 17, 2026 · @Soon
 
 `plugin-flutter` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-**Statut du document : APPROVED** le 2026-10-20, par l'utilisateur (« clôture et publie »), à la clôture de la v0.2.0 : les composants de la v0.2 y sont décrits tels que construits et validés, avec les décisions D12 à D26 de `PROGRESS.md`. Toute modification le repasse en REVIEW. Version précédente : APPROVED le 2026-10-19 (« clôture la v1 »), à la clôture de la v0.1.0, avec les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) et les recommandations du §7 (D1 à D9).
+**Statut du document : REVIEW** depuis le 2026-10-20, pendant la v0.3 : les composants de la v0.3 y sont ajoutés au fil des phases, avec les décisions D27 et suivantes de `PROGRESS.md`. Il repasse en APPROVED à la clôture, sur l'accord explicite de l'utilisateur. Version précédente : APPROVED le 2026-10-20 (« clôture et publie »), à la clôture de la v0.2.0, avec les décisions D12 à D26. Version précédente : APPROVED le 2026-10-19 (« clôture la v1 »), à la clôture de la v0.1.0, avec les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) et les recommandations du §7 (D1 à D9).
 
 Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.296.
 

@@ -3,6 +3,65 @@
 Dernière mise à jour : 2026-10-20
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
 
+## v0.3 — en cours
+
+Démarrée le 2026-10-20 sur votre demande (« Démarre la v0.3 de plugin-flutter »). Périmètre fixé par ARCHITECTURE.md (feuille de route) : skills update-project et adopt-existing-project, agent product-architect, détection des divergences docs/code. Critère de sortie : la mise à jour réelle d'un lot de dépendances, avec son rapport avant/après. ARCHITECTURE.md repasse en REVIEW pendant le travail.
+
+Point de départ : `main` à `1d8085e`, en avance de 2 commits de suivi sur `origin/main` (`4765671`, `1d8085e`), qui partiront avec la prochaine publication.
+
+Comme pour les versions précédentes, les décisions ci-dessous sont appliquées **par défaut** et restent révisables. D27 à D32 sont vos valeurs par défaut ; D33 et suivantes sont mes recommandations, tirées de la phase A. Seules les actions qui coûtent, touchent un compte ou sortent de la machine attendent votre accord : scénarios headless (F.2), dépôt GitHub et minutes de CI du scénario 12 (F.2), publication de la 0.3.0 (G).
+
+| # | Retenu par défaut |
+| --- | --- |
+| D27 | Travail sur la branche locale `feat/v0.3`, un commit local par phase ; rien n'est poussé |
+| D28 | La détection des divergences est un contrôle de jugement, pas un hook : une étape d'adopt-existing-project, plus une vérification du code-reviewer (dépendance absente de DECISIONS.md, AC sans test, plan périmé) |
+| D29 | Pas d'agent implementation-engineer : l'implémentation reste dans la session principale (clôt le « à réévaluer en v0.3 » d'ARCHITECTURE.md) |
+| D30 | product-architect : modèle `inherit`, comme flutter-architect ; outils Read, Grep, Glob, Write, Edit, sans Bash ; écriture limitée à `docs/product/` par agent-scope-guard, qui lui refuse aussi toute commande |
+| D31 | Sous NixOS, Flutter est fourni par Nix : update-project ne lance jamais `flutter upgrade`. Il le détecte (`flutterRoot` sous `/nix/store/`), le signale, et rappelle de mettre à jour `flutter-version` dans `.github/workflows/ci.yml` après un changement de SDK |
+| D32 | Version 0.3.0 (mineure, format de `.forge/` inchangé : la phase A n'a rien trouvé qui l'oblige à changer) |
+| D33 | *(extension de D31)* update-project ne lance `flutter upgrade`, `downgrade` ou `channel` **nulle part**, Nix ou non : le SDK est partagé par tous les projets de la machine. L'utilisateur le change lui-même (Nix : sa configuration ; sinon `! flutter upgrade`), puis le skill vérifie. Le gabarit de permissions passe ces trois commandes en `ask` |
+| D34 | Lots : le lot 1 réunit les mises à jour compatibles (`flutter pub upgrade`, sans argument : contraintes inchangées, transitives comprises) ; puis un lot par mise à jour majeure (`flutter pub upgrade --major-versions <paquet>`), une famille de paquets ensemble (`riverpod` et `flutter_riverpod`). Chaque lot : `flutter analyze` et `flutter test`, puis un commit `chore(deps): …` avec `pubspec.yaml`, `pubspec.lock` et les registres de plugins régénérés. Point de validation : le plan de lots, toujours, et chaque majeure (lien vers son changelog). Un lot rouge n'est pas commité ; l'abandonner passe par `! git restore pubspec.yaml pubspec.lock`, que guard-destructive refuse à Claude |
+| D35 | Rapport avant/après dans `.forge/reports/deps-<date>-<slug>.md`, commité avec le dernier lot : versions avant (`flutter pub outdated --json`) et après (`pubspec.lock`), SDK (`flutter --version --machine`), tests et analyse avant (référence) et après chaque lot. Une référence rouge arrête le skill : sans votre accord, on ne met pas à jour sur une base qui échoue déjà |
+| D36 | Dans un projet Flutter, les skills et agents citent `flutter pub …`, jamais `dart pub …`, qui échoue sous Nix (exit 69). flutter-architect garde `dart pub deps` dans sa liste blanche, pour un paquet Dart pur |
+| D37 | adopt-existing-project, analyse en lecture seule : jamais `flutter analyze`, `flutter test` ou `flutter pub get` nus, qui lancent `pub get` et peuvent réécrire `pubspec.lock`. D'abord `flutter pub get --enforce-lockfile` (refuse sans rien écrire si le lock est périmé ou absent), puis `flutter analyze --no-pub` et `flutter test --no-pub`. `git status --porcelain` identique avant et après, sinon arrêt |
+| D38 | adopt-existing-project, mise en conformité : branche `chore/adopt-plugin-flutter` ; un document existant est gardé et référencé, jamais remplacé ; `CLAUDE.md`, `.gitignore`, `analysis_options.yaml` existants : modification proposée en diff, approuvée fichier par fichier ; aucun code déplacé. Documents reconstruits en DRAFT, AC marqués « reconstructed », ADR des dépendances existantes en `proposed`. Divergences dans `.forge/reports/divergences-<date>.md` |
+| D39 | product-architect est délégué par adopt-existing-project (PRD reconstruit depuis le code) et par bootstrap-project quand le besoin fourni est long ; create-feature écrit lui-même un AC isolé, moins coûteux |
+| D40 | Le code-reviewer rend un bloc `DIVERGENCES` : dépendance ajoutée ou passée à une majeure sans ADR, AC visé sans test ou test citant un AC absent du PRD, entrée du plan contredite par le diff. create-feature (étape 14) le traite avec les mises à jour de docs |
+| D41 | Scénarios v0.3 : 6 adoption, 10 mise à jour de dépendances (critère de sortie), 11 tâche `build` de devops-engineer, 12 diagnostic d'une CI rouge (dépôt GitHub et minutes de CI : accord séparé) |
+
+### Phases v0.3
+
+- [x] A — Vérifications (2026-10-20), détail ci-dessous
+- [ ] B — Agent product-architect et son périmètre dans agent-scope-guard, en TDD
+- [ ] C — Skill update-project ; règles de permission
+- [ ] D — Skill adopt-existing-project ; divergences (code-reviewer, create-feature) ; délégation de bootstrap-project ; scénarios 6, 10 à 12
+- [ ] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
+- [ ] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
+- [ ] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé)
+- [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite
+
+### Phase A v0.3 — Vérifications
+
+Projet jetable `flutter create` (Linux) dans le scratchpad, dépendances anciennes figées puis contraintes relâchées : `http 0.13.6`, `equatable 2.0.5`, `shared_preferences 2.2.0`, `go_router 12.0.0`. Rien n'a été lancé dans un vrai projet.
+
+| Point | Résultat | Source |
+| --- | --- | --- |
+| Suite déterministe avant tout changement | exit 0 — 17 réussis (13 suites, 848 assertions, 4 validations), 0 échoué | `bash tests/run-all.sh` |
+| Outils | Claude Code 2.1.296, Flutter 3.44.3 (Dart 3.12.2), gh 2.101.0, jq 1.8.2, bash 5.2.37 | `--version` |
+| Flutter fourni par Nix | `flutter --version --machine` : `flutterRoot` = `/nix/store/…-flutter-wrapped-3.44.3-sdk-links`, `frameworkRevision` = `nixpkgs000…`, `frameworkCommitDate` = 1970 ; `flutter` résolu vers le store | `--machine`, `readlink -f` |
+| `flutter upgrade` | options `--force`, `--verify-only` ; **non lancé** | `--help` |
+| `flutter pub outdated` | exit 0, même avec des paquets en retard. Texte et `--json` ne modifient ni `pubspec.yaml` ni `pubspec.lock` (sha256). Sans `pubspec.yaml` : exit 1 | sonde |
+| `flutter pub outdated --json` | `{packages: [{package, kind, isDiscontinued, isCurrentRetracted, isCurrentAffectedByAdvisory, current, upgradable, resolvable, latest}]}`, chaque version `{version}` ou `null` ; `kind` : `direct`, `dev`, `transitive` ; sans `--show-all`, seuls les paquets en retard ; paquets du SDK en `0.0.0` | sonde |
+| `flutter pub upgrade` | `-n/--dry-run` : rien de modifié, exit 0. `upgrade <paquet>` ne déplace que lui (ses implémentations fédérées restent verrouillées, sauf `--unlock-transitive`). `--major-versions <paquet>` réécrit sa contrainte dans `pubspec.yaml` (`http: ^0.13.6 -> ^1.6.0`) et le lock. `--tighten` relève les bornes basses. Exit 0 partout | `--help`, sonde |
+| `flutter pub deps --json` | exit 0 ; `{root, packages: [{name, version, kind, source, dependencies, directDependencies}], sdks: [{name, version}], executables}` ; `kind` : `root`, `direct`, `dev`, `transitive` | sonde |
+| `dart pub …` dans un projet Flutter | **exit 69** : « the Flutter SDK is not available », y compris avec le `dart` du SDK Flutter de Nix | sonde |
+| `pubspec.lock` | `packages: <nom>: {dependency: "direct main" \| "direct dev" \| transitive, description: {name, sha256, url}, source, version}`, puis `sdks: {dart, flutter}`. Versionné par `flutter create`, comme `linux/flutter/generated_plugin_registrant.{cc,h}` et `generated_plugins.cmake` | sonde, `git ls-files` |
+| Lecture seule d'un dépôt existant | Lock périmé : `flutter analyze`, qui lance `pub get`, **réécrit `pubspec.lock`**. `flutter pub get --enforce-lockfile` : lock périmé → exit 65, rien modifié ; pas de lock → exit 1, rien créé ; lock valide → exit 0, seuls des fichiers ignorés écrits (`.dart_tool/`, `.flutter-plugins-dependencies`, `linux/flutter/ephemeral/`). Ensuite `flutter analyze --no-pub` et `flutter test --no-pub` : exit 0. Sans résolution préalable, `analyze --no-pub` : exit 1 et 55 faux constats | 3 clones jetables |
+| Cache pub | `.dart_tool/package_config.json` (`configVersion` 2) : `rootUri` = `file:///…/.pub-cache/hosted/pub.dev/<paquet>-<version>`, où se lisent `CHANGELOG.md` (« **Breaking** » pour http 1.6.0) et `flutter: plugin: platforms:` | sonde |
+| Gabarit CI | la version épinglée est la ligne `flutter-version: "<version>"` du job | `templates/github-workflows/flutter-ci.yml` |
+
+Incidents : le secret-scan installé (0.2.0) a refusé `git init … && git commit` sur une même ligne (D25), puis un `cd "$P"` à variable. Non contourné : commandes séparées, chemin écrit en clair.
+
 ## v0.2 — clôturée et publiée le 2026-10-20
 
 **v0.2.0 clôturée le 2026-10-20** (« clôture et publie ») : phases A à G faites, rapport dans `docs/V0.2_REPORT.md`, ARCHITECTURE.md en APPROVED, tag local `v0.2.0`. `feat/v0.2` est fusionnée en avance rapide dans `main` et publiée sur `soonlysoul/plugin-flutter` : un appareil la reçoit par `claude plugin marketplace update soon`, puis `claude plugin update plugin-flutter@soon`. Le tag `v0.2.0` est poussé, et cette machine a remplacé `flutter-forge@soon` 0.1.1 par `plugin-flutter@soon` 0.2.0 (portée `user`). Le dépôt de test `soonlysoul/plugin-flutter-ci-probe` a été supprimé par l'utilisateur le 2026-10-20 (guard-destructive bloque `gh repo delete` pour Claude) ; le jeton de `gh` porte depuis le scope `delete_repo`. Plus rien n'est en attente pour la v0.2. Prochaine étape : la v0.3 (update-project, adopt-existing-project, product-architect), qui ne démarre que sur votre demande.
