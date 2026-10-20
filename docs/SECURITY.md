@@ -12,9 +12,9 @@ Un plugin **ne peut pas** imposer de règles de permission : le `settings.json` 
 
 ## Couche 1 — les règles de permission proposées
 
-- **Sans demander** : `flutter test`, `flutter analyze`, `dart format`, `flutter pub get`, `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `git status`, `git diff`, `git log`, `git add <fichiers>`, `git switch`, `git remote -v`, `git rev-parse`, `git branch --show-current`, et les `gh` en lecture : `gh --version`, `gh auth status`, `gh repo view`, `gh pr view`, `gh pr checks`, `gh run list`, `gh run view`, `gh run watch`, `gh workflow list`, `gh workflow view`, `gh issue list`, `gh issue view`.
-- **Demandent d'abord** : `git commit`, `git push`, `gh pr create`, `gh pr edit`, `gh repo create`, `gh issue create`, `gh run rerun`, `gh workflow run` (ces deux derniers consomment des minutes de CI), `flutter pub upgrade`, et `git add -A` / `git add .` / `git add --all`.
-- **Refusées** : `git reset --hard`, `git clean`, `git push --force` et ses variantes (`-f`, `+ref`), `git branch -D`, `gh repo delete`, `gh pr merge`, `dart pub publish`, `flutter pub publish`, la lecture de `.env`, `.env.*` et `key.properties`, et toute modification de `.forge/config.yaml`.
+- **Sans demander** : `flutter test`, `flutter analyze`, `dart format`, `flutter pub get`, `flutter pub get --enforce-lockfile`, les commandes de `flutter pub` qui ne modifient rien (`flutter pub outdated`, `flutter pub deps`, `flutter pub add --dry-run`), `flutter build`, `flutter --version`, `flutter --version --machine`, `flutter doctor`, `flutter devices`, `git status`, `git diff`, `git log`, `git add <fichiers>`, `git switch`, `git remote -v`, `git rev-parse`, `git branch --show-current`, et les `gh` en lecture : `gh --version`, `gh auth status`, `gh repo view`, `gh pr view`, `gh pr checks`, `gh run list`, `gh run view`, `gh run watch`, `gh workflow list`, `gh workflow view`, `gh issue list`, `gh issue view`.
+- **Demandent d'abord** : `git commit`, `git push`, `gh pr create`, `gh pr edit`, `gh repo create`, `gh issue create`, `gh run rerun`, `gh workflow run` (ces deux derniers consomment des minutes de CI), `flutter pub upgrade`, `flutter upgrade`, `flutter downgrade` et `flutter channel` (ces trois-là changent Flutter pour tous les projets de la machine), et `git add -A` / `git add .` / `git add --all`.
+- **Refusées** : `git reset --hard`, `git clean`, `git push --force`, `git push -f` et leurs variantes (`+ref`, option placée après le dépôt), `git branch -D`, `gh repo delete`, `gh pr merge`, `dart pub publish`, `flutter pub publish`, la lecture de `.env`, `.env.*` et `key.properties`, et toute modification de `.forge/config.yaml`.
 
 À savoir :
 
@@ -58,7 +58,7 @@ En mode non interactif (`claude -p`), personne ne peut répondre : l'écriture e
 
 ### agent-scope-guard
 
-Inerte hors des quatre agents du plugin. Pour eux, il refuse toute écriture hors de leurs dossiers et toute commande hors de leur liste (voir le [guide](USER_GUIDE.md#les-agents)). Il compense une limite de Claude Code : le frontmatter d'un agent ne sait pas restreindre Bash à certaines commandes, ni l'écriture à certains dossiers.
+Inerte hors des cinq agents du plugin. Pour eux, il refuse toute écriture hors de leurs dossiers et toute commande hors de leur liste (voir le [guide](USER_GUIDE.md#les-agents)) ; product-architect n'a aucune commande. Un agent du plugin dont le périmètre n'est pas déclaré dans le hook est bloqué. Il compense une limite de Claude Code : le frontmatter d'un agent ne sait pas restreindre Bash à certaines commandes, ni l'écriture à certains dossiers.
 
 ### Fail-closed
 
@@ -94,6 +94,8 @@ Pour secret-scan :
 
 Pour protect-sensitive : sans `jq`, il ne connaît pas le chemin du fichier et ne regarde que la racine de session ; il ne voit que les outils d'écriture de Claude ; une écriture par Bash (`sed -i`, `cp`, redirection) lui échappe. La règle `deny` `Edit(./.forge/config.yaml)` et la relecture du diff avant commit restent les autres barrières.
 
+Pour les mises à jour : aucun hook ne bloque `flutter upgrade`, `flutter downgrade` ni `flutter channel`. La règle `ask` de la couche 1 et la consigne d'update-project sont les seules barrières. De même, seule la consigne d'adopt-existing-project interdit un `flutter pub get` sans `--enforce-lockfile` pendant l'analyse, qui réécrirait un `pubspec.lock` périmé.
+
 Pour agent-scope-guard : un lien symbolique placé sous `test/` et pointant ailleurs n'est pas suivi ; la racine du projet est `CLAUDE_PROJECT_DIR`, c'est-à-dire le dossier où la session a été lancée.
 
 Les règles `deny` de la couche 1 forment la seconde barrière pour les formes courantes. Signalez toute formulation qui passe : elle deviendra un test.
@@ -108,4 +110,4 @@ Les règles `deny` de la couche 1 forment la seconde barrière pour les formes c
 
 ## Actions toujours soumises à votre accord
 
-Quelle que soit la configuration : fusion dans la branche principale, changement de visibilité, suppression, release publique, toute dépense, tout changement de fournisseur ou de mode d'authentification. S'y ajoutent, depuis la v0.2 : la création du dépôt distant (propriétaire, nom et visibilité reconfirmés à chaque fois), l'ajout ou la modification de la CI, et toute relance de CI sur un dépôt privé, qui consomme des minutes.
+Quelle que soit la configuration : fusion dans la branche principale, changement de visibilité, suppression, release publique, toute dépense, tout changement de fournisseur ou de mode d'authentification. S'y ajoutent, depuis la v0.2 : la création du dépôt distant (propriétaire, nom et visibilité reconfirmés à chaque fois), l'ajout ou la modification de la CI, et toute relance de CI sur un dépôt privé, qui consomme des minutes. Depuis la v0.3 : le plan de lots d'une mise à jour et chaque majeure, la resynchronisation d'un lockfile périmé, tout changement de la version de Flutter (fait par vous), le plan d'adoption d'une app existante et chaque modification d'un de ses fichiers, et toute modification du PRD ou du TRD.

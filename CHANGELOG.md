@@ -2,6 +2,31 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/) : correctif pour une consigne, mineure pour un skill ou un agent ajouté, majeure pour un changement de format de `.forge/` qui casse la reprise.
 
+## [0.3.0] — 2026-10-20
+
+Mettre à jour les dépendances par lots validés, adopter une app existante sans rien réécrire, repérer les écarts entre les documents et le code. Le format de `.forge/` ne change pas.
+
+### Ajouté
+
+- Skill `update-project` : inventaire en lecture seule (`flutter pub outdated --json`), classement en compatibles, majeures, retenues et signalées, plan de lots que vous validez, puis un lot à la fois sur `chore/deps-<slug>`, avec analyse et tests après chacun, un commit par lot avec son lockfile, un ADR `proposed` par majeure, et un rapport avant/après dans `.forge/reports/deps-<date>-<slug>.md`. Un lockfile périmé est resynchronisé dans un commit à part, après votre accord. Le skill ne lance jamais `flutter upgrade`, `downgrade` ni `channel` : le SDK appartient à la machine, et vous le changez vous-même (configuration Nix, ou `! flutter upgrade`) ; le skill vérifie ensuite et rappelle d'aligner `flutter-version` dans la CI.
+- Skill `adopt-existing-project` : analyse en lecture seule d'une app existante, sans `pub get` qui réécrirait `pubspec.lock` (`--enforce-lockfile`, `--no-pub`) ; plan de mise en conformité que vous validez item par item ; puis `.forge/`, documents manquants reconstruits depuis le code en DRAFT, liste des divergences, sur `chore/adopt-plugin-flutter`. Aucun fichier existant n'est réécrit sans son diff approuvé, aucun code n'est déplacé. Une adoption interrompue reprend où elle s'était arrêtée.
+- Agent `product-architect` (modèle de la session) : PRD et critères d'acceptation numérotés `AC-xxx`, testables, jamais renumérotés ; tâches `draft` (un besoin) et `reconstruct` (le code d'une app existante, critères marqués « reconstructed »). Écrit seulement sous `docs/product/`, sans shell.
+- Détection des divergences entre documents et code : une étape d'`adopt-existing-project`, un bloc `DIVERGENCES` dans le rapport du code-reviewer (dépendance sans ADR, critère sans test, plan contredit), traité à l'étape 14 de `create-feature` et en fin de `debug-project`.
+- Scénarios comportementaux 6 (adoption), 10 (mise à jour d'un lot de dépendances, critère de sortie de la v0.3), 11 (tâche `build` de devops-engineer) et 12 (diagnostic d'une CI rouge).
+
+### Modifié
+
+- `templates/project-settings.json` : les commandes de `flutter pub` qui ne modifient rien (`get --enforce-lockfile`, `outdated`, `deps`, `add --dry-run`), `flutter --version --machine` et `git status <options>` passent sans demander ; `flutter pub upgrade` sans argument, `flutter upgrade`, `flutter downgrade` et `flutter channel` demandent d'abord. Un projet créé avec la v0.2 garde ses règles : les ajouter à la main (voir [Installation](docs/INSTALLATION.md#mettre-à-jour-un-projet-créé-avec-la-v02)).
+- `agent-scope-guard` : périmètre de product-architect (`docs/product/`, aucune commande) ; un agent sans liste de commandes ne peut plus rien lancer.
+- `bootstrap-project` confie le PRD d'un brief long à product-architect. `create-feature` traite les divergences relevées à la revue : une modification du PRD ou du TRD y devient un point de validation.
+- `flutter-architect` ne lance `flutter pub deps` que sur un lockfile à jour, puisque la commande réécrit un lockfile périmé ; pour une app adoptée, il décrit la pile existante et propose ses ADR.
+- `git-workflow` connaît les branches `chore/deps-<slug>`, `chore/ci` et `chore/adopt-plugin-flutter`.
+
+### Corrigé
+
+- `bootstrap-project` : en mode non interactif, `.forge/config.yaml` n'était jamais créé, puisque protect-sensitive refuse l'écriture sans proposer d'autre voie. Le skill donne désormais la commande à lancer vous-même.
+- `github-workflow` : la commande `sed` qui remplit le gabarit de CI cassait sur un nom de branche contenant `/`. Elle utilise désormais `|` comme délimiteur.
+
 ## [0.2.0] — 2026-10-20
 
 Publier sur GitHub avec une CI, ouvrir une pull request, corriger une erreur avec méthode ; deux garde-fous de plus. Le format de `.forge/` ne change pas.

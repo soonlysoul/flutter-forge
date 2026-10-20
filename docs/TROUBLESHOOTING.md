@@ -62,7 +62,7 @@ Claude ne doit jamais reformuler une commande bloquée pour la faire passer. S'i
 
 ## La CI échoue alors que tout passe en local
 
-**Causes courantes** : la version de Flutter de la CI diffère de la vôtre (le gabarit l'épingle sur `flutter --version` au moment de l'ajout : relancez `/plugin-flutter:github-workflow ci` après une mise à jour de Flutter) ; un fichier non formaté (`dart format --set-exit-if-changed .`) ; un fichier oublié dans le commit.
+**Causes courantes** : la version de Flutter de la CI diffère de la vôtre (le gabarit l'épingle sur `flutter --version` au moment de l'ajout ; update-project signale l'écart et vous propose d'aligner la ligne `flutter-version:`) ; un fichier non formaté (`dart format --set-exit-if-changed .`) ; un fichier oublié dans le commit.
 
 **Solution** : `/plugin-flutter:github-workflow checks` fait lire les journaux à l'agent devops-engineer, qui classe l'échec ; un échec du code part ensuite vers `/plugin-flutter:debug-project`.
 
@@ -81,6 +81,42 @@ Claude ne doit jamais reformuler une commande bloquée pour la faire passer. S'i
 **Cause** : la confiance du workspace n'a pas été accordée. Les `allow` d'un projet restent inertes jusque-là ; `deny` et `ask` s'appliquent toujours.
 
 **Solution** : ouvrir une session interactive dans le dossier et accepter la question de confiance. En mode `-p`, passer les outils par `--allowedTools`.
+
+## `.forge/config.yaml` n'est pas créé
+
+**Symptôme** : bootstrap-project ou adopt-existing-project signale que l'écriture de `.forge/config.yaml` a été refusée, et affiche une commande `! … sed … > .forge/config.yaml`.
+
+**Cause** : le hook protect-sensitive protège ce fichier partout, puisque c'est lui qui porte vos préautorisations. En mode non interactif, personne ne peut confirmer l'écriture, qui est donc refusée.
+
+**Solution** : lancer la commande affichée, depuis la racine du projet ; elle copie le gabarit du plugin en y mettant vos plateformes (et, pour une adoption, votre branche principale). Puis dire au skill de continuer.
+
+## adopt-existing-project s'arrête dès le début
+
+**Causes**, dans l'ordre où le skill les vérifie :
+
+- pas de `pubspec.yaml` Flutter à la racine de la session : relancer Claude Code dans le dossier de l'app ;
+- `.forge/` existe déjà : le projet est adopté, utilisez recover-session ou create-feature ;
+- le dossier n'est pas un dépôt Git : vérifiez qu'il ne contient pas de secret, puis `git init -b main` et un premier commit, par vous ;
+- des modifications non commitées : committez-les ou mettez-les de côté vous-même ;
+- la branche courante n'est pas la branche principale : `git switch <branche principale>`.
+
+## update-project ne met pas Flutter à jour
+
+**Cause** : voulu. `flutter upgrade`, `flutter downgrade` et `flutter channel` changent Flutter pour tous les projets de la machine : le skill ne les lance jamais. Quand `flutter --version --machine` donne une racine sous `/nix/store/`, Flutter vient de Nix et ne change que par votre configuration Nix.
+
+**Solution** : mettre Flutter à jour vous-même (configuration Nix, ou `! flutter upgrade`), puis dire au skill de continuer. Il relève la nouvelle version, relance les vérifications et vous propose d'aligner `flutter-version:` dans `.github/workflows/ci.yml`.
+
+## `dart pub …` sort en 69
+
+**Cause** : dans un projet Flutter, `dart pub` a besoin du `dart` fourni avec Flutter. Sous NixOS, le `dart` du `PATH` peut en être un autre.
+
+**Solution** : `flutter pub …`, que les skills utilisent toujours.
+
+## `flutter pub get --enforce-lockfile` sort en 65
+
+**Cause** : `pubspec.lock` ne correspond plus à `pubspec.yaml`, par exemple après une contrainte modifiée à la main. Un `flutter pub get` simple le réécrirait.
+
+**Solution** : update-project vous propose de le resynchroniser dans un premier commit, à part (`chore(deps): sync pubspec.lock with pubspec.yaml`). Pendant une adoption, l'analyse et les tests de référence sont notés « non exécutés », et la resynchronisation est laissée à update-project.
 
 ## `.claude/settings.json` n'est pas installé
 
@@ -106,7 +142,7 @@ Tant que ce n'est pas fait, aucune règle du projet ne s'applique, y compris la 
 
 **Cause probable** : son frontmatter ne se lit plus. Claude Code charge alors l'agent avec tous ses champs ignorés, donc avec **tous les outils**, sans message. Le validateur officiel ne le détecte pas, même avec `--strict` : `claude plugin validate agents --strict` accepte par exemple `description: Use when: …`, qui n'est pas du YAML valide.
 
-**Solution** : `bash tests/static/test_frontmatter.sh` nomme la ligne fautive. Un `: ` dans une valeur exige des guillemets. agent-scope-guard continue de limiter les écritures et les commandes des quatre agents.
+**Solution** : `bash tests/static/test_frontmatter.sh` nomme la ligne fautive. Un `: ` dans une valeur exige des guillemets. agent-scope-guard continue de limiter les écritures et les commandes des cinq agents.
 
 ## Claude reprend la main pour mettre à jour le checkpoint
 

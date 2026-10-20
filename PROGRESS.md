@@ -38,7 +38,7 @@ Comme pour les versions précédentes, les décisions ci-dessous sont appliquée
 - [x] E — `tests/run-all.sh` vert ; revue indépendante du diff, puis contre-vérification
 - [x] F.1 — Validation sans quota (`claude plugin details`, commandes du skill sur projets jetables)
 - [ ] F.2 — Scénarios headless, sur accord (coût estimé, compte Claude confirmé)
-- [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite
+- [ ] G — Docs, CHANGELOG 0.3.0, `docs/V0.3_REPORT.md` ; ARCHITECTURE.md APPROVED sur votre accord explicite. *Fait avant F.2 : docs, CHANGELOG, 0.3.0, rapport (F.2 en attente).*
 
 ### Phase A v0.3 — Vérifications
 
@@ -161,6 +161,22 @@ Suite complète : exit 0 — 18 réussis (14 suites, 1 061 assertions, 4 validat
 | `sed` donnés à l'utilisateur pour `.forge/config.yaml` | délimiteur `\|` : seules les lignes `default_branch` et `enabled` changent, y compris avec `release/2.x` |
 
 Non vérifiable sans session : le comportement du modèle face aux nouveaux skills, et la correspondance de `Bash(x *)` avec un `x` nu en 2.1.296 : phase F.2.
+
+### Phase G v0.3 — Docs (avant F.2)
+
+Faite sur « continue » sans réponse aux questions de F.2 : la partie locale et gratuite, sans quota ni compte. F.2 reste en attente.
+
+TDD : `tests/static/test_docs.sh` écrit d'abord. Il vérifie que la version de README et la dernière entrée du CHANGELOG sont celles de `plugin.json`. Il vérifie aussi que les nombres de skills et d'agents sont exacts partout où ils sont écrits (en chiffres ou en lettres), que chaque skill a sa ligne dans le README et sa section dans le guide, que chaque agent a sa ligne dans les deux, et que chaque règle Bash du gabarit est citée par SECURITY.md sous son niveau.
+
+| Étape | Résultat |
+| --- | --- |
+| ROUGE, docs v0.2 | 12 échecs : composants v0.3 absents, « quatre agents » ×3, « 6 skills, 4 agents », 5 règles `allow` et 3 `ask` non documentées, et `git push -f` refusé sans être nommé (défaut antérieur) |
+| ROUGE, `plugin.json` en 0.3.0 | 2 échecs de plus (README, CHANGELOG) |
+| VERT | 34 sur 34 après README, USER_GUIDE (update-project, adopt-existing-project, divergences, product-architect), SECURITY, INSTALLATION (règles à ajouter à un projet v0.2, commandes de repli `<projet>/…`), TROUBLESHOOTING (5 entrées), CHANGELOG 0.3.0 |
+| Mutations sur copies | 8 sur 8 détectées, témoin vert : ligne d'agent retirée du README, « quatre agents », « 6 skills », `flutter channel` retiré de SECURITY, règle `allow` ajoutée au gabarit, neuvième skill, section du guide renommée, entrée CHANGELOG retirée |
+| `bash tests/run-all.sh` | exit 0 — 19 réussis (15 suites, 1 095 assertions, 4 validations), 0 échoué |
+
+`plugin.json` passe en 0.3.0 (description : adoption, mises à jour ; mot-clé `dependencies`). `docs/V0.3_REPORT.md` est écrit, ses lignes F.2 « en attente ». Restent pour la clôture : F.2, le rapport complété, ARCHITECTURE.md en APPROVED sur accord explicite, la publication.
 
 ## v0.2 — clôturée et publiée le 2026-10-20
 

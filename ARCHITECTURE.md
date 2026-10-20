@@ -85,7 +85,7 @@ plugin-flutter/
 │   └── github-workflows/flutter-ci.yml  # CI copiée par github-workflow
 ├── tests/
 │   ├── run-all.sh
-│   ├── static/                  # manifeste, frontmatter, chemins
+│   ├── static/                  # manifeste, frontmatter, chemins, contenu des skills, docs
 │   ├── hooks/                   # tests des scripts avec entrées JSON simulées
 │   └── scenarios/               # scénarios comportementaux pas à pas
 ├── docs/
@@ -93,7 +93,8 @@ plugin-flutter/
 │   ├── USER_GUIDE.md
 │   ├── SECURITY.md
 │   ├── TROUBLESHOOTING.md
-│   └── PHASE_A_REPORT.md        # audit de la doc officielle (phase A)
+│   ├── PHASE_A_REPORT.md        # audit de la doc officielle (phase A)
+│   └── V0.1_REPORT.md … V0.3_REPORT.md  # rapports de validation
 ├── ARCHITECTURE.md              # ce document
 ├── PROGRESS.md                  # suivi de développement du plugin
 ├── README.md
@@ -120,13 +121,13 @@ Le plugin est publié dans le dépôt public `soonlysoul/plugin-flutter` et dist
 ```json
 {
   "name": "plugin-flutter",
-  "version": "0.2.0",
-  "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery, GitHub pull requests and CI, debugging.",
+  "version": "0.3.0",
+  "description": "Flutter/Dart project workflows: bootstrap, adoption of an existing app, TDD features, dependency updates, Git hygiene, session recovery, GitHub pull requests and CI, debugging.",
   "author": { "name": "Soon" },
   "homepage": "https://github.com/soonlysoul/plugin-flutter",
   "repository": "https://github.com/soonlysoul/plugin-flutter",
   "license": "MIT",
-  "keywords": ["flutter", "dart", "tdd", "git", "github", "ci"]
+  "keywords": ["flutter", "dart", "tdd", "git", "github", "ci", "dependencies"]
 }
 ```
 
@@ -499,6 +500,7 @@ Les tests se répartissent en deux familles qui ne se mélangent pas : les tests
 | static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; product-architect n'a pas Bash ; aucun agent ne liste `Agent` |
 | static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec ; aucun chemin personnel ni chemin réel du store Nix (`/nix/store/<hash>-…`) |
 | static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean, suppression, ni mise à jour d'une dépendance ou du SDK ; les `deny` attendus sont présents ; `flutter upgrade`, `downgrade` et `channel` demandent confirmation ; aucune règle `Write(…)` |
+| static/test\_docs.sh | La documentation utilisateur suit le plugin : README et dernière entrée du CHANGELOG à la version de `plugin.json` ; nombre de skills et d'agents exact partout où il est écrit ; chaque skill a sa ligne dans le README et sa section dans le guide, chaque agent sa ligne dans les deux ; chaque règle Bash du gabarit est citée par SECURITY.md sous son niveau (`allow`, `ask`, `deny`) |
 | static/test\_maintenance\_skills.sh | product-architect, update-project et son gabarit de rapport, adopt-existing-project et sa grille de divergences énoncent leurs points de validation, commandes et limites ; update-project ne lance jamais `flutter upgrade` ni `dart pub` ; avant le plan, adopt-existing-project ne cite `flutter analyze`, `test` et `pub get` qu'avec `--no-pub` ou `--enforce-lockfile` ; le code-reviewer rend ses DIVERGENCES, que create-feature et debug-project traitent |
 | hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée, `jq` absent bloqué, appel `Monitor` couvert |
 | hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des cinq agents ; commandes composées refusées ; un agent sans branche de liste blanche refusé ; erreurs internes bloquantes |

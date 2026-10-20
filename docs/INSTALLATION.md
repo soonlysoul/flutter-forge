@@ -58,7 +58,7 @@ N'ajoutez pas les deux marketplaces, `soon` et `plugin-flutter`, sur la même ma
 | `project` | Actif pour ce projet, pour tous ceux qui l'ouvrent ; déclaré dans le `.claude/settings.json` du projet |
 | `local` | Actif pour ce projet, pour vous seul |
 
-Les hooks restent inertes hors de leur contexte : `format-dart` ne touche que les `.dart`, `checkpoint-reminder` ne parle qu'en présence de `.forge/checkpoint.md`, `agent-scope-guard` ne vise que les quatre agents du plugin, `protect-sensitive` n'agit que dans un projet qui a `.forge/` (sauf pour `.forge/config.yaml`). `guard-destructive` et `secret-scan` agissent partout, et c'est voulu : une commande destructive ou un secret commité sont un problème dans n'importe quel dépôt.
+Les hooks restent inertes hors de leur contexte : `format-dart` ne touche que les `.dart`, `checkpoint-reminder` ne parle qu'en présence de `.forge/checkpoint.md`, `agent-scope-guard` ne vise que les cinq agents du plugin, `protect-sensitive` n'agit que dans un projet qui a `.forge/` (sauf pour `.forge/config.yaml`). `guard-destructive` et `secret-scan` agissent partout, et c'est voulu : une commande destructive ou un secret commité sont un problème dans n'importe quel dépôt.
 
 ## Vérifier l'installation
 
@@ -66,7 +66,7 @@ Les hooks restent inertes hors de leur contexte : `format-dart` ne touche que le
 claude plugin details plugin-flutter
 ```
 
-Attendu : 6 skills, 4 agents, des hooks sur `PreToolUse`, `PostToolUse` et `Stop`, environ 1 240 jetons ajoutés à chaque session.
+Attendu : 8 skills, 5 agents, des hooks sur `PreToolUse`, `PostToolUse` et `Stop`, environ 1 650 jetons ajoutés à chaque session. Un skill ne charge son contenu qu'à son invocation : environ 4 700 jetons pour update-project ou adopt-existing-project.
 
 Depuis le dossier du plugin, la suite de tests déterministes :
 
@@ -80,11 +80,22 @@ bootstrap-project propose d'installer des règles de permission dans `<projet>/.
 
 - les règles `allow` du projet ne s'appliquent **qu'après acceptation de la confiance du workspace**, à la première session interactive ouverte dans ce dossier ; `deny` et `ask` s'appliquent toujours ;
 - ouvrez la session **à la racine du projet** : c'est elle qui fixe `CLAUDE_PROJECT_DIR`, que les hooks utilisent comme racine ;
-- en mode non interactif (`claude -p`), Claude Code refuse l'écriture de `.claude/settings.json`, qu'il protège. bootstrap-project donne alors la commande de copie à lancer vous-même : `! mkdir -p .claude && cp <plugin>/templates/project-settings.json .claude/settings.json`.
+- en mode non interactif (`claude -p`), Claude Code refuse l'écriture de `.claude/settings.json`, qu'il protège. bootstrap-project donne alors la commande de copie à lancer vous-même : `! mkdir -p <projet>/.claude && cp <plugin>/templates/project-settings.json <projet>/.claude/settings.json`, avec `.` pour le dossier courant. De même pour `.forge/config.yaml`, que le hook protect-sensitive protège : le skill donne la commande `! … sed … > <projet>/.forge/config.yaml` qui le crée.
+
+## Mettre à jour un projet créé avec la v0.2
+
+Les fichiers d'un projet vous appartiennent : une mise à jour du plugin ne les touche pas. Pour profiter des règles de la v0.3, qui servent à `update-project`, ajoutez à la main dans `<projet>/.claude/settings.json` :
+
+- en `allow` : `Bash(flutter pub get --enforce-lockfile)`, `Bash(flutter pub outdated)`, `Bash(flutter pub outdated *)`, `Bash(flutter pub deps)`, `Bash(flutter pub deps *)`, `Bash(flutter pub add --dry-run *)`, `Bash(git status *)`, `Bash(flutter --version --machine)` ;
+- en `ask` : `Bash(flutter pub upgrade)`, `Bash(flutter upgrade*)`, `Bash(flutter downgrade*)`, `Bash(flutter channel *)`.
+
+Sans elles, le skill fonctionne, mais Claude demande la permission pour chaque commande d'inventaire. Le format de `.forge/` ne change pas.
+
+Une app Flutter qui n'a jamais eu de `.forge/` s'adopte par `/plugin-flutter:adopt-existing-project` (voir le [guide](USER_GUIDE.md#adopter-une-app-existante--adopt-existing-project)).
 
 ## Mettre à jour un projet créé avec la v0.1
 
-Les fichiers d'un projet vous appartiennent : une mise à jour du plugin ne les touche pas. Pour profiter des nouvelles règles de la v0.2, ajoutez à la main dans `<projet>/.claude/settings.json` :
+Ajoutez à la main dans `<projet>/.claude/settings.json` les règles de la v0.2, puis celles de la v0.3 (section précédente) :
 
 - en `allow` : `Bash(gh --version)`, `Bash(gh auth status)`, `Bash(gh repo view)`, `Bash(gh repo view *)`, `Bash(gh pr view *)`, `Bash(gh pr checks *)`, `Bash(gh run list *)`, `Bash(gh run view *)`, `Bash(gh run watch *)`, `Bash(gh workflow list)`, `Bash(gh workflow view *)`, `Bash(gh issue list *)`, `Bash(gh issue view *)`, `Bash(git remote -v)`, `Bash(git rev-parse *)`, `Bash(git branch --show-current)`, `Bash(flutter --version)`, `Bash(flutter doctor)`, `Bash(flutter doctor *)`, `Bash(flutter devices)`, `Bash(flutter build *)` ;
 - en `ask` : `Bash(gh repo create *)`, `Bash(gh pr edit *)`, `Bash(gh issue create *)`, `Bash(gh run rerun *)`, `Bash(gh workflow run *)`.
