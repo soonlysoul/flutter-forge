@@ -50,6 +50,10 @@ for step in "flutter pub get" "dart format --output=none --set-exit-if-changed .
 done
 [[ $(grep -c '__FLUTTER_VERSION__' <<<"$yaml") == 1 ]] && pass "one __FLUTTER_VERSION__ placeholder outside comments" \
   || fail "one __FLUTTER_VERSION__ placeholder outside comments" "$(grep -c '__FLUTTER_VERSION__' <<<"$yaml")"
+comments=$(grep '^\s*#' "$CI")
+grep -qE '__(FLUTTER_VERSION|DEFAULT_BRANCH)__' <<<"$comments" \
+  && fail "comments do not spell the placeholders (the copy would rewrite them)" "$(grep -nE '^\s*#.*__[A-Z_]+__' "$CI")" \
+  || pass "comments do not spell the placeholders (the copy would rewrite them)"
 grep -q $'\t' "$CI" && fail "no tab (YAML forbids them for indentation)" || pass "no tab (YAML forbids them for indentation)"
 
 finish

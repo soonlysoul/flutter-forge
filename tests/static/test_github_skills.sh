@@ -25,6 +25,7 @@ if [[ -f $GH ]]; then
   says "$GH" "remote creation does not push everything (--push)" "No \`--push\`"
   says "$GH" "the PR names its head branch" "--head <branch>"
   says "$GH" "the PR body is read from a quoted heredoc" "--body-file - <<'EOF'"
+  says "$GH" "flutter test marks no platform as tested" "marks no platform as tested"
   says "$GH" "states the CI cost of a private repository" "2,000 minutes"
   says "$GH" "says public repositories run CI for free" "free for public"
   says "$GH" "fills __FLUTTER_VERSION__ from the local Flutter" "__FLUTTER_VERSION__"
@@ -33,6 +34,7 @@ if [[ -f $GH ]]; then
   says "$GH" "knows the pending exit code of gh pr checks" "8"
   says "$GH" "merging is the user's" "merge is theirs"
   says "$GH" "writes the checkpoint" "skill: github-workflow"
+  says "$GH" "runs each command alone, as the permission rules expect" "one command per call"
   says "$GH" "with a remote, the CI goes through a work branch and its pull request" "chore/ci"
   says "$GH" "flutter analyze must exit 0 locally, as in CI" "fatal by default"
   says "$GH" "opening a pull request on a private repository starts a run" "starts a CI run"
@@ -71,7 +73,9 @@ if [[ -f $DBG ]]; then
   says "$DBG" "has the fix reviewed" "code-reviewer"
   says "$DBG" "commits a fix(...) Conventional Commit" "fix("
   says "$DBG" "writes the checkpoint" "skill: debug-project"
+  says "$DBG" "runs each command alone, as the permission rules expect" "one command per call"
   says "$DBG" "branch fix/<slug>" "fix/<slug>"
+  says "$DBG" "the commit carries the updated checkpoint" "the updated \`.forge/checkpoint.md\`"
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$DBG" "report category $category" "$category"; done
 else
   fail "skills/debug-project/SKILL.md exists"

@@ -14,6 +14,7 @@ Failure reported: $ARGUMENTS
 
 - **No fix before a root cause.** A fix is written only after the cause is stated with its evidence: the log line, the stack frame, the diff that introduced it. Guessing and changing code until the error goes away is not debugging.
 - **No result without its command.** Never report a step as done without the output of its command.
+- **One command per call.** Run each command alone — no pipe, `;`, `&&` or redirection, no `| tail` to shorten the output: the project's permission rules allow plain commands such as `flutter test <file>`, and a compound command asks for permission, or is refused in a non-interactive run.
 - **Two identical failures stop.** If a command fails twice with the same error after a change meant to fix it, stop, write the checkpoint and expose the blocker: the hypothesis was wrong.
 - **Checkpoint after every completed step**, with `skill: debug-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`). Under "Next action", the current hypothesis.
 - **Validation points.** Ask in plain text, write the checkpoint, end your turn and wait. Do not use AskUserQuestion.
@@ -77,7 +78,7 @@ Stage the fix and its test explicitly through the git-workflow skill (not `.forg
 
 ## Step 11 — Commit and report
 
-Update `docs/engineering/DECISIONS.md` only if the fix changes a recorded choice. Prepare the commit through the git-workflow skill, with a Conventional Commit whose body states the root cause:
+Update `docs/engineering/DECISIONS.md` only if the fix changes a recorded choice. Prepare the commit through the git-workflow skill: the staged fix and its test, the updated `.forge/checkpoint.md`, and a Conventional Commit whose body states the root cause:
 
 ```
 fix(<scope>): <what is fixed>

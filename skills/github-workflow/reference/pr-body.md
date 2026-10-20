@@ -23,7 +23,7 @@
 
 | platform | enabled | built | tested |
 | --- | --- | --- | --- |
-| <platform> | yes | <`command` → exit code, or "not verified"> | <`command` → exit code, or "no"> |
+| <platform> | yes | <`flutter build …` → exit code, or "not verified"> | <`flutter test integration_test -d …` → exit code, or "no"> |
 
 ## Screenshots
 
