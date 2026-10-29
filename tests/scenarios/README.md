@@ -11,7 +11,7 @@ and turns, and record each result as passed, failed, blocked (reason) or not run
 | 10 | [Update a batch of dependencies](10-update-deps.md) | 2 turns, pub.dev | — |
 | 11 | [Local builds by the devops-engineer](11-devops-build.md) | 1 turn | — |
 | 12 | [Diagnose a red CI](12-ci-red.md) | 1 turn, a GitHub repository and CI minutes | the user's approval of owner, name, visibility |
-| 13 | [Without plugin-orchestrator](13-orchestrator-absent.md) | 2 turns | the installed plugin-orchestrator disabled by the user |
+| 13 | [Without plugin-orchestrator](13-orchestrator-absent.md) | 2 turns | the installed plugin-orchestrator disabled for the session (`FORGE_SESSION_SETTINGS`) |
 | 14 | [The v0.1 criterion of plugin-orchestrator](14-v0.1-criterion.md) | 2–4 turns | the project of scenario 1 |
 
 Since 1.0 the workflows are plugin-orchestrator's, with their own evaluations in that repository:
@@ -63,6 +63,7 @@ For every turn: the transcript (`.jsonl`), and after the scenario `git status --
 ```bash
 jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use") | "\(.name) \(.input.command // .input.file_path // .input.skill // .input.subagent_type // "")"' run.jsonl
 jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result" and (.content | tostring | test("plugin-flutter"))) | .content' run.jsonl
+jq -rs -f "$PLUGIN/tests/scenarios/interface-reports.jq" run.jsonl   # one line per Agent call: INTERFACE: 1 or MISSING
 ```
 
 ## Observed on Claude Code 2.1.296 (2026-10-19)
@@ -84,3 +85,22 @@ jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_res
   4.51 $). In auto mode, the permission classifier refused `gh repo create` to the operating
   session: the user ran the GitHub setup of scenario 12.
 - Still not verified: whether `stream-json` requires `--verbose` (always passed); `--max-turns` (never used); the `!` prefix against `PreToolUse` (interactive only).
+
+## Observed on Claude Code 2.1.312 (2026-10-29, v1.0)
+
+- An Agent call may run in the background even in `-p`: its `tool_result` only says the agent was
+  launched, and the report arrives as the subagent's messages (`parent_tool_use_id`) followed by a
+  `system/task_notification`. A synchronous call returns the report framed as a "[Subagent
+  hand-back]", every line indented by two spaces. A check on `^INTERFACE: 1` in `tool_result`
+  misses both: `interface-reports.jq` reads both forms.
+- In `dontAsk`, a Bash command is also denied when it sets or expands a variable (`D=…; cd "$D"`),
+  reads `$?` or `PIPESTATUS`, or pipes into a tool outside `--allowedTools` (`| tail`). The
+  orchestrator's skills stop on such a denial without working around it; one turn answering "one
+  command at a time, paths written out, no `$?`" lets them go on.
+- `--settings '<json>'` applies to that session only: `{"enabledPlugins":{"plugin-orchestrator@soon":false}}`
+  removes the installed orchestrator from `system/init`, `claude plugin list` unchanged
+  (scenario 13, `FORGE_SESSION_SETTINGS`).
+- Flutter 3.44.4 of nixpkgs: its launcher sets `FLUTTER_ROOT` to the unwrapped SDK, which has no
+  `bin/cache/pkg/sky_engine`, and every `pub get` fails. Exporting `FLUTTER_ROOT` to the
+  `flutter-wrapped-3.44.4-sdk-links` path of the store, with the wrapped `flutter` on the `PATH`,
+  makes `flutter create`, `test`, `analyze` and `build linux|web` work. Machine setup only.

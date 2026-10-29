@@ -6,13 +6,14 @@ session: nothing created, changed or committed, plugin-orchestrator named with i
 ## Setup, without quota
 
 plugin-orchestrator must be absent from the session: `FORGE_ORCHESTRATOR_DIR` unset, and an
-installed copy disabled by the user for the duration of the scenario
-(`! claude plugin disable plugin-orchestrator@soon`, then `! claude plugin enable
-plugin-orchestrator@soon` afterwards). The `system/init` line that headless.sh prints must not
-list plugin-orchestrator: otherwise the scenario proves nothing.
+installed copy disabled for these sessions only by `FORGE_SESSION_SETTINGS`, which headless.sh
+passes as `--settings` (2.1.312, 2026-10-29: `system/init` without plugin-orchestrator, while
+`claude plugin list` still shows it enabled). The `system/init` line that headless.sh prints must
+not list plugin-orchestrator: otherwise the scenario proves nothing.
 
 ```bash
 unset FORGE_ORCHESTRATOR_DIR
+export FORGE_SESSION_SETTINGS='{"enabledPlugins":{"plugin-orchestrator@soon":false}}'
 P=$(mktemp -d) && cd "$P" && flutter create --org com.example --project-name lone_app --platforms linux . >/dev/null
 ```
 
@@ -32,6 +33,7 @@ SID=$(uuidgen)
 "$H" "$P" "$SID" new "$WORK/s13-1.jsonl" '/plugin-flutter:adopt-existing-project' "${TOOLS[@]}"
 mkdir -p "$P/.forge" && cp "$PLUGIN/templates/forge-config.yaml" "$P/.forge/config.yaml"
 "$H" "$P" "$(uuidgen)" new "$WORK/s13-2.jsonl" '/plugin-flutter:update-project' "${TOOLS[@]}"
+unset FORGE_SESSION_SETTINGS
 ```
 
 ## Checks

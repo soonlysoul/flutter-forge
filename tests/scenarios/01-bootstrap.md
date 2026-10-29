@@ -56,7 +56,7 @@ grep -h '^| Status' "$P"/docs/product/PRD.md "$P"/docs/technical/TRD.md "$P"/doc
 ls "$P"/lib/app/.gitkeep "$P"/lib/features/.gitkeep "$P"/integration_test/.gitkeep
 grep -q 'strict-casts: true' "$P/analysis_options.yaml"
 ls "$P/.github" 2>/dev/null                                         # absent: the CI is a later mandate
-jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result") | .content | tostring' "$WORK/s1-2.jsonl" | grep -c '^INTERFACE: 1'
+jq -rs -f "$PLUGIN/tests/scenarios/interface-reports.jq" "$WORK"/s1-*.jsonl   # INTERFACE: 1  plugin-flutter:scaffold-engineer
 ```
 
 **Passed** when every check holds, the scaffold went through the mandate and its report carried

@@ -7,7 +7,7 @@ Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log -
 
 Démarrée le 2026-10-29 sur votre demande (« Prépare la version majeure de plugin-flutter qui le rend dépendant de plugin-orchestrator 0.1.0 »), plan proposé puis tranché par vous (« tranche au mieux ») : mes recommandations retenues. Cadre : `../plugin-orchestrator/docs/ARCHITECTURE.md`, sections « Migration de plugin-flutter » et « Contrat de délégation (interface v1) ». Critère : le critère v0.1 du PRD de l'orchestrateur, mesuré les deux plugins publiés et installés ensemble (scénario 14).
 
-Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `plugin-orchestrator--v0.1.0`. Rien n'est poussé. Attendent votre accord : les scénarios headless (F.2), la publication de l'orchestrateur 0.1.1 et celle de plugin-flutter 1.0.0.
+Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `plugin-orchestrator--v0.1.0`. Rien n'est poussé. F.2 faite sur votre accord (« oui lance ») ; attendent votre accord : la publication de l'orchestrateur 0.1.1 et celle de plugin-flutter 1.0.0.
 
 | # | Retenu |
 | --- | --- |
@@ -30,8 +30,39 @@ Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `pl
 - [x] E — Revue indépendante du diff : « prête avec corrections », 0 bloquant, 3 importants, 11 mineurs ; corrections en TDD, détail ci-dessous
 - [x] G — Docs, manifestes (1.0.0), CHANGELOG 1.0.0 « en cours » avec la migration des projets 0.x, ARCHITECTURE.md en REVIEW
 - [x] F.1 — `bash tests/run-all.sh` → exit 0 : 14 réussies (10 suites, 710 assertions, 1 saut : `dart` absent pour format-dart ; 4 validations `--strict`) ; coût permanent ~1 074 tokens (2 skills, 5 agents, 2 hooks), contre ~1 651
-- [ ] F.2 — Scénarios headless 1, 6, 10, 11, 13, 14 (12 en option), sur accord
+- [x] F.2 — Scénarios headless 1, 6, 10, 11, 13 et 14 réussis (accord du 2026-10-29 : « oui lance ») ; 12 non lancé (en option, dépôt GitHub et minutes de CI) ; détail ci-dessous
 - [ ] Publication, sur accord
+
+### Phase F.2 v1.0 — Scénarios headless
+
+Accord : « oui lance », pour les scénarios 1, 6, 10, 11, 13 et 14 ; le 12 n'est pas lancé. Profil `~/.claude`, Claude Code 2.1.312. Avec `--plugin-dir`, `system/init` liste `plugin-flutter@inline` 1.0.0 (cette branche) et `plugin-orchestrator@inline` 0.1.0 (`fix/v0.1.1` à `ae47780`, version non montée) ; les copies installées, `plugin-flutter@soon` 0.3.0 et `plugin-orchestrator@soon` 0.1.0, sont masquées. Flutter 3.44.4 du store Nix, hors du `PATH` : son lanceur prend le SDK brut pour `FLUTTER_ROOT`, qui n'a pas `sky_engine` ; `FLUTTER_ROOT` exporté sur le `sdk-links` du même paquet, rien d'installé. Scénarios 1, 6, 10 et 11 lancés en parallèle, chacun dans son dossier du scratchpad.
+
+| Scénario | Tours | Résultat | Coût |
+| --- | --- | --- | --- |
+| 1 — démarrage par l'orchestrateur | 7 | **Réussi** : questions de l'étape 1 sans rien créer ; `git init`, `orch.sh init`, un mandat `scaffold` à `plugin-flutter:scaffold-engineer` (`flutter devices`, `flutter create` à quatre options, structure, modes stricts, TRD en DRAFT, `flutter test` et `flutter analyze` seuls, aucun refus de la garde), rapport `SCAFFOLD`… `TARGETS` puis `INTERFACE: 1` ; `.forge/config.yaml` avec la toolchain telle quelle et `integration_test: flutter test integration_test -d linux` ; PRD, DECISIONS (ADR-001), CLAUDE.md, motifs de secrets dans `.gitignore` ; pas de `.github/`. Tours en plus : une commande composée à variables refusée par `dontAsk` (consigne « une commande à la fois ») ; `.forge/config.yaml`, `.claude/settings.json` et le commit refusés en `-p`, faits par l'opérateur avec le contenu donné par la session | 3,11 $ |
+| 6 — adoption | 3 | **Réussi** : tour 1 sans écriture (21 fichiers intacts, `--enforce-lockfile` et `--no-pub`, orchestrateur vérifié en premier, 11 divergences) ; tour 2, branche créée, `.forge/config.yaml` refusé par protect-sensitive, commande `! sed …` lancée par l'opérateur ; tour 3, `plugin-orchestrator:product-architect` (`reconstruct`) puis `plugin-flutter:flutter-architect`, rapports `INTERFACE: 1`, 8 fichiers ajoutés, aucun fichier existant touché, commit `chore: adopt plugin-flutter`, arbre propre | 1,56 $ |
+| 10 — mise à jour | 2 | **Réussi** : plan sans rien modifier (Nix signalé, lot compatible et 4 majeures) ; `chore/deps-2026-10` avec le lot compatible (lock seul), la majeure http (contrainte, lock, ADR-002) et le rapport ; tests verts après chaque lot ; go_router en 12.1.3 ; aucune commande interdite | 1,03 $ |
+| 11 — tâche `build` | 1 | **Réussi** : un mandat `build` à l'interface 1 ; `flutter doctor -v`, `flutter build web`, `flutter build linux`, android bloqué sur `[✗]` sans build ; aucune plateforme « testée » ; artefacts vérifiés par la session (Glob, après refus de sa commande composée) ; arbre propre | 0,15 $ |
+| 13 — sans orchestrateur | 2 | **Réussi** : adopt-existing-project et update-project s'arrêtent sans aucun appel d'outil, nomment plugin-orchestrator 0.1.0 et sa commande d'installation ; seul le `.forge/` copié avant le tour 2 ; installé désactivé pour ces sessions seulement par `--settings`, sans votre geste | 0,12 $ |
+| 14 — critère v0.1 de l'orchestrateur | 5 | **Réussi** : PRD et TRD approuvés par `orch.sh approve` (opérateur), plan validé ; `feature/AC-001-list-notes`, mandat `write-tests` au test-engineer (`INTERFACE: 1`), RED relancé par la session puis consigné ; **session interrompue** par SIGINT juste après le RED ; nouvelle session `recover-session` : checkpoint comparé à Git, rien changé ; reprise : RED reconfirmé, implémentation, GREEN (9 tests), format, analyse, mandat `review` au code-reviewer sur `--cached main` (`INTERFACE: 1`, 0 bloquant, 2 importants, 3 mineurs), ADR-002 et 003, commit par l'opérateur (règle `ask`). Aucun skill de plugin-flutter, aucun garde-fou en double (6 hooks par appel Bash, un par garde distinct) | 1,70 $ |
+
+Total : **7,68 $** en équivalent API pour 20 tours, sous l'estimation (20 à 35 $). Les tours en plus viennent du mode `dontAsk`, pas des plugins : à chaque refus, la session s'est arrêtée sans contourner.
+
+Corrections de ce dépôt (scénarios seulement, aucun composant du plugin touché) :
+
+- `interface-reports.jq` : pour chaque appel Agent, le rapport sous ses deux formes de 2.1.312 — `tool_result` d'un appel synchrone, encadré « [Subagent hand-back] » et indenté de deux espaces, ou messages du sous-agent d'un appel en tâche de fond. Les contrôles `^INTERFACE: 1` des scénarios 1 et 14 ne voyaient plus le rapport du code-reviewer, et aucun rapport livré en tâche de fond. Validé sur les six rapports de F.2, et `MISSING` sur un transcript muté.
+- `headless.sh` exécutable (le README l'appelle `"$H"` ; il était en 644 depuis la v0.1) ; `FORGE_SESSION_SETTINGS` passé en `--settings`, vérifié avec un faux `claude`. Le scénario 13 ne vous demande plus de désactiver l'orchestrateur installé.
+- Scénario 6 : `grep 'enabled'` (clé du schéma 1) remplacé par `platforms` ; agents lus sur tous les tours.
+- README des scénarios : observations de 2.1.312 (Agent en tâche de fond, refus de `dontAsk` sur variables, `$?` et tubes, `--settings`, Flutter de nixpkgs).
+
+Constats du côté de l'orchestrateur, pour une prochaine version (rien de changé ici) :
+
+- **O1** `orch.sh checkpoint done` ne vide pas « Blockers » : les blocages levés restent (scénario 1 : config, permissions ; scénario 14 : validation du plan, que recover-session signale comme une contradiction).
+- **O2** le `bootstrap-project` laisse l'étape 9 « Report » décochée après son rapport final.
+- **O3** à l'étape 6, la session vous fait fusionner le fragment Flutter à la main dans `.claude/settings.json` (elle propose d'afficher le fichier fusionné) ; avec M9, candidat à un amendement.
+- Les skills ajoutent `; echo exit=$?` ou `| tail` aux commandes : refusés en `dontAsk`, ils demanderaient une permission en session interactive, comme le `bash …/orch.sh` déjà noté.
+
+Vu aussi, sans correctif : le scaffold-engineer ajoute après son rapport que les `exit 0` sont déduits (Bash n'affiche pas un code nul) ; le test-engineer a nommé AC-001 deux tests de liste vide qui relèvent d'AC-002, ce que la revue a relevé. **M5** (reprise d'un démarrage en sous-dossier) n'a pas été lancé : il ne faisait pas partie des scénarios approuvés ; il reste ouvert.
 
 ### Phase E v1.0 — Revue indépendante
 

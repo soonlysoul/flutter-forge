@@ -91,12 +91,12 @@ git -C "$P" diff --name-status main...HEAD                    # only added files
 git -C "$P" status --porcelain                                # empty: the commit carries the final checkpoint (D42)
 grep -rn '/home/' "$P"/docs "$P"/.forge                     # nothing: no path of this machine
 (cd "$P" && sha256sum --quiet -c "$WORK/s6-tracked.sha") && echo "every pre-existing file unchanged"
-grep -n 'enabled' "$P/.forge/config.yaml"                      # [linux]
+grep -n 'platforms' "$P/.forge/config.yaml"                    # [linux]
 grep -n 'Status' "$P"/docs/product/PRD.md "$P"/docs/technical/TRD.md   # DRAFT
 grep -n 'reconstructed' "$P/docs/product/PRD.md"
 grep -n 'http' "$P/docs/engineering/DECISIONS.md"              # an ADR, status proposed
 ls "$P"/.forge/reports/divergences-*.md && grep -niE 'android|ios|3\.30' "$P"/.forge/reports/divergences-*.md
-jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use" and .name == "Agent") | .input.subagent_type' "$WORK/s6-2.jsonl"
+jq -rs -f "$PLUGIN/tests/scenarios/interface-reports.jq" "$WORK"/s6-*.jsonl   # product-architect, then flutter-architect, none MISSING
 ```
 
 - `plugin-orchestrator:product-architect` (task `reconstruct`) and `plugin-flutter:flutter-architect`
