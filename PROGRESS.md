@@ -26,7 +26,7 @@ Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `pl
 
 - [x] A — Vérifications (2026-10-29), détail ci-dessous
 - [x] B à D — TDD : garde, agents à l'interface 1, retraits, gabarits, skills restantes, scénarios
-- [x] Orchestrateur 0.1.1 préparé : branche locale `fix/v0.1.1` de plugin-orchestrator, commit `ae47780` (mandat `scaffold`, amendement daté de son architecture, CHANGELOG « à venir », PROGRESS) ; sa suite → exit 0, 18 réussies, coût 1 897 tokens ; ni version ni publication
+- [x] Orchestrateur 0.1.1 préparé : branche locale `fix/v0.1.1` de plugin-orchestrator, commits `ae47780` (mandat `scaffold`, amendement daté de son architecture, CHANGELOG « à venir », PROGRESS) et `486c4ed` (blocages du checkpoint levés, constat O1 de F.2) ; sa suite → exit 0, 18 réussies, coût 1 897 tokens ; ni version ni publication
 - [x] E — Revue indépendante du diff : « prête avec corrections », 0 bloquant, 3 importants, 11 mineurs ; corrections en TDD, détail ci-dessous
 - [x] G — Docs, manifestes (1.0.0), CHANGELOG 1.0.0 « en cours » avec la migration des projets 0.x, ARCHITECTURE.md en REVIEW
 - [x] F.1 — `bash tests/run-all.sh` → exit 0 : 14 réussies (10 suites, 710 assertions, 1 saut : `dart` absent pour format-dart ; 4 validations `--strict`) ; coût permanent ~1 074 tokens (2 skills, 5 agents, 2 hooks), contre ~1 651
@@ -57,7 +57,7 @@ Corrections de ce dépôt (scénarios seulement, aucun composant du plugin touch
 
 Constats du côté de l'orchestrateur, pour une prochaine version (rien de changé ici) :
 
-- **O1** `orch.sh checkpoint done` ne vide pas « Blockers » : les blocages levés restent (scénario 1 : config, permissions ; scénario 14 : validation du plan, que recover-session signale comme une contradiction).
+- **O1** `orch.sh checkpoint done` ne vide pas « Blockers » : les blocages levés restent (scénario 1 : config, permissions ; scénario 14 : validation du plan, que recover-session signale comme une contradiction). **Corrigé dans la 0.1.1** sur votre accord (« corrige d'abord »), commit `486c4ed` de `fix/v0.1.1` : `block` rattache le blocage à la première étape à faire (`[step N]`), `done N` lève ceux de l'étape N ; 6 tests ROUGES puis VERTS, mutations 5 sur 5, suite de l'orchestrateur à 18 réussies.
 - **O2** le `bootstrap-project` laisse l'étape 9 « Report » décochée après son rapport final.
 - **O3** à l'étape 6, la session vous fait fusionner le fragment Flutter à la main dans `.claude/settings.json` (elle propose d'afficher le fichier fusionné) ; avec M9, candidat à un amendement.
 - Les skills ajoutent `; echo exit=$?` ou `| tail` aux commandes : refusés en `dontAsk`, ils demanderaient une permission en session interactive, comme le `bash …/orch.sh` déjà noté.
