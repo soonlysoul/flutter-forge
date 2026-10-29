@@ -56,13 +56,13 @@ done
 rm -r "$fixtures"
 
 echo "# agents"
-declare -A expected_model=([flutter-architect]=inherit [test-engineer]=sonnet [code-reviewer]=sonnet [devops-engineer]=sonnet [product-architect]=inherit)
+declare -A expected_model=([flutter-architect]=inherit [test-engineer]=sonnet [code-reviewer]=sonnet [devops-engineer]=sonnet [scaffold-engineer]=sonnet)
 known_tools=" Read Grep Glob Bash Write Edit "
 agents=$(cd "$PLUGIN_ROOT/agents" 2>/dev/null && ls *.md 2>/dev/null | LC_ALL=C sort | tr '\n' ' ')
-[[ $agents == "code-reviewer.md devops-engineer.md flutter-architect.md product-architect.md test-engineer.md " ]] \
-  && pass "exactly the five v0.3 agents" || fail "exactly the five v0.3 agents" "found: ${agents:-none}"
+[[ $agents == "code-reviewer.md devops-engineer.md flutter-architect.md scaffold-engineer.md test-engineer.md " ]] \
+  && pass "exactly the five v1.0 agents" || fail "exactly the five v1.0 agents" "found: ${agents:-none}"
 
-for agent in flutter-architect test-engineer code-reviewer devops-engineer product-architect; do
+for agent in flutter-architect test-engineer code-reviewer devops-engineer scaffold-engineer; do
   file="$PLUGIN_ROOT/agents/$agent.md"
   if [[ ! -f $file ]] || ! read_frontmatter "$file"; then
     fail "$agent: readable frontmatter" "${FM_ERROR:-missing file}"
@@ -94,23 +94,20 @@ for agent in flutter-architect test-engineer code-reviewer devops-engineer produ
       [[ $tools != *" Write "* && $tools != *" Edit "* ]] && pass "code-reviewer: neither Write nor Edit" \
         || fail "code-reviewer: neither Write nor Edit" "tools: ${FM[tools]}"
     fi
-    if [[ $agent == product-architect ]]; then
-      [[ $tools != *" Bash "* ]] && pass "product-architect: no Bash" || fail "product-architect: no Bash" "tools: ${FM[tools]}"
-    fi
   fi
   body=$(body_of "$file")
   missing=""
-  for field in STATUS FILES_CHANGED COMMANDS_RUN OPEN_QUESTIONS; do [[ $body == *"$field"* ]] || missing+=" $field"; done
-  [[ -z $missing ]] && pass "$agent: report format STATUS/FILES_CHANGED/COMMANDS_RUN/OPEN_QUESTIONS" \
+  for field in INTERFACE STATUS FILES_CHANGED COMMANDS_RUN OPEN_QUESTIONS; do [[ $body == *"$field"* ]] || missing+=" $field"; done
+  [[ -z $missing ]] && pass "$agent: report format INTERFACE/STATUS/FILES_CHANGED/COMMANDS_RUN/OPEN_QUESTIONS" \
     || fail "$agent: report format" "missing:$missing"
 done
 
 echo "# skills"
 skills=$(cd "$PLUGIN_ROOT/skills" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | LC_ALL=C sort | tr '\n' ' ')
-[[ $skills == "adopt-existing-project bootstrap-project create-feature debug-project git-workflow github-workflow recover-session update-project " ]] \
-  && pass "exactly the eight v0.3 skills" || fail "exactly the eight v0.3 skills" "found: ${skills:-none}"
+[[ $skills == "adopt-existing-project update-project " ]] \
+  && pass "exactly the two v1.0 skills" || fail "exactly the two v1.0 skills" "found: ${skills:-none}"
 
-for skill in bootstrap-project create-feature git-workflow recover-session github-workflow debug-project update-project adopt-existing-project; do
+for skill in update-project adopt-existing-project; do
   file="$PLUGIN_ROOT/skills/$skill/SKILL.md"
   if [[ ! -f $file ]] || ! read_frontmatter "$file"; then
     fail "$skill: readable frontmatter" "${FM_ERROR:-missing file}"
@@ -124,11 +121,11 @@ for skill in bootstrap-project create-feature git-workflow recover-session githu
   [[ -z $bad_keys ]] && pass "$skill: only name, description, argument-hint, when_to_use" || fail "$skill: only known keys" "unexpected:$bad_keys"
   [[ ${FM[name]-} == "$skill" ]] && pass "$skill: name matches the directory" || fail "$skill: name matches the directory" "name: ${FM[name]-}"
   [[ -n ${FM[description]-} ]] && pass "$skill: description" || fail "$skill: description"
-  # With the plugin installed for every project, only bootstrap may trigger outside a forge project.
-  if [[ $skill != bootstrap-project ]]; then
-    [[ ${FM[description]-} == *".forge/"* ]] && pass "$skill: description limits it to projects with .forge/" \
-      || fail "$skill: description limits it to projects with .forge/" "${FM[description]-}"
-  fi
+  # With the plugin installed for every project, no skill may trigger outside a forge project or its adoption.
+  [[ ${FM[description]-} == *".forge/"* ]] && pass "$skill: description limits it to projects with .forge/, or adopting one" \
+    || fail "$skill: description limits it to projects with .forge/, or adopting one" "${FM[description]-}"
+  [[ ${FM[description]-} == *plugin-orchestrator* ]] && pass "$skill: description says it works with plugin-orchestrator" \
+    || fail "$skill: description says it works with plugin-orchestrator" "${FM[description]-}"
   listing="${FM[description]-}${FM[when_to_use]-}"
   ((${#listing} <= 1536)) && pass "$skill: description + when_to_use <= 1536 chars (${#listing})" \
     || fail "$skill: description + when_to_use <= 1536 chars" "${#listing}"

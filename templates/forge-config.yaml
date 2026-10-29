@@ -1,7 +1,8 @@
-# plugin-flutter project configuration. Edited by the user only.
+# Project configuration in the format of plugin-orchestrator, for a Flutter app. Edited by the user only.
 # A missing key counts as false. Once .claude/settings.json is installed, its deny rule
-# Edit(./.forge/config.yaml) stops Claude from changing this file.
-schema_version: 1
+# Edit(./.forge/config.yaml) stops Claude from changing this file, and the protect-sensitive hook
+# of plugin-orchestrator asks before any write to it.
+schema_version: 2
 project:
   default_branch: main
   branch_prefix: feature/
@@ -12,5 +13,18 @@ authorizations:
   create_remote_repo: false     # always re-confirmed: name, visibility, owner
   merge: false                  # ignored: merging always needs explicit approval
   publish_release: false        # ignored: publishing always needs explicit approval
-platforms:
-  enabled: [android, web, linux]
+# A single-part Flutter app has one part, whose path is the root (.).
+parts:
+  app:
+    path: .
+    plugin: plugin-flutter
+    # The delegation interface, echoed by every agent of plugin-flutter as INTERFACE: 1.
+    interface: 1
+    toolchain:
+      test: flutter test
+      format: dart format --output=none --set-exit-if-changed .
+      analyze: flutter analyze
+      add_dep: flutter pub add
+      manifests: [pubspec.yaml, pubspec.lock]
+      integration_test: flutter test integration_test -d <device>
+    platforms: [android, web, linux]

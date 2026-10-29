@@ -1,7 +1,71 @@
 # PROGRESS — plugin-flutter
 
-Dernière mise à jour : 2026-10-20
+Dernière mise à jour : 2026-10-29
 Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log --oneline`.
+
+## v1.0 — en cours
+
+Démarrée le 2026-10-29 sur votre demande (« Prépare la version majeure de plugin-flutter qui le rend dépendant de plugin-orchestrator 0.1.0 »), plan proposé puis tranché par vous (« tranche au mieux ») : mes recommandations retenues. Cadre : `../plugin-orchestrator/docs/ARCHITECTURE.md`, sections « Migration de plugin-flutter » et « Contrat de délégation (interface v1) ». Critère : le critère v0.1 du PRD de l'orchestrateur, mesuré les deux plugins publiés et installés ensemble (scénario 14).
+
+Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `plugin-orchestrator--v0.1.0`. Rien n'est poussé. Attendent votre accord : les scénarios headless (F.2), la publication de l'orchestrateur 0.1.1 et celle de plugin-flutter 1.0.0.
+
+| # | Retenu |
+| --- | --- |
+| D43 | Version **1.0.0** (majeure : composants retirés, `.forge/` au schéma 2 de l'orchestrateur), sur la branche locale `feat/v1.0`, un commit par phase |
+| D44 | Retirés, avec leurs tests : skills `create-feature`, `debug-project`, `github-workflow`, `git-workflow`, `recover-session`, agent `product-architect`, hooks `guard-destructive`, `secret-scan`, `protect-sensitive`, `checkpoint-reminder` (liste de l'architecture de l'orchestrateur), et aussi le skill `bootstrap-project` : son squelette passe à un agent (D46), le reste est déjà au `bootstrap-project` de l'orchestrateur. Scénarios 2 à 5 et 7 à 9 retirés avec eux |
+| D45 | **Le lexer reste** (`hooks/scripts/lib/shell-lexer.sh`), contrairement à la liste de l'architecture : `agent-scope-guard`, qui reste, le source pour refuser les commandes composées des agents, et `${CLAUDE_PLUGIN_ROOT}` ne traverse pas les plugins. Amendement de l'architecture de l'orchestrateur (D51) |
+| D46 | Nouvel agent **`scaffold-engineer`** (sonnet), destinataire du mandat `scaffold` du `bootstrap-project` de l'orchestrateur : `flutter create … .` sans `--overwrite`, `lib/app|core|features`, modes stricts d'`analysis_options.yaml`, TRD en DRAFT, `flutter test` et `flutter analyze` à 0 ; rapport `SCAFFOLD`, `TOOLCHAIN`, `PERMISSIONS`, `VERSIONS`, `TARGETS`. Pas de CI (mandat `ci-template`), pas de commit, rien de la racine de l'orchestrateur ; projet hors de la racine de session → `blocked`. Portée dans agent-scope-guard : `lib/`, `test/`, `integration_test/`, `docs/technical/` et le fichier racine `analysis_options.yaml` (notion de fichier autorisé ajoutée au hook). Étendre devops-engineer ou flutter-architect aurait ouvert tout le projet à leurs autres tâches |
+| D47 | Gabarits copiés au format de l'orchestrateur, que les skills restantes ne peuvent pas lire chez lui : `checkpoint.md` (identique), `forge-config.yaml` au schéma 2 (une partie `.` en `plugin: plugin-flutter`, `interface: 1`, toolchain Flutter remplie — source du `TOOLCHAIN` du scaffold et bloc `parts` à montrer aux projets 0.x), `project-settings.json` (règles génériques de l'orchestrateur 0.1.0 ajoutées : `git --version`, `jq --version`, `git show`, `git ls-files`, lecture des keystores refusée), nouveau `permissions-fragment.json` (les 23 règles flutter et dart, `PERMISSIONS` du scaffold). Gabarits de documents TRD, IMPLEMENTATION_PLAN, DECISIONS et CLAUDE déplacés sous `templates/doc-templates/`, avec l'état REVIEW ; PRD retiré (celui de l'orchestrateur) |
+| D48 | Écho **`INTERFACE: 1`** dans le rapport des cinq agents, juste avant `STATUS`, avec la queue commune de l'orchestrateur ; un mandat d'une autre interface n'est pas exécuté : `STATUS: blocked`, l'interface demandée nommée, rien d'écrit |
+| D49 | Mandats par agent : test-engineer `write-tests` (feature ; un seul test `regression: …` pour debug-project) ; code-reviewer `review` (`--cached <branche par défaut>`, cause racine, symptôme masqué bloquant) ; flutter-architect `check-dependency` (`DEPENDENCY`, `ADR`) et `diagnose` (`DIAGNOSIS`, `FIX_DIRECTION`), rien d'écrit, `flutter doctor` ajouté à sa liste blanche, plus sa tâche d'architecture (TRD et DECISIONS depuis les gabarits) ; devops-engineer `ci-template` (nouveau : l'étape CI de l'ancien github-workflow), `build`, `ci-diagnosis`, `workflow-change`. Plateformes lues dans `parts.<partie>.platforms` |
+| D50 | Vérification de l'orchestrateur : adopt-existing-project et update-project s'arrêtent d'abord, sans rien changer, quand aucun `plugin-orchestrator:…` n'est dans la session (≥ 0.1.0, commande d'installation donnée). update-project exige le schéma 2 et une partie `plugin-flutter` à l'interface 1 en `path: .` ; un schéma 1 l'arrête sur le bloc `parts` à ajouter, que vous éditez. Renvois écrits `plugin-orchestrator:<nom>`. L'adoption crée sa branche elle-même : le git-workflow de l'orchestrateur lit `.forge/config.yaml`, absent à ce moment |
+| D51 | Orchestrateur **0.1.1** préparé avant la publication de la 1.0 : son mandat `scaffold` interdit le `.gitignore` racine que `flutter create .` écrit, alors que son étape 5 suppose qu'il existe ; amendement daté de son architecture (lexer, gabarits copiés, agent scaffold). Publication sur accord |
+| D52 | Scénarios : 1 réécrit (bootstrap de l'orchestrateur et mandat au scaffold-engineer), 6 et 10 à 12 adaptés, 13 (sans orchestrateur) et 14 (critère v0.1) ajoutés ; `headless.sh` charge `FORGE_ORCHESTRATOR_DIR` par un second `--plugin-dir` |
+
+### Phases v1.0
+
+- [x] A — Vérifications (2026-10-29), détail ci-dessous
+- [x] B à D — TDD : garde, agents à l'interface 1, retraits, gabarits, skills restantes, scénarios
+- [ ] Orchestrateur 0.1.1 (dépôt voisin, local)
+- [ ] E — Revue indépendante du diff
+- [ ] G — Docs, manifestes, CHANGELOG 1.0.0 (migration des projets 0.x), ARCHITECTURE.md
+- [ ] F.1 — `tests/run-all.sh` vert, `claude plugin validate --strict`, coût permanent
+- [ ] F.2 — Scénarios headless 1, 6, 10, 11, 13, 14 (12 en option), sur accord
+- [ ] Publication, sur accord
+
+### Phase A v1.0 — Vérifications
+
+| Point | Résultat | Source |
+| --- | --- | --- |
+| Suite avant tout changement | exit 0 — 19 réussies (15 suites, 4 validations) | `bash tests/run-all.sh` |
+| Outils | Claude Code 2.1.309 ; Flutter 3.44.4 présent dans le store Nix, hors du PATH | `--version` |
+| Parité des hooks retirés | les 382 cas des quatre suites rejoués contre les hooks de l'orchestrateur 0.1.0 (`FORGE_PLUGIN_ROOT`) : mêmes décisions partout (bloqué, `ask`, rappel). 29 échecs, tous de texte : mots anglais attendus (`last commit`, `false positive`…), nom `plugin-flutter` dans la raison. Rien à ajouter à l'orchestrateur | 4 suites |
+| `flutter create .` dans un dossier qui contient `.forge/` | `.forge/` intact ; écrit à la racine `.gitignore`, `README.md`, `analysis_options.yaml`, `pubspec.yaml`, `pubspec.lock`, `.metadata` (et `.idea/`, `*.iml`, ignorés). Le `.gitignore` contredit le mandat `scaffold` de l'orchestrateur 0.1.0 (D51). Le `pub get` final sort en 69 : SDK du store sans `sky_engine`, environnement seulement | projet jetable |
+| `orch.sh status` et `approve` sans `.forge/approvals.log` | `status` lit l'en-tête du TRD de plugin-flutter (DRAFT) ; `approve` crée le journal et passe le TRD en APPROVED | projet jetable |
+| doc-status-guard sur un APPROVED de plugin-flutter 0.x | sans empreinte, repasse en REVIEW à la première modification : un projet migré fait réapprouver son PRD et son TRD par `orch.sh approve` | hook rejoué |
+| Deux `--plugin-dir` | les deux plugins chargés `@inline` | `claude … plugin details` |
+| Coût permanent avant | ~1 651 tokens (8 skills, 5 agents) | `claude --plugin-dir . plugin details plugin-flutter` |
+
+Incident : le guard-destructive installé (orchestrateur 0.1.0) a bloqué un `rm -rf` dans le scratchpad. Non contourné : dossier neuf.
+
+### Phases B à D v1.0 — TDD
+
+Tests écrits d'abord, vus ROUGES pour la bonne raison, puis composants changés.
+
+| Cycle | ROUGE | VERT |
+| --- | --- | --- |
+| B1 — agent-scope-guard : portée du scaffold-engineer, `flutter doctor` pour flutter-architect, ancre du test « agent orphelin » | 17 échecs (agent inconnu, tout refusé ; ancre absente) | 172/172 |
+| B2 — `test_agents.sh` (nouvelle) : queue `INTERFACE: 1` en tête, refus d'une autre interface, mandats et sections de chaque agent ; contrôles du devops repris de `test_github_skills` | 65 échecs | 104/104 |
+| B3 — frontmatter : cinq agents dont scaffold-engineer, deux skills, `INTERFACE` dans le rapport | 9 échecs | 69/69 |
+| C1 — `test_templates.sh` (ex `test_settings_template`) : schéma 2 et toolchain Flutter, fragment égal aux règles flutter/dart des règles complètes, règles génériques de l'orchestrateur, champs du checkpoint (repris de `test_tdd_skill`), en-têtes REVIEW, CLAUDE.md | 10 échecs | 47/47 |
+| C2 — `test_paths` : deux hooks seulement, aucun hook retiré câblé, gabarits déplacés présents et cités | 10 échecs | 71/71 |
+| D1 — `test_maintenance_skills` : orchestrateur vérifié en premier, schéma 2, renvois `plugin-orchestrator:<nom>` partout, aucun chemin retiré | 31 échecs | 171/171 |
+
+Deux corrections en cours de route : le test « les mandats nomment l'interface 1 » visait aussi update-project, qui ne mandate aucun agent — restreint à l'adoption avant d'implémenter (29 échecs alors) ; le contrôle d'ordre « checkpoint avant `.forge/config.yaml` » de l'étape 5 de l'adoption a attrapé la phrase de la branche, qui citait `.forge/config.yaml` — reformulée.
+
+Mutations (copie du plugin, `FORGE_PLUGIN_ROOT`) : 14 sur 14 détectées — `--overwrite` accepté (2 échecs), cible quelconque de `flutter create` (2), fichier autorisé comparé en suffixe (1), scaffold sur tout `docs/` (5), `INTERFACE` retiré du code-reviewer (4), `INTERFACE` après `STATUS` (2), règle d'interface retirée du devops (1), vérification de l'orchestrateur retirée d'update-project (1), renvoi nu à git-workflow (1), hook retiré recâblé (1), gabarit en schéma 1 (1), `interface: 2` (1), règle git dans le fragment (2), fragment désaccordé des règles complètes (1).
+
+Suite complète : exit 1 — 13 réussies, 1 échouée : `test_docs` (5 contrôles : comptes et composants des docs utilisateur, à la phase G) ; 705 assertions réussies. Coût permanent : ~1 074 tokens (2 skills, 5 agents).
 
 ## v0.3 — clôturée le 2026-10-20
 

@@ -41,12 +41,17 @@ expect_hook() {
     fail "wired: $1 [$2] $3 onFailure=${4:-unset}" "hooks: $hooks"
   fi
 }
-expect_hook PreToolUse 'Bash|PowerShell|Monitor' guard-destructive.sh block
 expect_hook PreToolUse 'Edit|Write|NotebookEdit|Bash|PowerShell|Monitor' agent-scope-guard.sh block
-expect_hook PreToolUse 'Bash|PowerShell|Monitor' secret-scan.sh block
-expect_hook PreToolUse 'Edit|Write|NotebookEdit' protect-sensitive.sh block
 expect_hook PostToolUse 'Edit|Write' format-dart.sh continue
-expect_hook Stop '' checkpoint-reminder.sh ''
+# The guard hooks common to every project are plugin-orchestrator's since 1.0: none runs twice.
+count=$(grep -c . <<<"$hooks")
+((count == 2)) && pass "exactly two command hooks: agent-scope-guard and format-dart" \
+  || fail "exactly two command hooks: agent-scope-guard and format-dart" "$hooks"
+for retired in guard-destructive secret-scan protect-sensitive checkpoint-reminder; do
+  [[ ! -e $PLUGIN_ROOT/hooks/scripts/$retired.sh ]] && ! grep -qF "$retired" "$HOOKS_JSON" \
+    && pass "$retired is plugin-orchestrator's: neither its script nor its wiring is here" \
+    || fail "$retired is plugin-orchestrator's: neither its script nor its wiring is here"
+done
 
 for script in "$PLUGIN_ROOT"/hooks/scripts/*.sh; do
   name=${script##*/}
@@ -58,6 +63,7 @@ done
 for script in "$PLUGIN_ROOT"/hooks/scripts/*.sh "$PLUGIN_ROOT"/hooks/scripts/lib/*.sh; do
   bash -n "$script" 2>/dev/null && pass "${script#"$PLUGIN_ROOT"/}: bash -n" || fail "${script#"$PLUGIN_ROOT"/}: bash -n"
 done
+# agent-scope-guard sources it: it stays when the hooks that shared it leave.
 [[ -f $PLUGIN_ROOT/hooks/scripts/lib/shell-lexer.sh ]] && pass "shell lexer library exists" || fail "shell lexer library exists"
 if grep -rn '/bin/bash' "$PLUGIN_ROOT/hooks" >/dev/null; then
   fail "no /bin/bash under hooks/ (absent on NixOS)" "$(grep -rn '/bin/bash' "$PLUGIN_ROOT/hooks")"
@@ -80,8 +86,9 @@ while IFS= read -r ref; do
   [[ -e $PLUGIN_ROOT/${ref#'${CLAUDE_PLUGIN_ROOT}/'} ]] && pass "cited path exists: $ref" || fail "cited path exists: $ref"
 done <<<"$cited"
 
-for file in "$PLUGIN_ROOT"/skills/bootstrap-project/reference/doc-templates/{PRD,TRD,IMPLEMENTATION_PLAN,DECISIONS}.md \
-  "$PLUGIN_ROOT"/templates/{project-settings.json,forge-config.yaml,checkpoint.md} \
+for file in "$PLUGIN_ROOT"/templates/doc-templates/{TRD,IMPLEMENTATION_PLAN,DECISIONS,CLAUDE}.md \
+  "$PLUGIN_ROOT"/templates/{project-settings.json,permissions-fragment.json,forge-config.yaml,checkpoint.md} \
+  "$PLUGIN_ROOT"/templates/github-workflows/flutter-ci.yml \
   "$PLUGIN_ROOT"/skills/update-project/reference/deps-report.md \
   "$PLUGIN_ROOT"/skills/adopt-existing-project/reference/divergences.md; do
   rel=${file#"$PLUGIN_ROOT"/}

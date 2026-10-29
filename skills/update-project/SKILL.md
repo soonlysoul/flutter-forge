@@ -1,6 +1,6 @@
 ---
 name: update-project
-description: Update the dependencies or the Flutter SDK of a plugin-flutter project in validated batches — read-only inventory, plan of batches approved by the user, one batch at a time on a chore/deps branch with analysis and tests after each, one commit per batch with its lockfile, and a before/after report. Use when the user asks to update, upgrade or check outdated packages or Flutter in a project that has a .forge/ directory.
+description: Update the dependencies or the Flutter SDK of a Flutter app run with plugin-orchestrator, in validated batches — read-only inventory, plan of batches approved by the user, one batch at a time on a chore/deps branch with analysis and tests after each, one commit per batch with its lockfile, and a before/after report. Use when the user asks to update, upgrade or check outdated packages or Flutter in a project that has a .forge/ directory.
 argument-hint: "[packages | flutter | <package>]"
 ---
 
@@ -15,17 +15,20 @@ Request: $ARGUMENTS
 - **No result without its command.** Never report a step as done without the output of its command.
 - **One command per call.** Run each command alone — no pipe, `;`, `&&` or redirection: the project's permission rules allow plain commands such as `flutter pub outdated --json`, and a compound command asks for permission, or is refused in a non-interactive run.
 - **Two identical failures stop.** If a command fails twice with the same error, stop, write the checkpoint and expose the blocker.
-- **Checkpoint after every completed step and every batch**, with `skill: update-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`). A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit.
+- **plugin-orchestrator.** This skill needs plugin-orchestrator 0.1.0 or later in the session: its Git, review and debugging workflows are the orchestrator's, and the project's `.forge/` follows its format. Step 1 checks it first.
+- **Checkpoint after every completed step and every batch**, with `skill: update-project`, the command and its exit code (format: `${CLAUDE_PLUGIN_ROOT}/templates/checkpoint.md`, the format of plugin-orchestrator). A commit that carries the checkpoint follows plugin-orchestrator:git-workflow: the checkpoint is written before it, and not changed again for that commit.
 - **Validation points.** Ask in plain text, write the checkpoint, end your turn and wait. Do not use AskUserQuestion.
-- **Configuration.** Read `.forge/config.yaml` before any external action; a missing key counts as false. Never edit that file.
+- **Configuration.** Read `.forge/config.yaml` before any external action; a missing key counts as false. Never edit that file. The Flutter commands run from the folder of the part (`path`).
 - **`flutter pub`, never `dart pub`.** In a Flutter project, `dart pub` fails with exit 69 when the `dart` on the PATH is not the Flutter one, as on NixOS.
 - **The SDK belongs to the machine.** Never run `flutter upgrade`, `flutter downgrade` or `flutter channel <name>`: they change Flutter for every project on this machine. The user changes it (section "Flutter SDK").
 - Never edit `pubspec.lock` by hand, and never add `dependency_overrides` to force a resolution: a conflict goes to the user.
 - Never `git stash`, reset or discard anything.
 
-## Step 1 — Repository state
+## Step 1 — plugin-orchestrator, configuration and repository state
 
-`git status` and `git branch --show-current`. Changes to `.forge/checkpoint.md` and `.forge/reports/` are workflow state. For any other uncommitted change, stop and ask: commit it, move it to a branch, or stop. An update starts from the default branch (`project.default_branch`), or resumes on its own `chore/deps-<slug>` branch.
+1. **plugin-orchestrator.** It is available when its skills appear in this session (`plugin-orchestrator:git-workflow`, `plugin-orchestrator:debug-project`, …). When none does, stop before anything else and change nothing: say that this skill needs plugin-orchestrator 0.1.0 or later in the session, installed and enabled, then a new session started — `claude plugin install plugin-orchestrator@soon --scope user`.
+2. **Configuration.** `.forge/config.yaml` has `schema_version: 2` and, under `parts`, one part with `plugin: plugin-flutter` and `interface: 1`. A file without `parts` (`schema_version: 1`) belongs to a project of plugin-flutter 0.x: stop, show the `parts` block of `${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml`, with the project's platforms in its `platforms` line, and say that the user edits the file — Claude never edits it. A part of another plugin, or another interface, stops the skill too, naming what it found. This version updates a part whose `path` is `.`; another path stops it.
+3. `git status` and `git branch --show-current`. Changes to `.forge/checkpoint.md` and `.forge/reports/` are workflow state. For any other uncommitted change, stop and ask: commit it, move it to a branch, or stop. An update starts from the default branch (`project.default_branch`), or resumes on its own `chore/deps-<slug>` branch.
 
 ## Step 2 — Toolchain
 
@@ -35,10 +38,10 @@ If `.github/workflows/ci.yml` exists, read its `flutter-version:` line. A versio
 
 ## Step 3 — Baseline
 
-1. `flutter pub get --enforce-lockfile`. Exit 0: the lockfile matches `pubspec.yaml`. Exit 65: it does not, and a plain `flutter pub get` would rewrite it — **validation point**: present that first change on its own. On approval, create the branch of step 6 now, run `flutter pub get`, and commit `pubspec.lock` and the plugin registrants it regenerated, nothing else, through the git-workflow skill (`chore(deps): sync pubspec.lock with pubspec.yaml`): this is the sync commit. Then take the baseline below. Exit 1 without `pubspec.lock`: say whether `.gitignore` excludes it (a package often does); the before/after report then compares `pubspec.yaml` constraints only.
+1. `flutter pub get --enforce-lockfile`. Exit 0: the lockfile matches `pubspec.yaml`. Exit 65: it does not, and a plain `flutter pub get` would rewrite it — **validation point**: present that first change on its own. On approval, create the branch of step 6 now, run `flutter pub get`, and commit `pubspec.lock` and the plugin registrants it regenerated, nothing else, through plugin-orchestrator:git-workflow (`chore(deps): sync pubspec.lock with pubspec.yaml`): this is the sync commit. Then take the baseline below. Exit 1 without `pubspec.lock`: say whether `.gitignore` excludes it (a package often does); the before/after report then compares `pubspec.yaml` constraints only.
 2. `flutter analyze`, `flutter test`, then `dart format --output=none --set-exit-if-changed .` (it writes nothing). Record each exit code, the issue count and the test summary line: this is the baseline every batch is compared with.
 
-**A red baseline stops** the workflow: an update cannot be judged on a base that already fails. Present the failures and offer two choices: fix them first with the debug-project skill, or go on with these known failures recorded, which the user must say explicitly.
+**A red baseline stops** the workflow: an update cannot be judged on a base that already fails. Present the failures and offer two choices: fix them first with plugin-orchestrator:debug-project, or go on with these known failures recorded, which the user must say explicitly.
 
 ## Step 4 — Inventory
 
@@ -73,7 +76,7 @@ The user approves all batches, some of them, or none. A major is applied only if
 
 ## Step 6 — Branch
 
-Through the git-workflow skill: `git switch -c chore/deps-<slug>` from the default branch, unless step 3 already created it to sync the lockfile.
+Through plugin-orchestrator:git-workflow: `git switch -c chore/deps-<slug>` from the default branch, unless step 3 already created it to sync the lockfile.
 
 ## Step 7 — One batch at a time
 
@@ -81,13 +84,13 @@ For each approved batch, in order:
 
 1. Run its command: `flutter pub upgrade`; `flutter pub upgrade <package> [<package>]` for named or flagged packages; or `flutter pub upgrade --major-versions <package> [<package>]`. The project rules ask for confirmation. Record the changed lines of its output (`> package new (was old)`).
 2. `git status --short`. Expected, besides the workflow state (`.forge/checkpoint.md`, `.forge/reports/`): `pubspec.lock`; `pubspec.yaml` for a major; the generated plugin registrants when the set of plugins changed (`linux/flutter/generated_plugin_registrant.cc`, `linux/flutter/generated_plugins.cmake`, their `windows/` equivalents, `macos/Flutter/GeneratedPluginRegistrant.swift`). Any other file: stop and report it.
-3. For a major: find the package's `rootUri` in `.dart_tool/package_config.json` and read the `CHANGELOG.md` there, from the old version to the new one. List the breaking changes. Find the project's uses with Grep (`package:<package>/`) and check each breaking change against them. For a Flutter plugin, read the `flutter: plugin: platforms:` section of its `pubspec.yaml` there and compare it with `platforms.enabled`: a platform that is no longer supported stops the batch — **validation point**.
+3. For a major: find the package's `rootUri` in `.dart_tool/package_config.json` and read the `CHANGELOG.md` there, from the old version to the new one. List the breaking changes. Find the project's uses with Grep (`package:<package>/`) and check each breaking change against them. For a Flutter plugin, read the `flutter: plugin: platforms:` section of its `pubspec.yaml` there and compare it with the `platforms` of the part: a platform that is no longer supported stops the batch — **validation point**.
 4. `flutter analyze`, then `flutter test`. Both must exit 0, or be no worse than the baseline the user accepted. Record both results for the report.
    - After a major, migrate the code that uses the package, in the files that import it: fix, then rerun both, at most three iterations. A change outside those files — another feature, a platform folder, `analysis_options.yaml` — is a **validation point**.
-   - After any other batch, a new failure is unexpected: find its cause with the method of the debug-project skill before changing anything.
+   - After any other batch, a new failure is unexpected: find its cause with the method of plugin-orchestrator:debug-project before changing anything.
 5. A batch that stays red is not committed: report it and ask whether to drop it. Dropping restores every file the batch changed, as `git status --short` lists them apart from the workflow state: `pubspec.yaml`, `pubspec.lock`, the registrants, and the code migrated at sub-step 4. That is a `git restore`, which the guard-destructive hook blocks for Claude: give the user `! git restore pubspec.yaml pubspec.lock <other files the batch changed>`, and `! rm <file>` for a file the batch created. Then check that `git status --short` lists only the workflow state and that `flutter pub get --enforce-lockfile` exits 0, and rerun `flutter analyze` and `flutter test` to compare them with the baseline.
 6. For a major, when `docs/engineering/DECISIONS.md` exists: add `ADR-<n> — Upgrade <package> to <version>`, status `proposed`, with the breaking changes that touched the code and the platforms checked. Cite the package's files by name and version (`http 1.6.0, CHANGELOG.md`), never by an absolute path of this machine: the document is committed.
-7. Stage the batch's files explicitly through the git-workflow skill — `pubspec.yaml`, `pubspec.lock`, the registrants, migrated code, the ADR — and commit, one commit per batch:
+7. Stage the batch's files explicitly through plugin-orchestrator:git-workflow — `pubspec.yaml`, `pubspec.lock`, the registrants, migrated code, the ADR — and commit, one commit per batch:
 
    ```
    chore(deps): upgrade <package> to <version>
@@ -106,14 +109,14 @@ When the user asks to update Flutter, or when packages are held back by the SDK:
 2. `flutter --version --machine` again: record the new version. If it did not change, say so and stop.
 3. `flutter pub get` (the SDK pins some packages, so the lockfile may change), `flutter analyze`, `flutter test`, and `dart format --output=none --set-exit-if-changed .` (the formatter's style follows the SDK, and CI checks it), compared with the baseline.
 4. CI pins Flutter: the `flutter-version:` line of `.github/workflows/ci.yml` must become the new version, or CI keeps testing the old one. Propose that one-line change; the plugin asks the user to confirm writes to `.github/workflows/`. If the write is refused, do not write the file another way: give the user `! sed -i 's/flutter-version: "<old>"/flutter-version: "<new>"/' .github/workflows/ci.yml`.
-5. Commit through git-workflow: `chore(deps): build with Flutter <version>`, with `pubspec.lock` and the CI file. Then run `flutter pub outdated --json` again: packages held back by the old SDK may now be resolvable; offer a new plan.
+5. Commit through plugin-orchestrator:git-workflow: `chore(deps): build with Flutter <version>`, with `pubspec.lock` and the CI file. Then run `flutter pub outdated --json` again: packages held back by the old SDK may now be resolvable; offer a new plan.
 
 ## Step 8 — Before/after report
 
 1. `flutter pub outdated --json --show-all`: its `current` column gives the "after" of every direct and dev dependency, updated ones included (without `--show-all`, an up-to-date package is left out); a newer `latest` marks what was not updated.
 2. Call `<base>` the default branch, or the sync commit when step 3 made one. `git diff <base> -- pubspec.lock`: count the packages whose `version:` changed (one `+    version:` line each), the direct dependencies apart, for the transitive changes. `git log --oneline <default branch>..HEAD` for the batch commits.
 3. Write `.forge/reports/deps-<YYYY-MM-DD>-<slug>.md` from `${CLAUDE_PLUGIN_ROOT}/skills/update-project/reference/deps-report.md`: toolchain before and after, batches with their commits, versions before and after, packages not updated and why, analysis and tests at the baseline and after the last batch, breaking changes handled.
-4. Commit the report with the checkpoint in its final state through git-workflow: `docs(deps): report the dependency update`. Write that checkpoint before staging it — every step done, the commit step ticked `carried by this commit`, the next action — and do not change it after the commit.
+4. Commit the report with the checkpoint in its final state through plugin-orchestrator:git-workflow: `docs(deps): report the dependency update`. Write that checkpoint before staging it — every step done, the commit step ticked `carried by this commit`, the next action — and do not change it after the commit.
 
 ## Final report
 
@@ -125,4 +128,4 @@ When the user asks to update Flutter, or when packages are held back by the SDK:
   - **blocked**, with the reason;
   - **not run**.
 - Analysis at the baseline and after; the path of the report.
-- Next step: push the branch and open the pull request with `/plugin-flutter:github-workflow pr`, so that CI checks the update too.
+- Next step: push the branch and open the pull request with `/plugin-orchestrator:github-workflow pr`, so that CI checks the update too.

@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter test *)",
+      "Bash(flutter analyze *)",
+      "Bash(dart format *)",
+      "Bash(flutter pub get)",
+      "Bash(flutter pub get --enforce-lockfile)",
+      "Bash(flutter pub outdated)",
+      "Bash(flutter pub outdated *)",
+      "Bash(flutter pub deps)",
+      "Bash(flutter pub deps *)",
+      "Bash(flutter pub add --dry-run *)",
+      "Bash(flutter --version)",
+      "Bash(flutter --version --machine)",
+      "Bash(flutter doctor)",
+      "Bash(flutter doctor *)",
+      "Bash(flutter devices)",
+      "Bash(flutter build *)"
+    ],
+    "ask": [
+      "Bash(flutter pub upgrade)",
+      "Bash(flutter pub upgrade *)",
+      "Bash(flutter upgrade*)",
+      "Bash(flutter downgrade*)",
+      "Bash(flutter channel *)"
+    ],
+    "deny": [
+      "Bash(dart pub publish*)",
+      "Bash(flutter pub publish*)"
+    ]
+  }
+}

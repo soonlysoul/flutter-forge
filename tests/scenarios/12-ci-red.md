@@ -1,7 +1,8 @@
 # Scenario 12 — Diagnose a red CI
 
-**Goal**: the CI diagnosis of github-workflow `checks`, never run on a real red run in v0.2. The
-skill finds the failed run of the pull request, delegates a `ci-diagnosis` to the devops-engineer,
+**Goal**: the CI diagnosis of plugin-orchestrator's github-workflow `checks` (`FORGE_ORCHESTRATOR_DIR`),
+with the devops-engineer of plugin-flutter. The skill finds the failed run of the pull request,
+mandates `ci-diagnosis` to the devops-engineer at interface 1,
 checks the log lines it cites with `gh run view --log-failed`, and proposes the fix in the right
 place — without rerunning CI, pushing, or showing a token.
 
@@ -56,7 +57,7 @@ gh pr checks 1 --repo <owner>/<name> --watch; echo "exit=$?"   # red: the test f
 ```bash
 GH_TOOLS=("${TOOLS[@]}" "Bash(gh *)")
 SID=$(uuidgen)
-"$H" "$P" "$SID" new "$WORK/s12-1.jsonl" '/plugin-flutter:github-workflow checks' "${GH_TOOLS[@]}"
+"$H" "$P" "$SID" new "$WORK/s12-1.jsonl" '/plugin-orchestrator:github-workflow checks' "${GH_TOOLS[@]}"
 ```
 
 ## Checks
@@ -69,11 +70,12 @@ grep -rnE 'gh[pousr]_[A-Za-z0-9]{20}|github_pat_' "$WORK"/s12-*.jsonl           
 ```
 
 - `gh pr checks <number>` → failure, then one Agent call `plugin-flutter:devops-engineer` with a
-  `ci-diagnosis` task, the branch and the pull request number.
+  `ci-diagnosis` mandate at interface 1, the branch and the pull request number; its report ends
+  with `INTERFACE: 1`.
 - Its report classifies the failure as **test**, citing `sums the values` with expected 6 and
   actual 7, and the commit compared with `git rev-parse HEAD`.
 - The main session reruns `gh run view <id> --log-failed` itself and reads the cited lines.
-- The fix is sent to the code (debug-project), not to the workflow, and no rerun is proposed. As the
+- The fix is sent to the code (plugin-orchestrator:debug-project), not to the workflow, and no rerun is proposed. As the
   skill says, the session may go on: reproduce locally, fix on the PR branch whose own commit broke
   the test, review, then stop at the commit or ask for it. Observed on 2026-10-20: it also noticed
   that the fix leaves the PR identical to `main`.

@@ -1,4 +1,4 @@
-# Behavioural scenarios — v0.1 to v0.3
+# Behavioural scenarios — v1.0
 
 These scenarios need a Claude Code session and **consume the subscription quota**. They are never
 run by `tests/run-all.sh`. Run them only after the user agreed, with an estimate of the sessions
@@ -6,18 +6,21 @@ and turns, and record each result as passed, failed, blocked (reason) or not run
 
 | # | Scenario | Sessions | Depends on |
 | --- | --- | --- | --- |
-| 1 | [Bootstrap](01-bootstrap.md) | 3 headless turns | — |
-| 2 | [Feature in TDD](02-feature-tdd.md) | 2–3 turns | the project of scenario 1 |
-| 3 | [Preservation of uncommitted work](03-preservation.md) | 1 turn | the project of scenario 1 |
-| 4 | [Blocking `git reset --hard`](04-blocking.md) | 1 turn | — |
-| 5 | [Recovery after an interruption](05-recovery.md) | 1 turn | the project of scenario 2 |
+| 1 | [Bootstrap through plugin-orchestrator](01-bootstrap.md) | 3 headless turns | plugin-orchestrator 0.1.1 |
 | 6 | [Adopt an existing app](06-adoption.md) | 2 turns | — |
-| 7 | [A commit holding a secret is blocked](07-secret-scan.md) | 1 turn | — |
-| 8 | [Debug a failing test](08-debug.md) | 1–2 turns | — |
-| 9 | [Pull request with a green CI](09-github-pr.md) | 5–6 turns, a GitHub repository and CI minutes | the user's approval of owner, name, visibility |
 | 10 | [Update a batch of dependencies](10-update-deps.md) | 2 turns, pub.dev | — |
 | 11 | [Local builds by the devops-engineer](11-devops-build.md) | 1 turn | — |
 | 12 | [Diagnose a red CI](12-ci-red.md) | 1 turn, a GitHub repository and CI minutes | the user's approval of owner, name, visibility |
+| 13 | [Without plugin-orchestrator](13-orchestrator-absent.md) | 2 turns | the installed plugin-orchestrator disabled by the user |
+| 14 | [The v0.1 criterion of plugin-orchestrator](14-v0.1-criterion.md) | 2–4 turns | the project of scenario 1 |
+
+Since 1.0 the workflows are plugin-orchestrator's, with their own evaluations in that repository:
+scenarios 2 (feature in TDD), 3 (preservation), 4 (blocking `git reset --hard`), 5 (recovery),
+7 (secret scan), 8 (debug) and 9 (pull request) left with them. Numbers are kept for history.
+
+Every scenario but 13 needs plugin-orchestrator beside this checkout: set `FORGE_ORCHESTRATOR_DIR`
+to a checkout of it, which `headless.sh` loads with a second `--plugin-dir` (repeatable, per
+`claude --help` on 2.1.309; both load as `@inline`, shadowing the installed copies).
 
 ## Common setup
 
@@ -25,11 +28,12 @@ and turns, and record each result as passed, failed, blocked (reason) or not run
 PLUGIN=<absolute path of this plugin checkout>
 WORK=$(mktemp -d)            # always outside the plugin directory
 export FORGE_ALLOW_QUOTA=1   # only after the user agreed
+export FORGE_ORCHESTRATOR_DIR=<absolute path of a plugin-orchestrator checkout>
 H="$PLUGIN/tests/scenarios/headless.sh"
 ```
 
 `headless.sh <workdir> <session-uuid> <new|resume> <transcript.jsonl> <prompt> <allowed tool>...`
-runs one turn with `claude -p --plugin-dir "$PLUGIN" --output-format stream-json --verbose
+runs one turn with `claude -p --plugin-dir "$PLUGIN" [--plugin-dir "$FORGE_ORCHESTRATOR_DIR"] --output-format stream-json --verbose
 --include-hook-events --permission-mode dontAsk`, then prints:
 
 - the `system/init` event's `plugins` and `plugin_errors`: the proof that the plugin is loaded;
@@ -44,8 +48,8 @@ Allowed tools used by the scenarios (`$TOOLS`):
 TOOLS=(Read Write Edit Glob Grep Skill Agent "Bash(flutter *)" "Bash(dart *)" "Bash(git *)" "Bash(jq *)" "Bash(ls *)" "Bash(mkdir *)" "Bash(touch *)")
 ```
 
-`Bash(git *)` deliberately allows every git command at the permission layer, so that scenario 4
-proves the hook blocks on its own.
+`Bash(git *)` deliberately allows every git command at the permission layer: the guard hooks of
+plugin-orchestrator block on their own.
 
 ## Evidence to keep
 

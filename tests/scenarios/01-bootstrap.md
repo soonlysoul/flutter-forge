@@ -1,8 +1,12 @@
-# Scenario 1 — Bootstrap
+# Scenario 1 — Bootstrap through plugin-orchestrator
 
-**Goal**: in an empty directory where the session is launched, bootstrap-project creates a Flutter project with a green
-base test, the four base documents in DRAFT and the `.forge/` directory, stopping at each
-validation point.
+**Goal**: in an empty directory where the session is launched, `plugin-orchestrator:bootstrap-project`
+mandates `scaffold` to `plugin-flutter:scaffold-engineer`, which creates the Flutter app, its layout,
+its TRD in DRAFT and a green base test, and reports at interface 1; the orchestrator writes
+`.forge/config.yaml` from the `TOOLCHAIN` block, its root documents and the first commit. Since
+1.0, plugin-flutter has no bootstrap of its own. Needs `FORGE_ORCHESTRATOR_DIR` (see README) and
+plugin-orchestrator 0.1.1 or later, whose scaffold mandate allows the root `.gitignore` that
+`flutter create` writes.
 
 ## Steps
 
@@ -12,44 +16,49 @@ the hooks and the permission rules (`CLAUDE_PROJECT_DIR`):
 ```bash
 P="$WORK/demo_notes" && mkdir "$P"
 SID=$(uuidgen)
-"$H" "$P" "$SID" new "$WORK/s1-1.jsonl" "/plugin-flutter:bootstrap-project demo_notes" "${TOOLS[@]}"
+"$H" "$P" "$SID" new "$WORK/s1-1.jsonl" "/plugin-orchestrator:bootstrap-project une appli de notes en Flutter, demo_notes" "${TOOLS[@]}"
 ```
 
-Expected: prerequisites checked with their commands, then the questions of step 2 (name, org,
-platforms, scope, directory, with the current directory recommended), and the turn ends without
-creating anything.
+Expected: git and jq checked, plugin-flutter named as the part's plugin and found in the session,
+then the questions of the orchestrator's step 1 (name, part, package name, organization, platforms,
+scope, directory); the turn ends without creating anything.
 
 ```bash
-"$H" "$P" "$SID" resume "$WORK/s1-2.jsonl" "Name demo_notes, organization com.example, platform linux only, scope: a single screen listing notes stored locally. Create it in the current directory." "${TOOLS[@]}"
+"$H" "$P" "$SID" resume "$WORK/s1-2.jsonl" "Projet demo-notes, paquet demo_notes, organisation com.example, plateforme linux seulement, périmètre : un seul écran qui liste des notes stockées localement. Crée-le dans le dossier courant." "${TOOLS[@]}"
 ```
 
-Expected: `flutter create`, `git init`, `.forge/`, layout, the four documents; the turn ends on
-the two questions of step 7.
+Expected: `git init`, `orch.sh init`, then one Agent call with `plugin-flutter:scaffold-engineer`
+on a mandate that names `interface: 1` and `task: scaffold`. Inside it: `flutter --version`,
+`flutter devices`, `flutter create --org com.example --project-name demo_notes --platforms linux
+--description "…" .`, the layout, the strict modes, `docs/technical/TRD.md`, `flutter test` and
+`flutter analyze`, each alone, no refusal by agent-scope-guard. Its report ends with `SCAFFOLD`,
+`TOOLCHAIN`, `PERMISSIONS`, `VERSIONS`, `TARGETS`, then `INTERFACE: 1`. The orchestrator checks it,
+writes `.forge/config.yaml` with the toolchain lines as they are, its PRD, DECISIONS (ADR-001 with
+the versions) and CLAUDE.md, and ends on its two questions: documents and permissions.
 
 ```bash
-"$H" "$P" "$SID" resume "$WORK/s1-3.jsonl" "Keep the PRD and the TRD in DRAFT for now. Yes, install the permission rules." "${TOOLS[@]}"
+"$H" "$P" "$SID" resume "$WORK/s1-3.jsonl" "Garde le PRD et le TRD en DRAFT pour l'instant. Oui, installe les règles de permission." "${TOOLS[@]}"
 ```
 
-Expected: `flutter test` and `flutter analyze` run, commit proposed. Observed on 2.1.296: in
-`-p --permission-mode dontAsk`, Claude Code denies the write of `.claude/settings.json` even with
-`Write` allowed (it protects its configuration files); the skill must not work around it and must
-give the copy command instead. Copy the template yourself before scenario 2:
-`mkdir -p "$P/.claude" && cp "$PLUGIN/templates/project-settings.json" "$P/.claude/settings.json"`.
-Whether the session applies a `.claude/settings.json` written during the session is not verified:
-the commit is denied if the project's `ask` rule on `git commit` applies (nobody can answer it in
-`-p`), and made otherwise, since `Bash(git *)` is allowed. Either way, the report must match
-`git -C "$P" log --oneline`; record which case happened.
+Expected: `.claude/settings.json` refused in `dontAsk` (Claude Code protects it) and the command
+given instead; `toolchain.test` and `toolchain.analyze` run; the first commit proposed. Copy the
+rules yourself before scenario 14: the generic rules of the orchestrator with the Flutter fragment
+are `"$PLUGIN/templates/project-settings.json"`.
 
 ## Checks
 
 ```bash
-(cd "$P" && flutter test)                                   # exit 0
-ls "$P/.forge/config.yaml" "$P/.forge/checkpoint.md"
-grep -h '^| Status' "$P"/docs/product/PRD.md "$P"/docs/technical/TRD.md \
-  "$P"/docs/engineering/IMPLEMENTATION_PLAN.md "$P"/docs/engineering/DECISIONS.md   # DRAFT x4
-grep -c ': false' "$P/.forge/config.yaml"                     # 6
-jq -e '.permissions.deny | index("Edit(./.forge/config.yaml)")' "$P/.claude/settings.json"
+(cd "$P" && flutter test)                                          # exit 0
+grep -x '    plugin: plugin-flutter' "$P/.forge/config.yaml"
+grep -x '    interface: 1' "$P/.forge/config.yaml"
+grep -x '      test: flutter test' "$P/.forge/config.yaml"
+grep -h '^| Status' "$P"/docs/product/PRD.md "$P"/docs/technical/TRD.md "$P"/docs/engineering/DECISIONS.md   # DRAFT x3
+ls "$P"/lib/app/.gitkeep "$P"/lib/features/.gitkeep "$P"/integration_test/.gitkeep
+grep -q 'strict-casts: true' "$P/analysis_options.yaml"
+ls "$P/.github" 2>/dev/null                                         # absent: the CI is a later mandate
+jq -r 'select(.type == "user") | .message.content[]? | select(.type == "tool_result") | .content | tostring' "$WORK/s1-2.jsonl" | grep -c '^INTERFACE: 1'
 ```
 
-**Passed** when every check holds, the turns stopped at both validation points, and no step was
+**Passed** when every check holds, the scaffold went through the mandate and its report carried
+`INTERFACE: 1`, the turns stopped at the orchestrator's validation points, and no step was
 reported without its command.

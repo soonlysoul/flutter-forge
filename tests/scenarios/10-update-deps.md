@@ -1,6 +1,6 @@
 # Scenario 10 — Update a batch of dependencies (exit criterion of v0.3)
 
-**Goal**: update-project inventories the outdated dependencies without changing a file, stops at
+**Goal**: with plugin-orchestrator in the session (`FORGE_ORCHESTRATOR_DIR`), update-project inventories the outdated dependencies without changing a file, stops at
 the plan of batches, then applies only the approved batches on a `chore/deps-` branch — analysis
 and tests after each, one commit per batch with its lockfile — and writes the before/after report.
 It never runs `flutter upgrade` nor `dart pub`, and says that Flutter comes from Nix.
@@ -39,9 +39,9 @@ void main() {
   });
 }
 EOF
-cp "$PLUGIN/templates/forge-config.yaml" .forge/config.yaml && sed -i 's/\[android, web, linux\]/[linux]/' .forge/config.yaml
+cp "$PLUGIN/templates/forge-config.yaml" .forge/config.yaml && sed -i 's/\[android, web, linux\]/[linux]/' .forge/config.yaml   # schema 2
 cp "$PLUGIN/templates/checkpoint.md" .forge/checkpoint.md
-cp "$PLUGIN/skills/bootstrap-project/reference/doc-templates/DECISIONS.md" docs/engineering/DECISIONS.md
+cp "$PLUGIN/templates/doc-templates/DECISIONS.md" docs/engineering/DECISIONS.md
 dart format lib test >/dev/null                                 # the baseline checks the format too
 flutter test; echo "exit=$?"                                    # exit=0
 dart format --output=none --set-exit-if-changed .; echo "exit=$?"   # exit=0

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# templates/github-workflows/flutter-ci.yml: the CI copied into projects by github-workflow.
+# templates/github-workflows/flutter-ci.yml: the CI the devops-engineer fills on a ci-template mandate.
 # Pinned actions, read-only token, the four quality commands, the two placeholders.
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 SUITE=test_ci_template

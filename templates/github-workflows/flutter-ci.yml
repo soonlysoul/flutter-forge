@@ -1,7 +1,8 @@
 # Flutter CI proposed by plugin-flutter: format, analyze and test, on every pull request and
 # every push to the default branch, on one Linux runner.
-# The github-workflow skill copies it to .github/workflows/ci.yml, with the local Flutter
-# version (`flutter --version`) and the project's default branch filled in.
+# The devops-engineer writes it to .github/workflows/ci.yml on a ci-template mandate of
+# plugin-orchestrator:github-workflow, with the local Flutter version (`flutter --version`) and
+# the project's default branch filled in.
 # Actions are pinned by commit SHA; the comment gives the version.
 name: CI
 

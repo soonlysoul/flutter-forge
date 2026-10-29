@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # agent-scope-guard — PreToolUse hook for Edit, Write, NotebookEdit, Bash, PowerShell and Monitor.
 # Enforces what an agent frontmatter cannot express for the plugin's own subagents: the
-# directories each one may write, and an allowlist of single shell commands.
+# directories and root files each one may write, and an allowlist of single shell commands.
 # Inert outside the plugin's agents. Fail-closed for them: every internal error exits 2, and
 # hooks.json sets "onFailure": "block".
 set -u
@@ -35,10 +35,11 @@ agent=$(jq -r '.agent_type // "" | strings' <<<"$input")
 agent=${agent#"$PLUGIN:"}
 
 GIT_READ="git status, git log, git diff, git show, git ls-files, git rev-parse, git branch --show-current"
+write_files=""
 case $agent in
   flutter-architect)
     write_dirs="docs"
-    allowed_commands="flutter --version, dart --version, dart pub deps, flutter pub deps, $GIT_READ"
+    allowed_commands="flutter --version, flutter doctor, dart --version, dart pub deps, flutter pub deps, $GIT_READ"
     ;;
   test-engineer)
     write_dirs="test integration_test"
@@ -52,14 +53,15 @@ case $agent in
     write_dirs=".github"
     allowed_commands="flutter build, flutter --version, flutter doctor, flutter devices, gh auth status, gh run list|view|watch, gh pr checks|view, gh workflow list|view, gh repo view, git remote -v, $GIT_READ"
     ;;
-  product-architect)
-    write_dirs="docs/product"
-    allowed_commands=""
+  scaffold-engineer)
+    write_dirs="lib test integration_test docs/technical"
+    write_files="analysis_options.yaml"
+    allowed_commands="flutter create <options> . (never --overwrite), flutter --version, flutter devices, flutter doctor, flutter pub get, flutter test, flutter analyze, $GIT_READ"
     ;;
   *) block "no scope is defined for agent $agent." ;;
 esac
 
-# git_read_only <words after git>: the read-only git commands of flutter-architect and test-engineer.
+# git_read_only <words after git>: the read-only git commands of every agent but code-reviewer.
 git_read_only() {
   if [[ ${1-} == --no-pager ]]; then shift; fi
   case ${1-} in
@@ -74,7 +76,7 @@ command_allowed() {
   case $agent in
     flutter-architect)
       case "$*" in
-        'flutter --version' | 'dart --version') return 0 ;;
+        'flutter --version' | 'dart --version' | 'flutter doctor' | 'flutter doctor -v') return 0 ;;
       esac
       [[ ($1 == dart || $1 == flutter) && ${2-} == pub && ${3-} == deps ]] && return 0
       [[ $1 == git ]] && git_read_only "${@:2}"
@@ -129,16 +131,32 @@ command_allowed() {
       fi
       [[ $1 == git ]] && git_read_only "${@:2}"
       ;;
+    scaffold-engineer)
+      case "$*" in
+        'flutter --version' | 'flutter devices' | 'flutter doctor' | 'flutter doctor -v' | 'flutter pub get' | 'flutter test' | 'flutter analyze') return 0 ;;
+      esac
+      local word
+      if [[ $1 == flutter && ${2-} == create ]]; then
+        # Only into the project root, the session's: the last word is the target, and nothing may be overwritten.
+        (($# >= 3)) && [[ ${!#} == . ]] || return 1
+        for word in "${@:3}"; do
+          [[ $word != --overwrite ]] || return 1
+        done
+        return 0
+      fi
+      [[ $1 == git ]] && git_read_only "${@:2}"
+      ;;
     # A case without a matching branch returns 0: an agent without a branch must not pass.
     *) return 1 ;;
   esac
 }
 
 check_write() {
-  local path root rel dir listed=""
+  local path root rel dir file listed=""
   path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // "" | strings' <<<"$input")
-  [[ -n $write_dirs ]] || block "$agent may not write files."
+  [[ -n $write_dirs$write_files ]] || block "$agent may not write files."
   for dir in $write_dirs; do listed+="${listed:+, }$dir/"; done
+  for file in $write_files; do listed+="${listed:+, }$file"; done
   [[ $path == /* ]] || block "$agent may only write files given by an absolute path under: $listed."
   case /$path/ in
     */../* | */./*) block "$agent may not use . or .. in a path: $path" ;;
@@ -150,6 +168,9 @@ check_write() {
   rel=${path#"$root"/}
   for dir in $write_dirs; do
     if [[ $rel == "$dir"/* ]]; then allow; fi
+  done
+  for file in $write_files; do
+    if [[ $rel == "$file" ]]; then allow; fi
   done
   block "$agent may only write under: $listed. Refused: $rel"
 }

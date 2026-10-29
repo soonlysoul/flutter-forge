@@ -1,6 +1,7 @@
 # Scenario 6 — Adopt an existing app without rewriting anything
 
-**Goal**: on an existing Flutter app without `.forge/`, adopt-existing-project analyzes in
+**Goal**: on an existing Flutter app without `.forge/`, adopt-existing-project (with
+plugin-orchestrator in the session: `FORGE_ORCHESTRATOR_DIR`) analyzes in
 read-only mode, stops at the compliance plan without having changed a single file, and after a
 partial approval applies only the approved items: `.forge/`, documents rebuilt from the code in
 DRAFT, the list of divergences. The README and the existing `CLAUDE.md` stay byte for byte the
@@ -98,7 +99,11 @@ ls "$P"/.forge/reports/divergences-*.md && grep -niE 'android|ios|3\.30' "$P"/.f
 jq -r 'select(.type == "assistant") | .message.content[]? | select(.type == "tool_use" and .name == "Agent") | .input.subagent_type' "$WORK/s6-2.jsonl"
 ```
 
-- The product-architect (task `reconstruct`) and the flutter-architect run one after the other.
+- `plugin-orchestrator:product-architect` (task `reconstruct`) and `plugin-flutter:flutter-architect`
+  run one after the other, each on a mandate that names `interface: 1`, each report ending with
+  `INTERFACE: 1`.
+- `.forge/config.yaml` is in schema 2: one part at `.`, `plugin: plugin-flutter`, `interface: 1`,
+  `platforms: [linux]`.
 - `README.md` and `CLAUDE.md` are unchanged; no `.claude/settings.json`, no change to `.gitignore`
   or `analysis_options.yaml`.
 - The divergences list at least: platforms (Android and iOS claimed, only `linux/`), toolchain

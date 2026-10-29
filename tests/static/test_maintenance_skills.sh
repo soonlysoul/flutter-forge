@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
-# v0.3 components: product-architect, update-project, adopt-existing-project, and the divergence
-# check of the code-reviewer. A content check, like test_github_skills: it proves the instruction
-# is written, not that it is followed.
+# The two skills plugin-flutter keeps in 1.0 — update-project and adopt-existing-project — with
+# plugin-orchestrator beside them, and the divergence check of the code-reviewer. A content check,
+# like test_agents: it proves the instruction is written, not that it is followed.
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 SUITE=test_maintenance_skills
-PA="$PLUGIN_ROOT/agents/product-architect.md"
 UP="$PLUGIN_ROOT/skills/update-project/SKILL.md"
 REPORT="$PLUGIN_ROOT/skills/update-project/reference/deps-report.md"
 AD="$PLUGIN_ROOT/skills/adopt-existing-project/SKILL.md"
 DIV="$PLUGIN_ROOT/skills/adopt-existing-project/reference/divergences.md"
 CR="$PLUGIN_ROOT/agents/code-reviewer.md"
 FA="$PLUGIN_ROOT/agents/flutter-architect.md"
-CF="$PLUGIN_ROOT/skills/create-feature/SKILL.md"
-DBG="$PLUGIN_ROOT/skills/debug-project/SKILL.md"
-BS="$PLUGIN_ROOT/skills/bootstrap-project/SKILL.md"
-GW="$PLUGIN_ROOT/skills/git-workflow/SKILL.md"
-GH="$PLUGIN_ROOT/skills/github-workflow/SKILL.md"
 
 # says <file> <label> <fixed string>
 says() { grep -qiF -- "$3" "$1" && pass "$2" || fail "$2" "missing: $3"; }
@@ -34,26 +28,6 @@ only_in() {
   bad=$(grep -nE -- "$regex" <<<"$text")
   [[ -z $bad ]] && pass "$label" || fail "$label" "$bad"
 }
-
-echo "# product-architect"
-if [[ -f $PA ]]; then
-  says "$PA" "writes the PRD" "docs/product/PRD.md"
-  says "$PA" "writes only under docs/product/" "only under \`docs/product/\`"
-  says "$PA" "has no shell" "no shell"
-  says "$PA" "numbers criteria AC-xxx" "AC-"
-  says "$PA" "continues the numbering from the highest existing id" "highest existing"
-  says "$PA" "never renumbers an existing criterion" "never renumber"
-  says "$PA" "criteria are observable and testable" "testable"
-  says "$PA" "criteria use Given, when, then" "Given"
-  says "$PA" "a new PRD is DRAFT" "DRAFT"
-  says "$PA" "a changed APPROVED PRD goes back to DRAFT" "back to DRAFT"
-  says "$PA" "criteria rebuilt from code are marked reconstructed" "reconstructed"
-  says "$PA" "keeps the fixed header of the template" "fixed header"
-  says "$PA" "does not decide the architecture (flutter-architect's)" "flutter-architect"
-  says "$PA" "reports its criteria" "ACCEPTANCE_CRITERIA:"
-else
-  fail "agents/product-architect.md exists"
-fi
 
 echo "# update-project"
 if [[ -f $UP ]]; then
@@ -76,7 +50,7 @@ if [[ -f $UP ]]; then
   says "$UP" "one commit per batch" "chore(deps):"
   says "$UP" "reads the breaking changes in the cached CHANGELOG.md" "CHANGELOG.md"
   says "$UP" "finds the cache through package_config.json" ".dart_tool/package_config.json"
-  says "$UP" "checks a plugin's platforms against the enabled ones" "platforms.enabled"
+  says "$UP" "checks a plugin's platforms against those of the part" "the \`platforms\` of the part"
   says "$UP" "records an ADR for a major" "ADR"
   says "$UP" "a dropped batch is restored by the user" "! git restore pubspec.yaml pubspec.lock"
   says "$UP" "never forces a resolution with dependency_overrides" "dependency_overrides"
@@ -150,6 +124,7 @@ if [[ -f $AD ]]; then
   says "$AD" "analyzes without an implicit pub get" "flutter analyze --no-pub"
   says "$AD" "tests without an implicit pub get" "flutter test --no-pub"
   says "$AD" "stops when .forge/ already exists" "already adopted"
+  says "$AD" "an adopted project goes on with plugin-orchestrator" "plugin-orchestrator:recover-session"
   says "$AD" "stops when the app is in a subdirectory" "subdirectory"
   says "$AD" "validation point: the compliance plan" "compliance plan"
   says "$AD" "existing files are modified only on a separate approval each" "approved separately"
@@ -157,8 +132,11 @@ if [[ -f $AD ]]; then
   says "$AD" "never moves code" "Never move"
   says "$AD" "works on chore/adopt-plugin-flutter" "chore/adopt-plugin-flutter"
   says "$AD" "creates .forge/config.yaml from the template" "templates/forge-config.yaml"
-  says "$AD" "rebuilds the PRD with the product-architect" "product-architect"
+  says "$AD" "rebuilds the PRD with the product-architect of plugin-orchestrator" "plugin-orchestrator:product-architect"
   says "$AD" "product-architect task reconstruct" "reconstruct"
+  says "$AD" "creates the plan from the template" "templates/doc-templates/IMPLEMENTATION_PLAN.md"
+  says "$AD" "creates CLAUDE.md from the template" "templates/doc-templates/CLAUDE.md"
+  says "$AD" "proposes the generic rules with the Flutter fragment" "templates/project-settings.json"
   says "$AD" "rebuilds the TRD and the ADRs with the flutter-architect" "flutter-architect"
   says "$AD" "rebuilt documents stay DRAFT" "DRAFT"
   says "$AD" "ADRs of existing dependencies are proposed" "proposed"
@@ -201,6 +179,8 @@ if [[ -f $AD ]]; then
     && pass "the checkpoint exists before the .forge/config.yaml wait" \
     || fail "the checkpoint exists before the .forge/config.yaml wait" "checkpoint item line ${checkpoint_at:-none}, config item line ${config_at:-none}"
   says "$AD" "the sed survives a branch with a slash" "s|^  default_branch: .*|"
+  says "$AD" "the sed sets the platforms of the part" "s|^    platforms: .*|"
+  says "$AD" "creates the branch itself: plugin-orchestrator's git-workflow needs .forge/" "\`git switch -c chore/adopt-plugin-flutter\`"
   says "$AD" "relies on the exit code of git rev-parse origin/HEAD" "only exit 0 counts"
 else
   fail "skills/adopt-existing-project/SKILL.md exists"
@@ -222,24 +202,9 @@ says "$CR" "code-reviewer: a dependency without an ADR" "without an ADR"
 says "$CR" "code-reviewer: a major version is a dependency change" "major version"
 says "$CR" "code-reviewer: a test citing an AC missing from the PRD" "missing from the PRD"
 says "$CR" "code-reviewer: the plan contradicted by the diff" "IMPLEMENTATION_PLAN.md"
-step14=$(awk '/^### Step 14 /{f=1; print; next} /^### Step 15 /{f=0} f' "$CF")
-[[ $step14 == *DIVERGENCES* ]] && pass "create-feature step 14 handles the reviewer's DIVERGENCES" \
-  || fail "create-feature step 14 handles the reviewer's DIVERGENCES" "$step14"
-says "$DBG" "debug-project reports the reviewer's DIVERGENCES" "DIVERGENCES"
 
-echo "# delegation and flutter pub"
-says "$BS" "bootstrap-project delegates a long brief to the product-architect" "product-architect"
-says "$BS" "bootstrap-project gives a command when the .forge/config.yaml write is refused" "templates/forge-config.yaml > <directory>/.forge/config.yaml"
-says "$BS" "bootstrap-project's sed survives a slash" "s|^  enabled: .*|"
-says "$BS" "bootstrap-project's settings command names the project directory" "<directory>/.claude/settings.json"
-says "$GH" "github-workflow's CI sed survives a branch with a slash" "s|__DEFAULT_BRANCH__|"
-says "$BS" "bootstrap-project checks the agent's files with untracked files listed" "--untracked-files=all"
+echo "# flutter pub"
 says "$FA" "flutter-architect runs flutter pub deps only on a matching lockfile" "rewrites \`pubspec.lock\`"
-says "$GW" "git-workflow names the adoption branch" "chore/adopt-plugin-flutter"
-says "$GW" "git-workflow names the CI branch" "chore/ci"
-step14=$(awk '/^### Step 14 /{f=1; print; next} /^### Step 15 /{f=0} f' "$CF")
-[[ $step14 == *"validation point"* ]] && pass "create-feature step 14: a PRD or TRD change is a validation point" \
-  || fail "create-feature step 14: a PRD or TRD change is a validation point" "$step14"
 says "$FA" "flutter-architect lists resolved packages with flutter pub deps" "\`flutter pub deps\` lists"
 says "$FA" "flutter-architect documents the stack of an adopted app as pre-existing" "pre-existing"
 
@@ -252,28 +217,53 @@ says "$FA" "flutter-architect records each deviation of an adopted app as an ADR
 says "$FA" "flutter-architect never cites an absolute path of this machine" "never by an absolute path of this machine"
 
 echo "# scenarios 6 and 10 (v0.3): the checkpoint of the last commit (D42)"
-# The checkpoint was updated after the last commit, as git-workflow asked: a dirty tree, and the
-# `! git switch main` the adoption proposes was refused.
-RS="$PLUGIN_ROOT/skills/recover-session/SKILL.md"
-says "$GW" "git-workflow: a carrying commit's checkpoint is not changed again for it" "Do not change the checkpoint again for that commit"
-says "$GW" "git-workflow: the commit step is ticked without an exit code it cannot know" "ticked \`carried by this commit\`"
-says "$GW" "git-workflow: the next update belongs to the next step" "the next update belongs to the next step"
-grep -qF "once \`.forge/checkpoint.md\` is updated, its \`last_commit\` matches that hash" "$GW" \
-  && fail "git-workflow no longer updates the checkpoint after the commit" "the old sentence is still there" \
-  || pass "git-workflow no longer updates the checkpoint after the commit"
+# The checkpoint was updated after the last commit: a dirty tree, and the `! git switch main` the
+# adoption proposes was refused. Since 1.0 the commit is plugin-orchestrator's git-workflow's.
 says "$UP" "update-project: the report commit carries the final checkpoint" "the checkpoint in its final state"
 says "$AD" "adopt-existing-project: the adoption commit carries the final checkpoint" "the checkpoint in its final state"
-says "$RS" "recover-session: the commit carrying the checkpoint is not an inconsistency" "apart from the one that carries the checkpoint itself"
-says "$RS" "recover-session: a step ticked carried by this commit is done" "apart from a commit step ticked \`carried by this commit\`"
 # Review of D42 (I3): every skill that checkpoints after each step defers to git-workflow for the
 # commit that carries the checkpoint, or the model ticks the commit step after it.
-for skill in bootstrap-project create-feature debug-project github-workflow update-project adopt-existing-project; do
-  says "$PLUGIN_ROOT/skills/$skill/SKILL.md" "$skill defers to git-workflow for the commit that carries the checkpoint" \
-    "A commit that carries the checkpoint follows git-workflow: the checkpoint is written before it, and not changed again for that commit."
+for skill in update-project adopt-existing-project; do
+  says "$PLUGIN_ROOT/skills/$skill/SKILL.md" "$skill defers to plugin-orchestrator:git-workflow for the commit that carries the checkpoint" \
+    "A commit that carries the checkpoint follows plugin-orchestrator:git-workflow: the checkpoint is written before it, and not changed again for that commit."
 done
 # Review (M4, M5): adopted apps get only the announced ADRs; no machine path in any written document.
 says "$FA" "flutter-architect: an adopted app's deviations stop at the three announced" "for an adopted app, only the three named above"
 says "$UP" "update-project: the upgrade ADR cites the package, not a machine path" "never by an absolute path of this machine"
 says "$AD" "adopt-existing-project: the divergence list cites no machine path" "never by an absolute path of this machine"
+
+echo "# plugin-orchestrator beside the skills (1.0)"
+for skill in update-project adopt-existing-project; do
+  file="$PLUGIN_ROOT/skills/$skill/SKILL.md"
+  says "$file" "$skill: needs plugin-orchestrator 0.1.0 or later" "needs plugin-orchestrator 0.1.0 or later in the session"
+  says "$file" "$skill: without it, stops before anything and changes nothing" "When none does, stop before anything else and change nothing"
+  says "$file" "$skill: names the installation" "claude plugin install plugin-orchestrator@soon --scope user"
+  step1=$(awk '/^## Step 1 /{f=1; next} /^## /{f=0} f' "$file")
+  [[ $(grep -m1 -E '^1\. ' <<<"$step1") == *plugin-orchestrator* ]] && pass "$skill: the check is the first item of step 1" \
+    || fail "$skill: the check is the first item of step 1" "$(grep -m1 -E '^1\. ' <<<"$step1")"
+done
+# Only the adoption delegates: to plugin-orchestrator's product-architect and to the flutter-architect.
+says "$AD" "adopt-existing-project: its mandates name interface 1" "interface 1"
+says "$AD" "adopt-existing-project: a report without INTERFACE: 1 stops the workflow" "without \`INTERFACE: 1\`"
+# update-project runs in a project that already has .forge/: its configuration is plugin-orchestrator's.
+says "$UP" "update-project: the part of plugin-flutter, at interface 1" "\`plugin: plugin-flutter\` and \`interface: 1\`"
+says "$UP" "update-project: a schema 1 file stops it" "A file without \`parts\` (\`schema_version: 1\`)"
+says "$UP" "update-project: shows the parts block, filled in for Flutter" "the \`parts\` block of \`\${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml\`"
+says "$UP" "update-project: the user edits the file" "the user edits the file"
+says "$UP" "update-project: a red baseline goes to plugin-orchestrator's debug-project" "plugin-orchestrator:debug-project"
+says "$UP" "update-project: the pull request is plugin-orchestrator's" "/plugin-orchestrator:github-workflow pr"
+says "$AD" "adopt-existing-project: the pull request is plugin-orchestrator's" "/plugin-orchestrator:github-workflow pr"
+says "$AD" "adopt-existing-project: approvals are recorded by plugin-orchestrator" "orch.sh approve"
+
+echo "# no reference to a component that left in 1.0"
+# Each of these names is plugin-orchestrator's since 1.0, and is cited only with its prefix.
+retired='create-feature|debug-project|git-workflow|github-workflow|recover-session|bootstrap-project|product-architect'
+bad=$(grep -rnoE "[A-Za-z_./-]*:?\b($retired)\b" "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null \
+  | grep -vE ":/?plugin-orchestrator:($retired)\$")
+[[ -z $bad ]] && pass "agents, skills, templates and hooks cite those workflows only as plugin-orchestrator:<name>" \
+  || fail "agents, skills, templates and hooks cite those workflows only as plugin-orchestrator:<name>" "$bad"
+bad=$(grep -rnE 'skills/(create-feature|debug-project|git-workflow|github-workflow|recover-session|bootstrap-project)/|agents/product-architect' \
+  "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null)
+[[ -z $bad ]] && pass "no path of a retired component" || fail "no path of a retired component" "$bad"
 
 finish
