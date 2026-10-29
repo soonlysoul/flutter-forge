@@ -4,38 +4,40 @@ Oct 17, 2026 · @Soon
 
 ## Vue d'ensemble
 
-`plugin-flutter` est un plugin Claude Code qui encadre la création et la maintenance d'applications Flutter/Dart : il apporte des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
+`plugin-flutter` est un plugin Claude Code pour les applications Flutter/Dart. Depuis la 1.0, c'est le **plugin de langage Flutter de [plugin-orchestrator](https://github.com/soonlysoul/plugin-orchestrator)** : l'orchestrateur porte les workflows communs à tous les langages (démarrage, fonctionnalité en TDD, Git, GitHub, reprise, débogage) et les garde-fous communs ; plugin-flutter lui apporte, par des mandats à l'interface 1 de son contrat de délégation, tout ce qui demande de comprendre Flutter — le squelette d'une app, ses tests, sa revue, son architecture, ses builds et sa CI — et garde les deux workflows dont la matière est l'outillage de Flutter : la mise à jour des dépendances et l'adoption d'une app existante. Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-**Statut du document : APPROVED** le 2026-10-20 (« je valide »), à la clôture de la v0.3.0, avec les décisions D27 à D42 de `PROGRESS.md` et les corrections des phases E et F.2 (`docs/V0.3_REPORT.md`). Version précédente : APPROVED le 2026-10-20 (« clôture et publie »), à la clôture de la v0.2.0, avec les décisions D12 à D26. Version précédente : APPROVED le 2026-10-19 (« clôture la v1 »), à la clôture de la v0.1.0, avec les corrections de la phase A (`docs/PHASE_A_REPORT.md`, §5, écarts E1 à E19) et les recommandations du §7 (D1 à D9).
+**Statut du document : REVIEW** depuis le 2026-10-29, pendant la v1.0 (décisions D43 à D52 de `PROGRESS.md`). Version précédente : APPROVED le 2026-10-20 (« je valide »), à la clôture de la v0.3.0, avec les décisions D27 à D42 et les corrections des phases E et F.2 (`docs/V0.3_REPORT.md`) ; avant elle, APPROVED à la clôture de la v0.2.0 (D12 à D26) et de la v0.1.0 (phase A, D1 à D9).
 
-Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.296.
+Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.309. Dépendance : **plugin-orchestrator 0.1.0 ou plus**, installé avec lui. Le modèle de plugin ne déclare pas de dépendance entre plugins : tout se vérifie à l'exécution, dans les deux sens (l'écho `INTERFACE: 1` côté orchestrateur, la présence de l'orchestrateur côté skills de plugin-flutter).
 
 Principes directeurs :
 
 - **Petit d'abord.** Une v0.1 éprouvée vaut mieux que dix skills non testés.
 - **La session principale orchestre.** Elle seule dialogue avec l'utilisateur et valide ; les agents exécutent une tâche bornée et rendent un rapport.
-- **Déterministe = hook, jugement = skill ou agent.** Tout ce qui doit toujours se produire (formatage, blocage d'une commande destructive) est un hook, pas une consigne.
+- **Mécanique = clé de toolchain, jugement = mandat.** Ce que l'orchestrateur lance lui-même (tests, format, analyse, ajout de dépendance) est une ligne de `toolchain` ; ce qui demande de comprendre Flutter est un mandat à un agent de plugin-flutter.
+- **Déterministe = hook, jugement = skill ou agent.** Tout ce qui doit toujours se produire (formatage, limite d'un agent) est un hook, pas une consigne.
 - **Rien n'est approuvé implicitement.** Documents, push, PR, fusion et release exigent une trace d'accord.
 - **Honnêteté des résultats.** Chaque test est rapporté comme réussi, échoué, bloqué ou non exécuté, avec la commande lancée.
 - **État sur disque, pas en mémoire.** Le travail est repris depuis Git et un fichier de checkpoint, jamais depuis le souvenir d'une session.
 - **Langues.** Code, identifiants et fichiers du plugin en anglais ; messages à l'utilisateur en français.
 
-## Périmètre v0.1 et feuille de route
+## Périmètre et feuille de route
 
-La v0.1 couvre le cycle minimal : créer un projet, développer une fonctionnalité en TDD, committer proprement, reprendre après interruption. Chaque version n'est lancée qu'après validation de la précédente sur un vrai projet.
+Chaque version n'est lancée qu'après validation de la précédente sur un vrai projet.
 
 | Version | Skills | Agents | Hooks / autres | Critère de sortie |
 | --- | --- | --- | --- | --- |
-| v0.1 | bootstrap-project, create-feature (TDD intégré), git-workflow, recover-session | flutter-architect, test-engineer, code-reviewer | guard-destructive, agent-scope-guard, format-dart, checkpoint-reminder ; template settings.json | Projet démo créé + 1 feature en TDD + commit sur branche + reprise réussie |
+| v0.1 | bootstrap-project, create-feature (TDD intégré), git-workflow, recover-session | flutter-architect, test-engineer, code-reviewer | guard-destructive, agent-scope-guard, format-dart, checkpoint-reminder ; template settings.json | Projet démo créé + 1 feature en TDD + commit sur branche + reprise |
 | v0.2 | github-workflow, debug-project | devops-engineer | secret-scan avant commit, protect-sensitive ; template CI Flutter | PR ouverte sur dépôt de test avec CI verte |
 | v0.3 | update-project, adopt-existing-project | product-architect | détection de divergences docs/code | Mise à jour d'un lot de dépendances avec rapport avant/après |
-| v0.4 | release-project, optimize-usage | ui-ux-engineer | matrice plateformes en CI | Build de release Android + Web vérifié |
+| **v1.0** | update-project, adopt-existing-project ; les six workflows transversaux passent à plugin-orchestrator | flutter-architect, test-engineer, code-reviewer, devops-engineer, **scaffold-engineer** ; product-architect passe à l'orchestrateur | agent-scope-guard, format-dart ; les quatre gardes communs passent à l'orchestrateur ; `INTERFACE: 1`, `.forge/` au schéma 2 | Critère v0.1 de l'orchestrateur : un projet mono-partie Flutter mené de bout en bout avec les deux plugins publiés |
+| à réévaluer | optimize-usage ; la release passe à l'orchestrateur (sa v0.3, `release`) | ui-ux-engineer | matrice plateformes en CI | Build de release Android + Web vérifié |
 
-`implementation-engineer` n'est pas prévu comme agent séparé : l'implémentation reste dans la session principale pour éviter des transferts de contexte coûteux pendant le cycle rouge-vert. Réévalué en v0.3 et maintenu ainsi (D29).
+`implementation-engineer` n'est pas prévu comme agent séparé : l'implémentation reste dans la session principale pour éviter des transferts de contexte coûteux pendant le cycle rouge-vert (D29), ce que l'orchestrateur reprend.
 
 ## Arborescence du plugin
 
-Les composants sont à la racine du plugin ; seul le manifeste vit dans `.claude-plugin/`. Les éléments marqués (v0.3+) ne sont créés qu'à leur version.
+Les composants sont à la racine du plugin ; seul le manifeste vit dans `.claude-plugin/`.
 
 ```
 plugin-flutter/
@@ -43,51 +45,36 @@ plugin-flutter/
 │   ├── plugin.json              # manifeste (nom, version, description, auteur, licence)
 │   └── marketplace.json         # marketplace locale pour installer/mettre à jour
 ├── agents/
-│   ├── flutter-architect.md
-│   ├── test-engineer.md
-│   ├── code-reviewer.md
-│   ├── devops-engineer.md
-│   ├── product-architect.md
-│   └── ui-ux-engineer.md        # (v0.4)
+│   ├── scaffold-engineer.md     # mandat scaffold
+│   ├── flutter-architect.md     # check-dependency, diagnose, TRD et ADR
+│   ├── test-engineer.md         # write-tests
+│   ├── code-reviewer.md         # review
+│   └── devops-engineer.md       # ci-template, build, ci-diagnosis, workflow-change
 ├── skills/
-│   ├── bootstrap-project/
-│   │   ├── SKILL.md
-│   │   └── reference/doc-templates/   # gabarits PRD, TRD, PLAN, DECISIONS
-│   ├── create-feature/SKILL.md
-│   ├── git-workflow/SKILL.md
-│   ├── recover-session/SKILL.md
-│   ├── github-workflow/
-│   │   ├── SKILL.md
-│   │   └── reference/pr-body.md      # gabarit du corps de PR
-│   ├── debug-project/SKILL.md
 │   ├── update-project/
 │   │   ├── SKILL.md
 │   │   └── reference/deps-report.md  # gabarit du rapport avant/après
-│   ├── adopt-existing-project/
-│   │   ├── SKILL.md
-│   │   └── reference/divergences.md  # grille et format des divergences
-│   ├── release-project/SKILL.md      # (v0.4)
-│   └── optimize-usage/SKILL.md       # (v0.4)
+│   └── adopt-existing-project/
+│       ├── SKILL.md
+│       └── reference/divergences.md  # grille et format des divergences
 ├── hooks/
 │   ├── hooks.json
 │   └── scripts/
-│       ├── guard-destructive.sh
 │       ├── agent-scope-guard.sh
 │       ├── format-dart.sh
-│       ├── checkpoint-reminder.sh
-│       ├── secret-scan.sh
-│       ├── protect-sensitive.sh
-│       └── lib/shell-lexer.sh        # analyseur partagé par les gardes
+│       └── lib/shell-lexer.sh        # analyseur de commandes d'agent-scope-guard
 ├── templates/
-│   ├── project-settings.json     # permissions proposées au projet
-│   ├── forge-config.yaml         # préautorisations par défaut (tout à false)
-│   ├── checkpoint.md
-│   └── github-workflows/flutter-ci.yml  # CI copiée par github-workflow
+│   ├── forge-config.yaml         # .forge/config.yaml au schéma 2 de l'orchestrateur, partie Flutter remplie
+│   ├── checkpoint.md             # copie du format de l'orchestrateur
+│   ├── project-settings.json     # règles génériques de l'orchestrateur + règles Flutter
+│   ├── permissions-fragment.json # règles Flutter seules, rendues par le scaffold
+│   ├── doc-templates/            # TRD, IMPLEMENTATION_PLAN, DECISIONS, CLAUDE
+│   └── github-workflows/flutter-ci.yml  # CI posée sur le mandat ci-template
 ├── tests/
 │   ├── run-all.sh
-│   ├── static/                  # manifeste, frontmatter, chemins, contenu des skills, docs
+│   ├── static/                  # manifeste, frontmatter, chemins, agents, skills, gabarits, docs
 │   ├── hooks/                   # tests des scripts avec entrées JSON simulées
-│   └── scenarios/               # scénarios comportementaux pas à pas
+│   └── scenarios/               # scénarios comportementaux pas à pas, avec l'orchestrateur
 ├── docs/
 │   ├── INSTALLATION.md
 │   ├── USER_GUIDE.md
@@ -102,11 +89,12 @@ plugin-flutter/
 └── LICENSE                      # MIT
 ```
 
-Les skills et hooks référencent les fichiers du plugin via la variable `${CLAUDE_PLUGIN_ROOT}`, jamais par chemin absolu :
+Les skills, les agents et les hooks référencent les fichiers du plugin via la variable `${CLAUDE_PLUGIN_ROOT}`, jamais par chemin absolu :
 
 - dans `hooks.json`, elle est substituée dans `command` et `args`, et exportée dans l'environnement du script ;
 - dans un `SKILL.md` ou un agent, elle est substituée dans le corps Markdown au chargement, si bien que Claude reçoit un chemin absolu ;
-- elle n'existe **pas** dans l'environnement des commandes Bash de Claude, ni dans les fichiers annexes lus par `Read` : ces fichiers (gabarits de `reference/doc-templates/`) ne la contiennent donc pas.
+- elle n'existe **pas** dans l'environnement des commandes Bash de Claude, ni dans les fichiers annexes lus par `Read` : ces fichiers (gabarits) ne la contiennent donc pas ;
+- elle ne désigne que **ce** plugin : un skill de plugin-flutter ne peut pas lire un gabarit de l'orchestrateur, ni l'inverse. D'où les copies de `templates/` (D47) et le lexer gardé (D45).
 
 La racine du plugin change à chaque mise à jour d'une installation distante : aucun état n'y est écrit. L'état vit dans `<projet>/.forge/`.
 
@@ -114,20 +102,20 @@ Pas de `CLAUDE.md` à la racine du plugin : il ne serait pas chargé, et déclen
 
 ## Manifeste et distribution
 
-Le plugin est publié dans le dépôt public `soonlysoul/plugin-flutter` et distribué par la marketplace `soon` (dépôt public `soonlysoul/claude-plugins`), qui le référence en source `github`. Le dossier du plugin reste aussi une marketplace locale, `plugin-flutter`, pour le développement. Champs vérifiés en phase A (rapport, §3.1).
+Le plugin est publié dans le dépôt public `soonlysoul/plugin-flutter` et distribué par la marketplace `soon` (dépôt public `soonlysoul/claude-plugins`), qui le référence en source `github`, comme plugin-orchestrator. Le dossier du plugin reste aussi une marketplace locale, `plugin-flutter`, pour le développement. Champs vérifiés en phase A (rapport, §3.1).
 
 `.claude-plugin/plugin.json` :
 
 ```json
 {
   "name": "plugin-flutter",
-  "version": "0.3.0",
-  "description": "Flutter/Dart project workflows: bootstrap, adoption of an existing app, TDD features, dependency updates, Git hygiene, session recovery, GitHub pull requests and CI, debugging.",
+  "version": "1.0.0",
+  "description": "Flutter/Dart language plugin of plugin-orchestrator: scaffold of a Flutter app, tests, review, architecture, builds and CI by mandate at interface 1, dependency updates, adoption of an existing app.",
   "author": { "name": "Soon" },
   "homepage": "https://github.com/soonlysoul/plugin-flutter",
   "repository": "https://github.com/soonlysoul/plugin-flutter",
   "license": "MIT",
-  "keywords": ["flutter", "dart", "tdd", "git", "github", "ci", "dependencies"]
+  "keywords": ["flutter", "dart", "tdd", "ci", "dependencies", "plugin-orchestrator"]
 }
 ```
 
@@ -135,6 +123,7 @@ Le plugin est publié dans le dépôt public `soonlysoul/plugin-flutter` et dist
 - Un champ inconnu est retiré au chargement et signalé.
 - `homepage` et `repository` pointent vers le dépôt GitHub, qui doit exister : une URL invalide empêche le chargement du plugin.
 - `version` est ignorée pour une marketplace locale, dont le plugin est lu sur place. Depuis la marketplace `soon`, elle décide des mises à jour : un appareil ne reçoit une nouvelle copie que si `version` change. Elle est donc augmentée à chaque release, et ne figure pas dans l'entrée de la marketplace.
+- Aucun champ ne déclare la dépendance à plugin-orchestrator : le modèle les exclut (Claude Code 2.1.309 connaît des « dépendances auto-installées », `claude plugin prune`, non retenues). L'installation des deux est une consigne des docs, et chaque côté vérifie l'autre à l'exécution.
 
 `.claude-plugin/marketplace.json` déclare la marketplace locale `plugin-flutter` (propriétaire `Soon`), qui contient ce seul plugin. L'entrée s'écrit `"source": "./"`, avec le même `name` que `plugin.json`, sans répéter `version`.
 
@@ -142,22 +131,35 @@ Cycle de vie (vérifié en phase A, rapport §3.2). `/plugin` n'existe qu'en ses
 
 | Étape | En session | En shell |
 | --- | --- | --- |
-| Test sans installation | — | `claude --plugin-dir <chemin>` (plugin `@inline`, pour la session seule) |
+| Test sans installation | — | `claude --plugin-dir <plugin-flutter> --plugin-dir <plugin-orchestrator>` (plugins `@inline`, pour la session seule ; l'option se répète) |
 | Ajouter la marketplace | `/plugin marketplace add soonlysoul/claude-plugins` (locale : `<chemin>`) | `claude plugin marketplace add soonlysoul/claude-plugins [--scope user\|project\|local]` |
-| Installer | `/plugin install plugin-flutter@soon` (locale : `plugin-flutter@plugin-flutter`) | `claude plugin install plugin-flutter@soon [-s user\|project\|local]` |
+| Installer | `/plugin install plugin-orchestrator@soon`, puis `plugin-flutter@soon` (locale : `plugin-flutter@plugin-flutter`) | `claude plugin install plugin-orchestrator@soon` et `plugin-flutter@soon` `[-s user\|project\|local]` |
 | Mettre à jour (marketplace locale) | `/reload-plugins` : le plugin est lu sur place, rien à réinstaller | redémarrer la session |
 | Mettre à jour (marketplace `soon`) | `/plugin marketplace update soon` | `claude plugin marketplace update soon`, puis `claude plugin update plugin-flutter@soon` |
 | Désinstaller | `/plugin uninstall plugin-flutter` | `claude plugin uninstall plugin-flutter@soon [-s …]` ; `claude plugin marketplace remove soon` retire aussi la marketplace |
 | Valider | — | `claude plugin validate . --strict` (0 réussi, 1 échec, 2 erreur du validateur) |
 | Inventaire et coût | — | `claude plugin details plugin-flutter` |
 
-Versionnage SemVer : patch pour une correction de consigne, minor pour un skill ou agent ajouté, major pour un changement de format de `.forge/` qui casse la reprise.
+Versionnage SemVer : patch pour une correction de consigne, minor pour un skill ou agent ajouté, major pour un changement de format de `.forge/` qui casse la reprise ou d'interface de délégation — la 1.0 change les deux.
 
 ## Orchestration
 
-La session principale est le seul chef d'orchestre : elle charge les skills, délègue des tâches bornées aux agents, et porte toutes les validations, car un agent ne peut ni dialoguer avec l'utilisateur ni lancer d'autres agents.
+La session principale est le seul chef d'orchestre : elle charge les skills — ceux de l'orchestrateur pour les workflows transversaux, ceux de plugin-flutter pour les dépendances et l'adoption —, envoie des mandats aux agents, et porte toutes les validations, car un agent ne peut ni dialoguer avec l'utilisateur ni lancer d'autres agents.
 
-&#91;embedded content: orchestration · 6 composants, 3 couches\]
+Contrat de délégation, interface 1 (spécification : `docs/ARCHITECTURE.md` de plugin-orchestrator, « Contrat de délégation », et les `reference/` de ses skills) :
+
+- **Mandat entrant** : `interface: 1`, la tâche, la partie (`path`, `plugin`), les critères visés, le périmètre déclaré, puis les entrées propres à la tâche.
+- **Rapport sortant** : les sections propres à la tâche, puis la queue commune `INTERFACE: 1`, `STATUS`, `FILES_CHANGED`, `COMMANDS_RUN`, `OPEN_QUESTIONS`. L'orchestrateur arrête le workflow sur une ligne `INTERFACE` absente ou différente, en nommant le plugin à mettre à jour.
+- **Autre interface** : un agent de plugin-flutter qui reçoit un mandat d'une autre interface ne l'exécute pas, rend `STATUS: blocked` et le dit, sans rien écrire (D48).
+
+| Workflow de l'orchestrateur | Mandat | Agent de plugin-flutter |
+| --- | --- | --- |
+| `bootstrap-project` | `scaffold` | scaffold-engineer |
+| `create-feature` | `write-tests`, `check-dependency`, `review` | test-engineer, flutter-architect, code-reviewer |
+| `debug-project` | `diagnose`, `write-tests` (un test de non-régression), `review` | flutter-architect, test-engineer, code-reviewer |
+| `github-workflow` | `ci-template`, `build`, `ci-diagnosis`, `workflow-change` | devops-engineer |
+
+`adopt-existing-project` mandate, dans l'autre sens, `plugin-orchestrator:product-architect` (task `reconstruct`) puis le flutter-architect, chacun à l'interface 1 : la dépendance est bidirectionnelle.
 
 Règles de délégation :
 
@@ -165,7 +167,7 @@ Règles de délégation :
 - Les agents s'exécutent l'un après l'autre sur un même dépôt. Un parallélisme éventuel passe par des worktrees Git séparés, jamais sur les mêmes fichiers.
 - En session interactive, un sous-agent tourne en arrière-plan par défaut : son rapport arrive par notification, au tour suivant. La session principale attend ce rapport avant l'étape qui en dépend, et n'écrit rien en parallèle.
 - Un agent ne liste jamais `Agent` dans ses outils : il ne peut donc pas lancer d'autre agent. `AskUserQuestion` ne lui est jamais offert.
-- La racine du projet, pour les hooks comme pour les règles de permission, est le dossier où la session a été lancée (`CLAUDE_PROJECT_DIR`). bootstrap-project crée donc de préférence le projet dans le dossier courant, s'il est vide. S'il le crée dans un sous-dossier, il rédige lui-même le TRD, et create-feature exige une nouvelle session ouverte à la racine du projet.
+- La racine du projet, pour les hooks comme pour les règles de permission, est le dossier où la session a été lancée (`CLAUDE_PROJECT_DIR`). Le scaffold-engineer ne crée donc l'app que dans ce dossier ; un projet demandé dans un sous-dossier le fait rendre `blocked`, repris par une nouvelle session ouverte dans ce dossier.
 - Le code-reviewer ne reçoit que le diff et les exigences, pas le raisonnement de l'implémentation, pour que sa relecture reste indépendante.
 - Chaque rapport d'agent est vérifié par la session principale (commandes relancées si besoin) avant d'être présenté comme un fait.
 
@@ -179,54 +181,50 @@ Ce que le frontmatter peut et ne peut pas exprimer (vérifié en phase A, rappor
 - `permissionMode`, `hooks` et `mcpServers` sont ignorés pour un agent de plugin.
 - Un frontmatter illisible se charge « avec tous les champs ignorés », donc avec tous les outils, sans message. Le test statique du frontmatter est strict pour cette raison.
 
-Les limites fines (dossiers d'écriture, liste blanche Bash) sont imposées par le hook **agent-scope-guard**, qui reçoit `agent_type` (`plugin-flutter:<agent>`).
+Les limites fines (dossiers et fichiers d'écriture, liste blanche Bash) sont imposées par le hook **agent-scope-guard**, qui reçoit `agent_type` (`plugin-flutter:<agent>`).
 
 « Git en lecture » désigne `git status`, `git log`, `git diff`, `git show`, `git ls-files`, `git rev-parse` et `git branch --show-current`.
 
-| Agent | Version | `tools` (frontmatter) | Limites imposées par agent-scope-guard | `model` | Reçoit | Rend |
+| Agent | Version | `tools` (frontmatter) | Limites imposées par agent-scope-guard | `model` | Mandats (interface 1) | Rend, avant la queue commune |
 | --- | --- | --- | --- | --- | --- | --- |
-| flutter-architect | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `docs/` ; Bash limité à `flutter --version`, `dart --version`, `dart pub deps`, `flutter pub deps`, et git en lecture | `inherit` | Besoin, code existant, PRD | TRD, décisions ADR dans DECISIONS.md, liste de dépendances justifiées |
-| test-engineer | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `test/` et `integration_test/` ; Bash limité à `flutter test`, `dart test`, et git en lecture | `sonnet` | Critères d'acceptation, plan de la feature | Tests écrits, sortie brute de l'exécution ROUGE, liste des cas limites |
-| code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | Diff de la branche, exigences liées | Constats priorisés (bloquant / important / mineur) avec fichier:ligne ; DOCS_TO_UPDATE ; DIVERGENCES entre docs et diff (D40) |
-| product-architect | v0.3 | Read, Grep, Glob, Write, Edit — pas de Bash | Écriture limitée à `docs/product/` ; aucune commande | `inherit` | Description du besoin (tâche `draft`), ou code d'une app adoptée (tâche `reconstruct`) | `docs/product/PRD.md` en DRAFT, critères AC-xxx numérotés, testables, jamais renumérotés ; bloc ACCEPTANCE_CRITERIA |
-| devops-engineer | v0.2 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `.github/` ; Bash limité à `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status` (sans `--show-token`), `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, `git remote -v` et git en lecture ; option `-o`/`--output` refusée | `sonnet` | Tâche `build`, `ci-diagnosis` ou `workflow-change` ; plateformes activées ; branche, PR ou run | Tableau BUILDS par plateforme ; classe d'un échec de CI avec ses lignes de journal et le correctif à faire |
+| scaffold-engineer | v1.0 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `lib/`, `test/`, `integration_test/`, `docs/technical/` et au fichier racine `analysis_options.yaml` ; Bash limité à `flutter create <options> .` (dernier mot `.`, jamais `--overwrite`), `flutter --version`, `flutter devices`, `flutter doctor`, `flutter pub get`, `flutter test`, `flutter analyze`, et git en lecture | `sonnet` | `scaffold` (bootstrap-project de l'orchestrateur) | SCAFFOLD, TOOLCHAIN (lignes de `templates/forge-config.yaml`), PERMISSIONS (`templates/permissions-fragment.json`), VERSIONS, TARGETS |
+| flutter-architect | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `docs/` ; Bash limité à `flutter --version`, `flutter doctor`, `dart --version`, `dart pub deps`, `flutter pub deps`, et git en lecture | `inherit` | `check-dependency` (create-feature), `diagnose` (debug-project), tâche d'architecture (adoption, ou à la demande) | DEPENDENCY et ADR, ou DIAGNOSIS et FIX_DIRECTION (rien d'écrit) ; TRD et ADR dans DECISIONS.md pour l'architecture |
+| test-engineer | v0.1 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `test/` et `integration_test/` ; Bash limité à `flutter test`, `dart test`, et git en lecture | `sonnet` | `write-tests` (create-feature ; un test `regression: …` pour debug-project) | TESTS_WRITTEN, EDGE_CASES, RED_OUTPUT |
+| code-reviewer | v0.1 | Read, Grep, Glob, Bash — aucune écriture | Aucune écriture ; Bash limité à `git diff`, `git log`, `git show`, `git status`, `flutter analyze`, `dart analyze` | `sonnet` | `review` (create-feature ; debug-project, avec la cause racine) | FINDINGS (bloquant / important / mineur, fichier:ligne), DOCS_TO_UPDATE, DIVERGENCES (D40) |
+| devops-engineer | v0.2 | Read, Grep, Glob, Bash, Write, Edit | Écriture limitée à `.github/` ; Bash limité à `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`, `gh auth status` (sans `--show-token`), `gh run list\|view\|watch`, `gh pr checks\|view`, `gh workflow list\|view`, `gh repo view`, `git remote -v` et git en lecture ; option `-o`/`--output` refusée | `sonnet` | `ci-template`, `build`, `ci-diagnosis`, `workflow-change` (github-workflow) | BUILDS par plateforme ; CI : run, classe d'un échec avec ses lignes de journal, correctif |
 
-devops-engineer ne pousse pas, n'ouvre ni ne modifie de PR, ne relance ni ne démarre de workflow, ne télécharge pas d'artefact et n'appelle pas `gh api` : ces actions changent le dépôt distant ou consomment des minutes, et restent dans la session principale, derrière un point de validation (D16). Le fichier CI initial est écrit par la session principale depuis le gabarit, une copie courte ; l'agent sert aux journaux longs (D17).
+Chaque rapport finit par la queue commune du contrat : `INTERFACE: 1`, `STATUS` (done / blocked / partial), `FILES_CHANGED`, `COMMANDS_RUN` avec code de sortie, `OPEN_QUESTIONS` (D48). Les plateformes viennent de `parts.<partie>.platforms` de `.forge/config.yaml`.
 
-product-architect ne décide ni l'architecture, ni les dépendances, ni les plateformes, qui restent au flutter-architect. Il est délégué par adopt-existing-project, et par bootstrap-project quand le besoin fourni est long ; create-feature écrit lui-même un AC isolé (D39).
+scaffold-engineer (D46) crée l'app dans le dossier de la session seulement : ses limites d'écriture comptent depuis là, et un projet demandé ailleurs le fait rendre `blocked`. Il écrit le TRD de la partie depuis `templates/doc-templates/TRD.md`, jamais ce que l'orchestrateur garde à la racine (`.forge/`, `docs/product/`, `docs/engineering/`, `CLAUDE.md`, les motifs de secret de `.gitignore`) ; `flutter create .` écrit lui-même le `.gitignore`, `README.md` et `pubspec.yaml` racine, que le rapport liste et que l'orchestrateur 0.1.1 accepte. Il ne pose pas de CI (le mandat `ci-template` vient après le point de validation de github-workflow, avec son coût) et ne builde rien : ses cibles sont `enabled`.
 
-Les agents v0.4 du tableau ci-dessous suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
+devops-engineer ne pousse pas, n'ouvre ni ne modifie de PR, ne relance ni ne démarre de workflow, ne télécharge pas d'artefact et n'appelle pas `gh api` : ces actions changent le dépôt distant ou consomment des minutes, et restent dans la session principale, derrière un point de validation (D16). Sur `ci-template`, il remplit `templates/github-workflows/flutter-ci.yml` (version locale de Flutter, branche par défaut) et l'écrit au fichier que le mandat nomme ; l'écriture demande confirmation (protect-sensitive de l'orchestrateur), et un refus lui fait rendre la commande à lancer par l'utilisateur.
+
+Les agents à venir suivront la même règle : `tools` dans le frontmatter, limites fines dans agent-scope-guard.
 
 | Agent | Version | Outils autorisés | Reçoit | Rend |
 | --- | --- | --- | --- | --- |
-| ui-ux-engineer | v0.4 | Read, Write limité à `docs/design/` et `lib/ui/` | PRD, APPFLOW | Spécification UI, états d'erreur, points d'accessibilité |
+| ui-ux-engineer | à réévaluer | Read, Write limité à `docs/design/` et `lib/ui/` | PRD, APPFLOW | Spécification UI, états d'erreur, points d'accessibilité |
 
-Deux couches se complètent : agent-scope-guard refuse l'appel d'outil hors périmètre ; le code-reviewer compare ensuite `git diff --name-only` au périmètre déclaré, car une commande Bash autorisée (`flutter test`) peut encore produire des fichiers.
-
-Chaque agent termine par un rapport au format fixe : `STATUS` (done / blocked / partial), `FILES_CHANGED`, `COMMANDS_RUN` avec code de sortie, `OPEN_QUESTIONS`.
+Deux couches se complètent : agent-scope-guard refuse l'appel d'outil hors périmètre ; la session principale compare ensuite `FILES_CHANGED` à `git status --porcelain`, et le code-reviewer `git diff --name-only` au périmètre déclaré, car une commande Bash autorisée (`flutter test`, `flutter create`) peut encore produire des fichiers.
 
 ## Skills
 
-Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/plugin-flutter:<nom>` ou chargé automatiquement quand sa `description` correspond à la demande. La description doit donc dire précisément quand l'utiliser. Chaque skill écrit le checkpoint à chaque étape terminée.
+Un skill est un dossier `skills/<nom>/SKILL.md` invoqué par `/plugin-flutter:<nom>` ou chargé automatiquement quand sa `description` correspond à la demande. La description doit donc dire précisément quand l'utiliser. Chaque skill écrit le checkpoint à chaque étape terminée, au format de l'orchestrateur (`templates/checkpoint.md`, copie).
 
 | Skill | Version | Déclencheur | Points de validation obligatoires | Produit |
 | --- | --- | --- | --- | --- |
-| bootstrap-project | v0.1 | Créer une nouvelle app | Nom, package id, plateformes, périmètre ; approbation du PRD/TRD avant le code | Squelette `flutter create`, Git initialisé, docs socle, test de base vert, `.forge/` |
-| create-feature | v0.1 | Ajouter une fonctionnalité | Plan de la feature si périmètre, architecture ou dépendance nouvelle | Branche, tests, code, revue, docs mises à jour, commit préparé |
-| git-workflow | v0.1 | Brancher, committer, vérifier un diff | Toute opération hors liste blanche | Branche nommée, commits atomiques, rapport de diff |
-| recover-session | v0.1 | Reprendre un travail | Aucune (lecture seule jusqu'au résumé) | Résumé de reprise + prochaine étape proposée |
-| github-workflow | v0.2 | Dépôt distant, issue, PR, CI | Création de dépôt (propriétaire, nom, visibilité, à chaque fois), ajout de la CI (avec son coût), PR et push si non préautorisés, relance de CI sur dépôt privé ; jamais de fusion | PR avec résumé, AC, risques, tests en quatre catégories, plateformes en trois états ; état des checks |
-| debug-project | v0.2 | Erreur de build, d'analyse ou test rouge inattendu, CI rouge | Modification hors du périmètre de l'erreur | Cause racine prouvée, test de non-régression ROUGE puis VERT, correctif minimal, commit `fix(…)` |
 | update-project | v0.3 | Mettre à jour Flutter ou dépendances | Plan de lots, toujours, avec chaque majeure et son changelog ; référence rouge ; lock périmé ; plateforme perdue par un plugin ; migration hors des fichiers qui importent le paquet ; abandon d'un lot ; changement de SDK (fait par l'utilisateur) | Branche `chore/deps-<slug>`, un commit par lot avec `pubspec.yaml`, `pubspec.lock` et registres de plugins, ADR par majeure, rapport `.forge/reports/deps-<date>-<slug>.md` |
-| adopt-existing-project | v0.3 | Prendre en main un projet Flutter existant, sans `.forge/` | Plan de mise en conformité, approuvé item par item ; chaque fichier existant modifié, approuvé séparément ; fichier suivi changé par la résolution | Branche `chore/adopt-plugin-flutter`, `.forge/`, PRD, TRD, DECISIONS et plan reconstruits en DRAFT, `.forge/reports/divergences-<date>.md` |
-| release-project | v0.4 | Préparer une release | Toute publication, tag poussé, signature | Notes de version, builds vérifiés par plateforme |
-| optimize-usage | v0.4 | Session longue ou coûteuse | Aucune | Recommandations ; résumé de contexte compact |
+| adopt-existing-project | v0.3 | Prendre en main un projet Flutter existant, sans `.forge/` | Plan de mise en conformité, approuvé item par item ; chaque fichier existant modifié, approuvé séparément ; fichier suivi changé par la résolution | Branche `chore/adopt-plugin-flutter`, `.forge/` au schéma 2, PRD, TRD, DECISIONS et plan reconstruits en DRAFT, `.forge/reports/divergences-<date>.md` |
 
-update-project (D31 à D35) part d'une référence : `flutter pub get --enforce-lockfile`, puis `flutter analyze` et `flutter test`. L'inventaire vient de `flutter pub outdated --json`, qui ne modifie aucun fichier et sort en 0 même avec des paquets en retard. Chaque dépendance directe est classée compatible (`upgradable` plus récente), majeure (`resolvable` change la version majeure, ou la mineure sous 1.0), retenue (`latest` hors d'atteinte, souvent à cause du SDK ; `flutter pub add --dry-run '<paquet>:^<latest>'` nomme ce qui la retient, sans rien modifier) ou signalée (avis de sécurité, version retirée, paquet abandonné). Un lock périmé est d'abord resynchronisé dans son propre commit (lock et registres de plugins régénérés), sur la branche, après accord ; le rapport part de ce commit. Quand la demande nomme des paquets, les lots ne déplacent qu'eux (`flutter pub upgrade <paquet>`). Lots : les paquets signalés, puis `flutter pub upgrade` pour tout le compatible, puis un lot par majeure avec `flutter pub upgrade --major-versions <paquet>`. Après chaque lot : fichiers attendus seulement, `CHANGELOG.md` lu dans le cache pub pour une majeure, plateformes d'un plugin comparées à `platforms.enabled`, analyse et tests, commit. Un lot abandonné est restauré en entier, code migré compris, par l'utilisateur (`! git restore …`), puis l'analyse et les tests sont comparés à la référence. Le « après » du rapport vient de `flutter pub outdated --json --show-all`, sans quoi les paquets mis à jour, désormais à jour, disparaîtraient. Le SDK n'est jamais changé par Claude : `flutter upgrade`, `downgrade` et `channel` demandent confirmation dans les règles du projet, et sous Nix (`flutterRoot` dans `/nix/store/`) la version vient de la configuration Nix de l'utilisateur. Après un changement de SDK, le skill rappelle la ligne `flutter-version` de `.github/workflows/ci.yml`.
+Les six workflows transversaux de la v0.3 (bootstrap-project, create-feature, git-workflow, recover-session, github-workflow, debug-project) sont ceux de plugin-orchestrator depuis la 1.0 (D44) : le squelette d'une app y devient le mandat `scaffold`, les tests, la revue, la dépendance et le diagnostic des mandats aux agents ci-dessus, les commandes mécaniques des clés de `toolchain`.
 
-adopt-existing-project (D37, D38) ne modifie rien avant l'accord : ses étapes 1 à 4 sont en lecture seule, prouvée par un `git status --porcelain --untracked-files=all` vide avant et après. Il s'arrête hors d'un dépôt Git (le premier commit d'un arbre existant appartient à l'utilisateur), sur toute modification non commitée, et hors de la branche principale ; une adoption interrompue reprend depuis son checkpoint. La phase A a montré qu'un `flutter analyze` nu, qui lance `pub get`, réécrit un `pubspec.lock` périmé, et la revue que `flutter pub deps` fait de même : la référence passe donc par `flutter pub get --enforce-lockfile` (exit 65 sur un lock périmé, 1 sans lock, sans rien écrire), puis `flutter analyze --no-pub` et `flutter test --no-pub`, et `flutter pub deps` n'est lancé, par la session ou par flutter-architect, que sur un lock à jour. Après accord, product-architect reconstruit le PRD (tâche `reconstruct`) et flutter-architect le TRD et les ADR (une par dépendance directe, une par écart aux choix par défaut : état, navigation, organisation, toutes annoncées par le plan), l'un après l'autre ; un document existant est gardé et référencé, jamais remplacé, et aucun code n'est déplacé. Le checkpoint est écrit avant `.forge/config.yaml`, avec la référence de l'étape 2, pour qu'une adoption interrompue reprenne avec ce qu'il lui faut. L'écriture de `.forge/config.yaml` demande confirmation (protect-sensitive) : refusée, elle devient une commande à lancer par l'utilisateur, comme pour bootstrap-project. L'adoption vit sur sa branche jusqu'à la fusion, qui revient à l'utilisateur : par une PR de github-workflow si la référence était propre (lock, format, analyse, tests), sinon par une PR ou une fusion locale qu'il fait lui-même.
+**Vérification de l'orchestrateur** (D50), première étape des deux skills : sans skill `plugin-orchestrator:…` dans la session, arrêt avant tout, rien changé, plugin-orchestrator 0.1.0 ou plus nommé avec sa commande d'installation. update-project exige ensuite `.forge/config.yaml` au schéma 2, avec une partie `plugin: plugin-flutter` en `interface: 1` et `path: .` ; un fichier sans `parts` (plugin-flutter 0.x) l'arrête sur le bloc `parts` de `templates/forge-config.yaml` à ajouter, que l'utilisateur édite. Les deux renvoient au `git-workflow`, au `debug-project` et au `github-workflow` de l'orchestrateur, écrits `plugin-orchestrator:<nom>`.
 
-La détection des divergences docs/code est un contrôle de jugement, pas un hook (D28) : une étape d'adopt-existing-project, guidée par `reference/divergences.md` (dépendances, critères, plan, README, plateformes, toolchain, lockfile, structure, analyse, tests, secrets), et le bloc DIVERGENCES du code-reviewer à chaque revue (D40) : dépendance ajoutée ou passée à une majeure sans ADR, critère visé sans test ou test citant un AC absent du PRD, plan contredit par le diff. create-feature le traite à l'étape 14 ; debug-project le reporte.
+update-project (D31 à D35) part d'une référence : `flutter pub get --enforce-lockfile`, puis `flutter analyze` et `flutter test`. L'inventaire vient de `flutter pub outdated --json`, qui ne modifie aucun fichier et sort en 0 même avec des paquets en retard. Chaque dépendance directe est classée compatible (`upgradable` plus récente), majeure (`resolvable` change la version majeure, ou la mineure sous 1.0), retenue (`latest` hors d'atteinte, souvent à cause du SDK ; `flutter pub add --dry-run '<paquet>:^<latest>'` nomme ce qui la retient, sans rien modifier) ou signalée (avis de sécurité, version retirée, paquet abandonné). Un lock périmé est d'abord resynchronisé dans son propre commit (lock et registres de plugins régénérés), sur la branche, après accord ; le rapport part de ce commit. Quand la demande nomme des paquets, les lots ne déplacent qu'eux (`flutter pub upgrade <paquet>`). Lots : les paquets signalés, puis `flutter pub upgrade` pour tout le compatible, puis un lot par majeure avec `flutter pub upgrade --major-versions <paquet>`. Après chaque lot : fichiers attendus seulement, `CHANGELOG.md` lu dans le cache pub pour une majeure, plateformes d'un plugin comparées aux `platforms` de la partie, analyse et tests, commit. Un lot abandonné est restauré en entier, code migré compris, par l'utilisateur (`! git restore …`), puis l'analyse et les tests sont comparés à la référence. Le « après » du rapport vient de `flutter pub outdated --json --show-all`, sans quoi les paquets mis à jour, désormais à jour, disparaîtraient. Le SDK n'est jamais changé par Claude : `flutter upgrade`, `downgrade` et `channel` demandent confirmation dans les règles du projet, et sous Nix (`flutterRoot` dans `/nix/store/`) la version vient de la configuration Nix de l'utilisateur. Après un changement de SDK, le skill rappelle la ligne `flutter-version` de `.github/workflows/ci.yml`.
+
+adopt-existing-project (D37, D38) ne modifie rien avant l'accord : ses étapes 1 à 4 sont en lecture seule, prouvée par un `git status --porcelain --untracked-files=all` vide avant et après. Il s'arrête hors d'un dépôt Git (le premier commit d'un arbre existant appartient à l'utilisateur), sur toute modification non commitée, et hors de la branche principale ; une adoption interrompue reprend depuis son checkpoint. La phase A a montré qu'un `flutter analyze` nu, qui lance `pub get`, réécrit un `pubspec.lock` périmé, et la revue que `flutter pub deps` fait de même : la référence passe donc par `flutter pub get --enforce-lockfile` (exit 65 sur un lock périmé, 1 sans lock, sans rien écrire), puis `flutter analyze --no-pub` et `flutter test --no-pub`, et `flutter pub deps` n'est lancé, par la session ou par flutter-architect, que sur un lock à jour. Après accord, la branche est créée par le skill lui-même (le git-workflow de l'orchestrateur lit `.forge/config.yaml`, absent à ce moment) ; `plugin-orchestrator:product-architect` reconstruit le PRD (tâche `reconstruct`) et flutter-architect le TRD et les ADR (une par dépendance directe, une par écart aux choix par défaut : état, navigation, organisation, toutes annoncées par le plan), l'un après l'autre, chacun à l'interface 1 ; un document existant est gardé et référencé, jamais remplacé, et aucun code n'est déplacé. Le checkpoint est écrit avant `.forge/config.yaml`, avec la référence de l'étape 2, pour qu'une adoption interrompue reprenne avec ce qu'il lui faut. L'écriture de `.forge/config.yaml` demande confirmation (protect-sensitive) : refusée, elle devient une commande à lancer par l'utilisateur. L'adoption vit sur sa branche jusqu'à la fusion, qui revient à l'utilisateur : par une PR du github-workflow de l'orchestrateur si la référence était propre (lock, format, analyse, tests), sinon par une PR ou une fusion locale qu'il fait lui-même. Aucun document n'est approuvé par le skill : l'approbation passe par l'orchestrateur (`orch.sh approve`), qui en consigne l'empreinte.
+
+La détection des divergences docs/code est un contrôle de jugement, pas un hook (D28) : une étape d'adopt-existing-project, guidée par `reference/divergences.md` (dépendances, critères, plan, README, plateformes, toolchain, lockfile, structure, analyse, tests, secrets), et le bloc DIVERGENCES du code-reviewer à chaque revue (D40) : dépendance ajoutée ou passée à une majeure sans ADR, critère visé sans test ou test citant un AC absent du PRD, plan contredit par le diff. L'étape docs du create-feature de l'orchestrateur le traite.
 
 Règle commune : un skill ne déclare jamais une étape réussie sans la sortie de la commande correspondante. Après deux échecs identiques d'une même commande, il s'arrête, écrit le checkpoint et expose le blocage au lieu de réessayer.
 
@@ -241,79 +239,40 @@ Les hooks sont déclarés dans `hooks/hooks.json` et exécutent des scripts bash
 Règles de mise en œuvre (vérifiées en phase A, rapport §3.5) :
 
 - **Bloquer** : `exit 2`, la raison sur stderr, transmise à Claude. Un `exit 1` est une erreur **non bloquante** : la commande passe.
-- **Fail-closed** : le script sort en 2 sur toute erreur interne (`jq` absent, JSON illisible), **et** le hook déclare `"onFailure": "block"`, qui couvre aussi un script introuvable, un plantage et un dépassement de délai. Ce champ exige Claude Code 2.1.295 ou plus.
+- **Fail-closed** : le script sort en 2 sur toute erreur interne (`jq` absent, JSON illisible, lexer manquant), **et** le hook déclare `"onFailure": "block"`, qui couvre aussi un script introuvable, un plantage et un dépassement de délai. Ce champ exige Claude Code 2.1.295 ou plus.
 - **Fail-open** : le script sort toujours en 0, et le hook déclare `"onFailure": "continue"`.
 - **Forme exec** : `"command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<script>.sh"]`. Sans shell, ni guillemets, ni bit exécutable, ni shebang ne comptent ; cela règle aussi l'absence de `/bin/bash` sous NixOS. Les scripts gardent `#!/usr/bin/env bash` pour être lancés directement par les tests.
-- **Portée** : les hooks d'un plugin se déclenchent dans **toutes** les sessions où il est activé, sous-agents compris. Chaque hook reste donc inerte hors de son contexte : fichier `.dart`, présence de `.forge/`, agent du plugin.
+- **Portée** : les hooks d'un plugin se déclenchent dans **toutes** les sessions où il est activé, sous-agents compris. Chaque hook reste donc inerte hors de son contexte : fichier `.dart`, agent du plugin.
 - **Entrée** : `tool_input.command` pour Bash, PowerShell et Monitor (un appel Monitor en mode WebSocket porte `ws` à la place, et passe) ; `tool_input.file_path`, toujours absolu, pour Write et Edit ; `tool_input.notebook_path` pour NotebookEdit.
 
 | Hook | Événement | Filtre | Comportement | En cas d'erreur du script |
 | --- | --- | --- | --- | --- |
-| guard-destructive | PreToolUse | `Bash\|PowerShell\|Monitor` | Bloque : `git reset --hard` ; `git clean` avec `-f`/`--force` ; `git push` avec `-f`, `--force`, `--force-with-lease` ou `--force-if-includes` à n'importe quelle position, une refspec `+ref`, `--delete`/`-d` ou une refspec `:ref`, `--mirror`, `--tags`/`--follow-tags` ou une refspec `refs/tags/…` ; `git branch -D` et `--delete --force` ; `git checkout -- <chemin>`, `git checkout .` et `--force` ; `git restore` hors `--staged` seul ; `git stash drop` et `git stash clear` ; `git switch --discard-changes`/`-f` ; `rm` récursif et forcé (`-rf`, `-fr`, `-Rf`, `-r -f`, `--recursive --force`) hors `build/`, ou sans cible visible (`xargs`) ; `gh repo delete` ; `gh repo edit` avec `--visibility` ; `gh pr merge` ; `gh release create\|edit\|upload\|delete\|delete-asset` ; `gh api -X DELETE` ; `flutter pub publish` et `dart pub publish`, sauf `--dry-run`. L'analyse découpe la commande (`;`, `&&`, `\|`, sauts de ligne), ignore le texte cité, passe les préfixes (`VAR=…`, `sudo`, `env`, `command`, `nohup`, `timeout`, `nice`, `xargs`) et descend dans `bash -c`, `eval`, `$(…)`, les accents graves, `find -exec`, les heredocs donnés à un shell et les substitutions des heredocs non cités. Renvoie la raison à Claude | Bloque (fail-closed) |
-| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des cinq agents du plugin. Pour eux, refuse toute écriture hors des dossiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée ; un agent sans liste blanche (product-architect) n'en lance aucune | Bloque (fail-closed) |
+| agent-scope-guard | PreToolUse | `Edit\|Write\|NotebookEdit\|Bash\|PowerShell\|Monitor` | Inerte hors des cinq agents du plugin (préfixe `plugin-flutter:` de `agent_type`). Pour eux, refuse toute écriture hors des dossiers et fichiers de l'agent, et toute commande hors de sa liste blanche (section « Agents ») ; une commande composée (`;`, `&&`, `\|`, `$(…)`, redirection) est refusée, grâce au lexer `hooks/scripts/lib/shell-lexer.sh` | Bloque (fail-closed) |
 | format-dart | PostToolUse | `Edit\|Write` | Si le fichier finit par `.dart` et que `dart` est dans le PATH : `dart format <fichier>` | Ignore silencieusement (fail-open) |
-| checkpoint-reminder | Stop | — | Inerte sans `.forge/checkpoint.md`, ou si `stop_hook_active` est vrai. Si le checkpoint est plus ancien que le dernier commit (sauf si ce commit le contient et qu'il n'a pas changé depuis, D42) ou qu'un fichier modifié non commité, renvoie `hookSpecificOutput.additionalContext` : Claude reprend une fois pour le mettre à jour | Ignore (`onFailure` est sans effet sur `Stop`) |
-| secret-scan | PreToolUse | `Bash\|PowerShell\|Monitor` | Écarte sans `jq` une entrée sans le mot `commit`. Trouve chaque `git commit` comme guard-destructive (préfixes, `bash -c`, `eval`, `$(…)`), suit `cd`, `pushd`, `git -C`, `--git-dir`. Lit l'index (`git diff --cached`, valable avant le premier commit) et ce que le commit peut prendre d'autre : modifications non indexées pour `-a` ou un chemin nommé ; modifications et fichiers non suivis des chemins d'un `git add` de la même ligne (D13). Refuse `git init`, `git clone`, `git add -f`, `git apply --cached` sur la ligne d'un commit (D25). Bloque les noms `.env`, `.env.*` (sauf `.example`, `.sample`, `.template`), `*.jks`, `*.keystore`, `key.properties`, `*.p12`, `*.pfx`, et dans les lignes **ajoutées** : clé privée, clé AWS, `gh[pousr]_…`, `github_pat_…`, `sk-…`, `AIza…` (sauf dans la configuration Firebase, D24). Si gitleaks est installé, lance aussi `gitleaks git --pre-commit --staged`, et sans `--staged` pour tout l'arbre. Le secret n'est jamais affiché. Actif dans tout dépôt (D22) | Bloque le commit (fail-closed, y compris sans `grep` ou `awk`) |
-| protect-sensitive | PreToolUse | `Edit\|Write\|NotebookEdit` | Écarte sans `jq` une entrée sans nom sensible. Pour un fichier dont un dossier parent contient `.forge/`, répond `permissionDecision: "ask"` avant d'écrire `key.properties`, `*.keystore`, `*.jks`, `*.p12`, `*.pfx`, `*.entitlements`, `.github/workflows/*`, `.github/actions/*` ; `.forge/config.yaml` partout. En `-p`, l'appel est refusé et Claude lit la raison | Bloque (fail-closed) |
 
-Le guard-destructive analyse la commande par motifs : il peut être contourné par une formulation exotique. C'est un filet de sécurité, pas une garantie ; les règles `deny` du `settings.json` de projet forment la seconde couche. Toute levée ponctuelle se fait par l'utilisateur, jamais par Claude qui réécrirait la commande : une commande tapée par l'utilisateur avec le préfixe `!` s'exécute sans appel d'outil, donc sans passer par `PreToolUse` (déduit de la doc, à confirmer en phase F).
-
-En portée d'installation `user`, les hooks protègent tous les projets de l'utilisateur, pas seulement les projets générés.
+Les quatre gardes communs de la v0.3 — guard-destructive, secret-scan, protect-sensitive, checkpoint-reminder — sont ceux de plugin-orchestrator depuis la 1.0 (D44), avec ses motifs des écosystèmes connus (pub.dev compris) et son doc-status-guard : les 382 cas de leurs suites de plugin-flutter donnent les mêmes décisions contre ses hooks (phase A de la v1.0). Garder une copie ici les ferait tourner en double. Le lexer, qu'ils partageaient, reste pour agent-scope-guard (D45).
 
 ## Sécurité et permissions
 
-La sécurité repose sur trois couches indépendantes : les règles de permission de Claude Code, les hooks du plugin, et les préautorisations du projet. Un plugin ne peut pas imposer de règles `allow`/`deny` (vérifié en phase A, rapport §3.7) : le `settings.json` d'un plugin n'applique que `agent` et `subagentStatusLine`. Le plugin propose donc les règles, et l'utilisateur les installe.
+La sécurité repose sur trois couches indépendantes : les règles de permission de Claude Code, les hooks, et les préautorisations du projet. Un plugin ne peut pas imposer de règles `allow`/`deny` (vérifié en phase A, rapport §3.7) : le `settings.json` d'un plugin n'applique que `agent` et `subagentStatusLine`. Les plugins proposent donc les règles, et l'utilisateur les installe.
 
-**Couche 1 — `templates/project-settings.json`**, copié dans `<projet>/.claude/settings.json` par bootstrap-project après accord :
+**Couche 1 — les règles de permission.** Deux gabarits, parce que `${CLAUDE_PLUGIN_ROOT}` ne traverse pas les plugins (D47) :
 
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(flutter test *)", "Bash(flutter analyze *)", "Bash(dart format *)",
-      "Bash(flutter pub get)", "Bash(flutter pub get --enforce-lockfile)",
-      "Bash(flutter pub outdated)", "Bash(flutter pub outdated *)", "Bash(flutter pub deps)", "Bash(flutter pub deps *)",
-      "Bash(flutter pub add --dry-run *)", "Bash(git status)", "Bash(git status *)", "Bash(git diff *)",
-      "Bash(git log *)", "Bash(git add *)", "Bash(git switch *)",
-      "Bash(gh --version)", "Bash(gh auth status)", "Bash(gh repo view)", "Bash(gh repo view *)",
-      "Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh run list *)", "Bash(gh run view *)",
-      "Bash(gh run watch *)", "Bash(gh workflow list)", "Bash(gh workflow view *)",
-      "Bash(gh issue list *)", "Bash(gh issue view *)", "Bash(git remote -v)", "Bash(git rev-parse *)",
-      "Bash(git branch --show-current)", "Bash(flutter --version)", "Bash(flutter --version --machine)", "Bash(flutter doctor)",
-      "Bash(flutter doctor *)", "Bash(flutter devices)", "Bash(flutter build *)"
-    ],
-    "ask": [
-      "Bash(git add -A*)", "Bash(git add .)", "Bash(git add --all*)",
-      "Bash(git commit *)", "Bash(git push *)", "Bash(gh pr create *)",
-      "Bash(flutter pub upgrade)", "Bash(flutter pub upgrade *)", "Bash(gh repo create *)", "Bash(gh pr edit *)",
-      "Bash(gh issue create *)", "Bash(gh run rerun *)", "Bash(gh workflow run *)",
-      "Bash(flutter upgrade*)", "Bash(flutter downgrade*)", "Bash(flutter channel *)"
-    ],
-    "deny": [
-      "Bash(git reset --hard*)", "Bash(git clean *)",
-      "Bash(git push --force*)", "Bash(git push * --force*)",
-      "Bash(git push -f*)", "Bash(git push * -f*)", "Bash(git push * +*)",
-      "Bash(git branch -D *)", "Bash(gh repo delete *)", "Bash(gh pr merge *)",
-      "Bash(dart pub publish*)", "Bash(flutter pub publish*)",
-      "Read(./.env)", "Read(./.env.*)", "Read(./**/key.properties)",
-      "Edit(./.forge/config.yaml)"
-    ]
-  }
-}
-```
+- `templates/permissions-fragment.json` : les 23 règles propres à Flutter et Dart — en `allow` les commandes qui ne modifient rien ou que les workflows lancent sans cesse (`flutter test`, `flutter analyze`, `dart format`, `flutter pub get`, `flutter pub get --enforce-lockfile`, `flutter pub outdated`, `flutter pub deps`, `flutter pub add --dry-run`, `flutter build`, `flutter --version`, `flutter doctor`, `flutter devices`), en `ask` `flutter pub upgrade`, `flutter upgrade`, `flutter downgrade` et `flutter channel`, en `deny` `flutter pub publish` et `dart pub publish`. Le scaffold-engineer le rend tel quel dans son bloc `PERMISSIONS`, et l'orchestrateur le fusionne avec ses règles génériques avant de vous les proposer ;
+- `templates/project-settings.json` : ces règles et les règles génériques de plugin-orchestrator 0.1.0 (git, gh, lecture des secrets et des keystores refusée, `Edit(./.forge/config.yaml)` refusé), pour `adopt-existing-project`, qui ne peut pas lire celles de l'orchestrateur. `tests/static/test_templates.sh` vérifie que le fragment est exactement la part Flutter du fichier complet.
 
 - La forme `Bash(x *)`, avec espace, est celle de la doc et de la boîte de dialogue ; `Bash(x:*)` en est l'équivalent ancien.
 - L'ordre d'évaluation est `deny`, puis `ask`, puis `allow`, la première règle qui correspond l'emporte : les `ask` sur `git add -A` priment donc sur `allow` `git add *`.
 - Les règles de fichiers s'écrivent `Edit(…)`, qui couvre tous les outils d'écriture ; une règle `Write(…)` ne protège rien.
 - Les `allow` d'un projet ne s'appliquent qu'**après acceptation de la confiance du workspace** ; `deny` et `ask` s'appliquent toujours.
-- Une règle Bash ne couvre que la forme écrite (`git -C . push` échappe à `Bash(git push *)`) : le hook reste la couche qui analyse la commande.
+- Une règle Bash ne couvre que la forme écrite (`git -C . push` échappe à `Bash(git push *)`) : les hooks restent la couche qui analyse la commande.
 
-**Couche 2 — hooks** (section précédente), actifs dès l'installation du plugin.
+**Couche 2 — hooks** : agent-scope-guard et format-dart ici (section précédente), les gardes communs dans plugin-orchestrator, actifs dès l'installation des deux.
 
-**Couche 3 — `<projet>/.forge/config.yaml`**, lu par chaque skill avant une action externe. Toute clé absente vaut `false`. Seul l'utilisateur la modifie : la règle `deny` `Edit(./.forge/config.yaml)` de la couche 1 en bloque l'édition par Claude, et le hook protect-sensitive demande confirmation pour toute écriture d'un `.forge/config.yaml`, y compris dans un projet où `.claude/settings.json` n'est pas installé. bootstrap-project crée le fichier une seule fois, avant d'installer `.claude/settings.json`.
+**Couche 3 — `<projet>/.forge/config.yaml`**, au format de l'orchestrateur, lu par chaque skill avant une action externe. Toute clé absente vaut `false`. Seul l'utilisateur la modifie : la règle `deny` `Edit(./.forge/config.yaml)` de la couche 1 en bloque l'édition par Claude, et le protect-sensitive de l'orchestrateur demande confirmation pour toute écriture d'un `.forge/config.yaml`. Il est écrit une seule fois — par le bootstrap de l'orchestrateur, ou par adopt-existing-project depuis `templates/forge-config.yaml` — avant `.claude/settings.json`.
 
 ```yaml
-schema_version: 1
+schema_version: 2
 project:
   default_branch: main
   branch_prefix: feature/
@@ -324,13 +283,28 @@ authorizations:
   create_remote_repo: false     # toujours re-confirmé : nom, visibilité, propriétaire
   merge: false                  # ignoré : la fusion demande toujours un accord explicite
   publish_release: false        # ignoré : idem
-platforms:
-  enabled: [android, web, linux]
+parts:
+  app:
+    path: .
+    plugin: plugin-flutter
+    interface: 1
+    toolchain:
+      test: flutter test
+      format: dart format --output=none --set-exit-if-changed .
+      analyze: flutter analyze
+      add_dep: flutter pub add
+      manifests: [pubspec.yaml, pubspec.lock]
+      integration_test: flutter test integration_test -d <device>
+    platforms: [android, web, linux]
 ```
+
+Les lignes de `toolchain` sont celles que le scaffold-engineer rend dans `TOOLCHAIN`, et que l'orchestrateur lance lui-même aux étapes mécaniques (règle « mécanique = clé, jugement = mandat »). Un fichier en `schema_version: 1` (plugin-flutter 0.x, `platforms.enabled` au premier niveau) arrête les skills des deux plugins, qui montrent le bloc `parts` à ajouter.
 
 Actions toujours soumises à un accord dans la conversation, quelle que soit la config : fusion dans la branche principale, changement de visibilité, suppression, release publique, toute dépense, tout changement de fournisseur ou de mode d'authentification. Aucun jeton ni secret n'est affiché, écrit dans un fichier de `.forge/` ou passé en argument de commande visible.
 
 ## État persistant, reprise et quotas
+
+Le format de `.forge/` appartient à plugin-orchestrator : `config.yaml` (ci-dessus), `checkpoint.md`, `reports/`, `approvals.log` (l'empreinte de chaque document approuvé, que son doc-status-guard compare). Les skills de plugin-flutter écrivent le checkpoint au même format, depuis la copie `templates/checkpoint.md`, et la reprise est le `recover-session` de l'orchestrateur.
 
 Le checkpoint est écrit après chaque étape terminée, pas au moment d'une coupure ; seul le commit qui le porte fait exception : il est écrit juste avant, l'étape du commit cochée `carried by this commit`, et n'est plus modifié pour ce commit (D42). Écrit à chaque étape plutôt qu'à la coupure, car quand la limite d'usage tombe, la session s'arrête et plus rien ne peut être sauvegardé. La reprise croise donc trois sources : `.forge/checkpoint.md`, l'historique Git et l'état du dépôt.
 
@@ -339,53 +313,44 @@ Le checkpoint est écrit après chaque étape terminée, pas au moment d'une cou
 ```markdown
 # Checkpoint
 updated: 2026-10-17T18:40+02:00
-skill: create-feature
-feature: AC-012 offline note list
-branch: feature/offline-note-list
+skill: update-project
+feature: deps 2026-10
+branch: chore/deps-2026-10
 last_commit: 3f2a9c1
 
 ## Steps
-- [x] 1 Repo state checked (clean)
-- [x] 6 Tests written: test/notes/note_repository_test.dart
-- [x] 7 RED confirmed: flutter test test/notes → 3 failed (exit 1)
-- [ ] 8 Implement minimum
-- [ ] 9 GREEN
+- [x] 1 plugin-orchestrator, configuration, repository state
+- [x] 3 Baseline: flutter test → passed (exit 0)
+- [ ] 7 Batch 2: flutter pub upgrade --major-versions go_router
 
 ## Test results
 | command | result | when |
-| flutter test test/notes | FAILED 3 (expected RED) | 18:38 |
+| flutter test | passed (exit 0) | 18:38 |
 
 ## Next action
-Implement NoteRepository.listOffline() in lib/features/notes/data/.
+Run batch 2 and migrate the files that import go_router.
 
 ## Blockers / open questions
 - none
 ```
 
-`.forge/` contient aussi `config.yaml` et un dossier `reports/` (rapports de revue et de mise à jour). Rien de secret n'y est écrit.
-
-Algorithme de recover-session :
-
-1. Lire `.forge/checkpoint.md` ; s'il est absent, reconstituer depuis `git log` et la branche courante.
-2. Comparer `last_commit` au `HEAD` réel et lister les fichiers modifiés non commités ; ne rien toucher. Le commit qui porte le checkpoint est plus récent que son `last_commit` : ce n'est pas une incohérence (D42).
-3. Signaler toute incohérence (commit plus récent que le checkpoint, branche différente).
-4. Relancer uniquement le test ciblé de la dernière étape pour confirmer l'état réel.
-5. Présenter un résumé de 10 lignes maximum et la prochaine action, puis attendre l'accord pour reprendre.
+Rien de secret n'y est écrit. Un document approuvé sous plugin-flutter 0.x n'a pas d'empreinte dans `approvals.log` : il repasse en REVIEW à sa première modification (vérifié en phase A de la v1.0).
 
 Comportement face aux limites : aucune boucle de nouvelle tentative, aucun changement de compte ou de fournisseur, aucune bascule vers une API payante. Si un message de limite ou de blocage apparaît, Claude cesse les appels, s'assure que le checkpoint est à jour et indique ce qui reste. Les économies de quota viennent du travail lui-même : tests ciblés pendant le développement, analyse complète aux jalons, agents seulement quand leur apport justifie leur coût.
 
 ## Structure d'un projet généré
 
-bootstrap-project produit un projet Flutter organisé par fonctionnalité, avec un socle documentaire de quatre fichiers et des documents optionnels créés quand le besoin apparaît.
+Le bootstrap de l'orchestrateur, avec le scaffold-engineer, produit un projet Flutter organisé par fonctionnalité, avec un socle documentaire et des documents optionnels créés quand le besoin apparaît. Pour un projet mono-partie (`path: .`), les documents de la partie et ceux de la racine coïncident.
 
 ```
 my_app/
-├── .claude/settings.json        # permissions (copie du template, après accord)
-├── .forge/
-│   ├── config.yaml
+├── .claude/settings.json        # règles génériques + fragment Flutter, après accord (orchestrateur)
+├── .forge/                      # format de l'orchestrateur
+│   ├── config.yaml              # schéma 2, la partie Flutter et sa toolchain
 │   ├── checkpoint.md
+│   ├── approvals.log
 │   └── reports/
-├── .github/workflows/ci.yml     # format + analyze + test (github-workflow ci)
+├── .github/workflows/ci.yml     # format + analyze + test (mandat ci-template au devops-engineer)
 ├── lib/
 │   ├── main.dart
 │   ├── app/                     # MaterialApp, routing, thème
@@ -397,73 +362,40 @@ my_app/
 ├── test/                        # miroir de lib/
 ├── integration_test/
 ├── docs/
-│   ├── product/PRD.md
-│   ├── technical/TRD.md
-│   ├── engineering/IMPLEMENTATION_PLAN.md
-│   └── engineering/DECISIONS.md
-├── analysis_options.yaml        # flutter_lints + règles strictes
-└── CLAUDE.md                    # conventions du projet pour Claude
+│   ├── product/PRD.md           # orchestrateur (product-architect)
+│   ├── technical/TRD.md         # scaffold-engineer, puis flutter-architect
+│   ├── engineering/IMPLEMENTATION_PLAN.md   # à la première fonctionnalité (create-feature)
+│   └── engineering/DECISIONS.md # orchestrateur (ADR-001), puis les ADR de Flutter
+├── analysis_options.yaml        # flutter_lints + règles strictes (scaffold-engineer)
+└── CLAUDE.md                    # conventions du projet pour Claude (orchestrateur)
 ```
 
 | Document | Socle ou optionnel | Créé quand |
 | --- | --- | --- |
-| PRD.md | Socle | Bootstrap |
-| TRD.md | Socle | Bootstrap |
-| IMPLEMENTATION\_PLAN.md | Socle | Bootstrap, mis à jour à chaque feature |
-| DECISIONS.md | Socle | Bootstrap, une entrée par choix technique |
+| PRD.md | Socle | Bootstrap (orchestrateur) |
+| TRD.md | Socle | Bootstrap (scaffold-engineer) |
+| IMPLEMENTATION\_PLAN.md | Socle | Première fonctionnalité, mis à jour à chaque feature ; à l'adoption |
+| DECISIONS.md | Socle | Bootstrap (orchestrateur), une entrée par choix technique |
 | TEST\_STRATEGY.md | Optionnel | Premier test d'intégration ou de golden |
 | TRACEABILITY.md | Optionnel | Plus de 10 critères d'acceptation |
 | APPFLOW.md | Optionnel | Plus de 3 écrans |
 | UI\_UX\_DESIGN.md | Optionnel | Maquettes ou charte fournies |
 | BACKEND\_SCHEMA.md | Optionnel | Données persistantes, locales ou distantes |
 
-Chaque document commence par un en-tête fixe : objectif, statut (DRAFT / REVIEW / APPROVED), date et auteur de l'approbation, hypothèses, décisions confirmées, documents liés, critères de vérification. Un document ne passe en APPROVED que sur un message explicite de l'utilisateur ; le skill y inscrit alors la date.
+Chaque document commence par un en-tête fixe : objectif, statut (DRAFT / REVIEW / APPROVED), date et auteur de l'approbation, hypothèses, décisions confirmées, documents liés, critères de vérification. Un document ne passe en APPROVED que sur un message explicite de l'utilisateur ; l'orchestrateur y inscrit alors la date et consigne son empreinte (`orch.sh approve`), et un document approuvé qui change repasse en REVIEW.
 
 Choix techniques par défaut, révisables par le flutter-architect avec une entrée dans DECISIONS.md : canal Flutter stable, `flutter_lints`, gestion d'état Riverpod, navigation `go_router`, persistance locale avant tout backend distant. BACKEND\_SCHEMA sépare toujours trois parties : données locales, besoins réels d'un backend, évolutions futures.
 
-## Workflow TDD (create-feature)
+## Workflow TDD et GitHub
 
-Le cycle rouge-vert-refactor reste dans la session principale ; le test-engineer conçoit les tests et le code-reviewer relit à la fin. Chaque étape cochée dans le checkpoint s'accompagne de la commande lancée et de son code de sortie.
+Le cycle TDD (create-feature, quinze étapes) et les gestes Git et GitHub (git-workflow, github-workflow) sont ceux de plugin-orchestrator depuis la 1.0, qui en reprend les règles de plugin-flutter 0.3 : classes d'actions, Conventional Commits, PR en quatre catégories de tests, jamais de fusion par Claude. Ce que plugin-flutter y fait, par mandat :
 
-1. **État du dépôt** : `git status`, branche courante, changements non commités. S'il y en a, les préserver et demander s'il faut les committer, les mettre de côté sur une branche ou s'arrêter. Pas de `git stash` silencieux.
-2. **Contexte** : lire PRD, TRD et l'entrée du plan pour la feature ; lister les critères d'acceptation (AC-xxx) visés. Si le PRD ou le TRD n'est pas APPROVED, s'arrêter et demander l'approbation.
-3. **Risques et dépendances** : nouveau package, impact plateforme, migration de données.
-4. **Plan** : fichiers touchés, tests prévus, dépendances. **Validation utilisateur** si le périmètre, l'architecture ou une dépendance change. Après validation, un nouvel AC est écrit dans le PRD, et une dépendance approuvée est ajoutée (`flutter pub add`) avant tout test qui l'importe, puis ses plateformes sont vérifiées dans son `pubspec.yaml` résolu.
-5. **Branche** : `feature/<ac-id>-<slug>` via git-workflow.
-6. **Tests d'abord** : le test-engineer écrit les tests liés aux AC, les lance, et rapporte la sortie ROUGE brute. La session principale **attend son rapport** (il arrive par notification en session interactive) et n'écrit rien en parallèle.
-7. **ROUGE** : la session principale relance elle-même `flutter test <fichiers ciblés>` pour consigner la preuve, selon la règle du rapport vérifié. L'échec doit porter sur l'assertion attendue, pas sur une erreur de compilation sans rapport. Sortie consignée. Des tests qui passent déjà arrêtent le workflow : le comportement existe peut-être, ou les tests ne le testent pas.
-8. **Implémentation minimale** dans la session principale.
-9. **VERT** : mêmes tests ciblés, tous passent. Sinon retour à 8, au plus trois itérations avant d'exposer le blocage.
-10. **Refactor** sans changement de comportement.
-11. **Re-test ciblé** puis, à ce jalon seulement, `flutter test` complet.
-12. **Qualité** : `dart format --set-exit-if-changed .` et `flutter analyze` à exit 0 : infos et avertissements sont bloquants par défaut, comme dans la CI.
-13. **Revue** : rien n'est encore commité, donc les fichiers de la feature sont indexés, puis le code-reviewer relit `git diff --cached <base>`. Les constats bloquants sont corrigés, les étapes 11 et 12 relancées, et les corrections relues une fois ; un constat bloquant qui subsiste arrête le workflow. Le reviewer liste aussi les mises à jour de docs attendues, traitées à l'étape 14.
-14. **Docs** : plan, DECISIONS et traçabilité mis à jour, à partir des DOCS_TO_UPDATE et DIVERGENCES du code-reviewer ; une divergence se résout en corrigeant le document quand le code a raison, sinon elle est signalée à l'utilisateur.
-15. **Commit** préparé par git-workflow, puis rapport final.
+- **tests d'abord** : le test-engineer écrit les tests liés aux AC dans `test/` ou `integration_test/`, les lance et rend la sortie ROUGE ; la session la relance avec `toolchain.test` ;
+- **dépendance nouvelle** : après `toolchain.add_dep` (`flutter pub add`), le flutter-architect rend sa compatibilité avec les `platforms` de la partie, et l'ADR qu'elle demande ;
+- **revue** : le code-reviewer relit `git diff --cached <branche par défaut>` sans le raisonnement de l'implémentation, et rend FINDINGS, DOCS_TO_UPDATE et DIVERGENCES ;
+- **CI** : le devops-engineer écrit `.github/workflows/ci.yml` depuis `templates/github-workflows/flutter-ci.yml` — sur chaque PR et chaque push vers la branche principale, `flutter pub get`, `dart format --output=none --set-exit-if-changed .`, `flutter analyze`, `flutter test`, sur un runner `ubuntu-latest` plafonné à 20 minutes ; `permissions: contents: read`, `persist-credentials: false`, aucun secret ; actions épinglées par SHA de commit (`actions/checkout` v7.0.1, `subosito/flutter-action` v2.23.0) ; `flutter-version` remplacée par la version locale, pour que la CI reproduise la machine. Il builde aussi les plateformes et lit les journaux d'une CI rouge.
 
-Le rapport final classe chaque test en quatre catégories : réussi, échoué, bloqué (raison : appareil absent, compte manquant, plateforme non disponible) et non exécuté. Une catégorie vide est indiquée comme telle.
-
-## Git et GitHub
-
-Toute action Git ou GitHub entre dans l'une de trois classes : libre, préautorisable par `.forge/config.yaml`, ou toujours soumise à un accord dans la conversation.
-
-| Action | Classe | Détail |
-| --- | --- | --- |
-| `git status`, `diff`, `log`, `switch -c` | Libre | Lecture ou création de branche locale |
-| `git add <fichiers>` | Libre | Jamais `git add -A` sans relecture du diff ; fichiers générés et `.env` exclus |
-| `git commit` | Accord par défaut (`ask`) | Message Conventional Commits : `feat(notes): list notes offline (AC-012)` |
-| `git push` d'une branche de travail | Préautorisable | `push_feature_branches: true` ; jamais vers `main` |
-| `gh pr create` / mise à jour | Préautorisable | `open_pull_requests`, `update_own_pull_requests` ; jamais de force-push sur une PR d'autrui |
-| Création de dépôt distant | Accord, toujours re-confirmé | Nom, visibilité, propriétaire affichés avant ; `gh repo create` sans `--push`, puis publication de la branche principale, seul push de cette branche fait par Claude |
-| Ajout ou modification de la CI ; relance ou lancement d'un workflow sur dépôt privé | Accord explicite, avec le coût | Avec un dépôt distant, la CI passe par une branche `chore/ci` et sa PR ; protect-sensitive demande confirmation de l'écriture |
-| Fusion, changement de visibilité, suppression, release, tag poussé | Accord explicite à chaque fois | Bloqué aussi par hook |
-| `reset --hard`, `clean`, `push --force`, `branch -D` | Interdit sans demande explicite de l'utilisateur | Bloqué par hook et `deny` |
-
-Conventions : branches `feature/`, `fix/`, `chore/deps-`, `docs/`, `chore/ci` (github-workflow), `chore/adopt-plugin-flutter` (adopt-existing-project) ; commits atomiques (un changement logique, tests compris) ; `.gitignore` Flutter standard plus `.env*`, `*.jks`, `*.keystore`, `key.properties`.
-
-Corps de PR généré par github-workflow (`skills/github-workflow/reference/pr-body.md`) : résumé, AC couverts, risques, tests exécutés avec résultats (quatre catégories), plateformes en trois états, captures si disponibles. `gh pr create --base <principale> --head <branche> --body-file -` avec un heredoc cité, après le push de la branche. Avant toute action GitHub : `gh auth status` ; en cas d'échec, on s'arrête et on explique `gh auth login` sans jamais demander ni afficher de jeton.
-
-Gabarit CI (`templates/github-workflows/flutter-ci.yml`) : sur chaque PR et chaque push vers la branche principale, `flutter pub get`, `dart format --output=none --set-exit-if-changed .`, `flutter analyze`, `flutter test`, sur un runner `ubuntu-latest` plafonné à 20 minutes ; `permissions: contents: read`, `persist-credentials: false`, aucun secret ; actions épinglées par SHA de commit (`actions/checkout` v7.0.1, `subosito/flutter-action` v2.23.0) ; `flutter-version` remplacée par la version locale, pour que la CI reproduise la machine.
+Conventions de branches que les skills de plugin-flutter emploient : `chore/deps-<slug>` (update-project), `chore/adopt-plugin-flutter` (adopt-existing-project). `.gitignore` : celui de `flutter create`, plus `.env*`, `*.jks`, `*.keystore`, `key.properties`.
 
 ## Multiplateforme
 
@@ -480,61 +412,53 @@ Sur une machine Linux, seuls Android, Web et Linux desktop se compilent localeme
 
 Coût CI à signaler à l'utilisateur (vérifié le 2026-10-17, rapport §4) : les minutes GitHub Actions sont gratuites pour les dépôts publics sur runners standard. Pour les dépôts privés, le quota inclus est de 2 000 min/mois (Free), 3 000 (Pro, Team), 50 000 (Enterprise Cloud). Tarifs au-delà : Linux 2 cœurs 0,006 $/min, Windows 0,010 $, macOS 0,062 $, soit environ 10 fois Linux. La doc ne publie plus de table de multiplicateurs : le décompte exact du quota inclus pour macOS reste **non vérifié**.
 
-Sur la machine de développement du plugin, seul Linux desktop est vérifiable (Chrome absent, SDK Android incomplet) : `platforms.enabled` garde `[android, web, linux]` par défaut, mais la démo de validation se fait en `linux` seul.
+Sur la machine de développement du plugin, seul Linux desktop est vérifiable (Chrome absent, SDK Android incomplet) : les `platforms` de la partie gardent `[android, web, linux]` par défaut, mais la démo de validation se fait en `linux` seul.
 
 Règles :
 
 - Aucune annonce de build iOS ou de publication iOS réussie sans log de build, signature et contrôle vérifiés.
-- Chaque dépendance ajoutée est vérifiée contre les plateformes activées (onglet « Platform » sur pub.dev) et le résultat noté dans DECISIONS.md.
+- Chaque dépendance ajoutée est vérifiée contre les plateformes de la partie (mandat `check-dependency`, ou onglet « Platform » sur pub.dev) et le résultat noté dans DECISIONS.md.
 - Sans KVM, les tests d'intégration se replient sur Linux desktop, et le rapport le dit.
 
 ## Stratégie de test du plugin
 
 Les tests se répartissent en deux familles qui ne se mélangent pas : les tests déterministes, qui tournent sans Claude et sans quota, et les scénarios comportementaux, qui nécessitent une session Claude Code et consomment le quota Max.
 
-**Tests déterministes** (`tests/run-all.sh`, bash + `jq`, aucun réseau) :
+**Tests déterministes** (`tests/run-all.sh`, bash + `jq`, aucun réseau). Les suites des quatre hooks retirés et de create-feature, debug-project et github-workflow sont parties avec eux en 1.0 : ces composants sont testés dans plugin-orchestrator.
 
 | Fichier | Vérifie |
 | --- | --- |
 | static/test\_manifest.sh | `plugin.json` et `marketplace.json` sont du JSON valide, champs requis présents, `name` en kebab-case et identique dans les deux, version SemVer, `homepage` et `repository` pointent vers `soonlysoul/plugin-flutter`, `source` vaut `./` |
-| static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; product-architect n'a pas Bash ; aucun agent ne liste `Agent` |
-| static/test\_paths.sh | Tout chemin cité dans `hooks.json` et les skills existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; aucun fichier annexe ne contient la variable ; hooks en forme exec ; aucun chemin personnel ni chemin réel du store Nix (`/nix/store/<hash>-…`) |
-| static/test\_settings\_template.sh | Aucune règle `allow` ne couvre push, merge, reset, clean, suppression, ni mise à jour d'une dépendance ou du SDK ; les `deny` attendus sont présents ; `flutter upgrade`, `downgrade` et `channel` demandent confirmation ; aucune règle `Write(…)` |
+| static/test\_frontmatter.sh | Chaque agent et skill a un frontmatter lisible par un analyseur **strict** (lignes `clé: valeur` seulement), `name` et `description` non vides ; exactement les cinq agents et les deux skills de la 1.0 ; chaque agent déclare `tools` et `model` ; le reviewer n'a ni Write ni Edit ; aucun agent ne liste `Agent` ; chaque skill limitée aux projets `.forge/` et liée à plugin-orchestrator |
+| static/test\_agents.sh | Le rapport de chaque agent finit par `INTERFACE: 1`, `STATUS`, `FILES_CHANGED`, `COMMANDS_RUN`, `OPEN_QUESTIONS`, rien après ; chaque agent refuse un mandat d'une autre interface ; chacun nomme ses mandats et rend leurs sections dans l'ordre du contrat ; le devops-engineer garde ses règles de build par section de `flutter doctor -v` ; le scaffold-engineer cite ses gabarits et ses limites |
+| static/test\_paths.sh | Tout chemin cité dans `hooks.json`, les skills et les agents existe et passe par `${CLAUDE_PLUGIN_ROOT}` ; chaque gabarit est cité ; aucun fichier annexe ne contient la variable ; hooks en forme exec ; exactement deux hooks, aucun des gardes retirés ni câblé ni présent ; le lexer présent ; aucun chemin personnel ni chemin réel du store Nix |
+| static/test\_templates.sh | Aucune règle `allow` ne couvre push, merge, reset, clean, suppression, ni mise à jour d'une dépendance ou du SDK ; les `deny` attendus et les règles génériques de l'orchestrateur 0.1.0 sont présents ; le fragment est exactement la part flutter/dart des règles complètes ; `forge-config.yaml` au schéma 2 avec la partie Flutter et sa toolchain ; champs du checkpoint ; en-têtes DRAFT et REVIEW des documents ; `CLAUDE.md` nomme les workflows de l'orchestrateur |
 | static/test\_docs.sh | La documentation utilisateur suit le plugin : README et dernière entrée du CHANGELOG à la version de `plugin.json` ; nombre de skills et d'agents exact partout où il est écrit ; chaque skill a sa ligne dans le README et sa section dans le guide, chaque agent sa ligne dans les deux ; chaque règle Bash du gabarit est citée par SECURITY.md sous son niveau (`allow`, `ask`, `deny`) |
-| static/test\_maintenance\_skills.sh | product-architect, update-project et son gabarit de rapport, adopt-existing-project et sa grille de divergences énoncent leurs points de validation, commandes et limites ; update-project ne lance jamais `flutter upgrade` ni `dart pub` ; avant le plan, adopt-existing-project ne cite `flutter analyze`, `test` et `pub get` qu'avec `--no-pub` ou `--enforce-lockfile` ; le code-reviewer rend ses DIVERGENCES, que create-feature et debug-project traitent |
-| hooks/test\_guard\_destructive.sh | \~30 commandes dangereuses bloquées, \~30 commandes sûres autorisées, entrée JSON malformée bloquée, `jq` absent bloqué, appel `Monitor` couvert |
-| hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des cinq agents ; commandes composées refusées ; un agent sans branche de liste blanche refusé ; erreurs internes bloquantes |
-| hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |
-| hooks/test\_checkpoint\_reminder.sh | Rappel émis quand le checkpoint est plus ancien que les fichiers modifiés ; silence si `stop_hook_active`, sans `.forge/`, ou checkpoint à jour |
-| static/test\_tdd\_skill.sh | `create-feature/SKILL.md` contient les 15 étapes, dont ROUGE et VERT, chacune avec une commande et la consigne de consigner sa sortie |
+| static/test\_maintenance\_skills.sh | update-project et son gabarit de rapport, adopt-existing-project et sa grille de divergences énoncent leurs points de validation, commandes et limites ; update-project ne lance jamais `flutter upgrade` ni `dart pub` ; avant le plan, adopt-existing-project ne cite `flutter analyze`, `test` et `pub get` qu'avec `--no-pub` ou `--enforce-lockfile` ; les deux vérifient plugin-orchestrator en premier, et update-project le schéma 2 ; aucun renvoi à un composant retiré qui ne soit `plugin-orchestrator:<nom>` ; le code-reviewer rend ses DIVERGENCES |
 | static/test\_ci\_template.sh | Gabarit CI : déclencheurs, jeton en lecture, pas de `pull_request_target` ni de secret, actions épinglées par SHA avec leur version, les quatre commandes, les deux marqueurs |
-| static/test\_github\_skills.sh | github-workflow et debug-project énoncent leurs points de validation, commandes et limites ; corps de PR complet |
-| hooks/test\_secret\_scan.sh | Sur de vrais dépôts git jetables : commandes sans commit silencieuses (sans `jq`), chaque motif et chaque nom bloqués sans afficher le secret, faux positifs écartés (`task-`, certificat, `.env.example`, retrait d'un secret), portée (`-a`, chemin, `git add` sur la ligne, fichier ignoré), emplacement (`cd`, `-C`, `bash -c`, `eval`, `$(…)`), fail-closed, gitleaks simulé, durée |
-| hooks/test\_protect\_sensitive.sh | `ask` pour chaque fichier sensible d'un projet `.forge/`, silence ailleurs et sans `jq`, `.forge/config.yaml` partout, fail-closed |
+| hooks/test\_agent\_scope\_guard.sh | Inerte hors agent du plugin ; écritures et commandes hors périmètre refusées pour chacun des cinq agents ; `flutter create` du scaffold-engineer limité au dossier courant, sans `--overwrite` ; fichier racine autorisé comparé exactement ; commandes composées refusées ; un agent sans branche de liste blanche refusé ; erreurs internes bloquantes |
+| hooks/test\_format\_dart.sh | `.dart` formaté, autre fichier ignoré, absence de `dart` sans erreur |
 
 `run-all.sh` lance aussi `claude plugin validate . --strict` : local, déterministe, sans quota. Comme ce validateur ne voit ni un script de hook absent ni, de façon fiable, un frontmatter d'agent cassé, les tests statiques ci-dessus restent nécessaires.
 
 Outillage de développement : les skills de `plugin-dev` (installé depuis `claude-plugins-official`, antérieur à la doc courante) servent d'aide-mémoire ; en cas de conflit, la doc officielle et `claude plugin validate` priment. Les agents sont rédigés directement, puis relus une fois par l'agent `skill-reviewer`.
 
-**Scénarios comportementaux** (`tests/scenarios/*.md`, exécutés en mode headless avec le plugin chargé depuis son dossier, ou à la main). Mode d'exécution, vérifié en phase A (rapport §3.8) :
+**Scénarios comportementaux** (`tests/scenarios/*.md`, exécutés en mode headless avec le plugin chargé depuis son dossier et, depuis la 1.0, plugin-orchestrator par un second `--plugin-dir` — variable `FORGE_ORCHESTRATOR_DIR` de `headless.sh` —, ou à la main). Mode d'exécution, vérifié en phase A (rapport §3.8) :
 
 - `claude -p --plugin-dir <plugin> --output-format stream-json`, **sans `--bare`**, qui exigerait une clé API payante ; l'événement `system/init` liste `plugins` et `plugin_errors`, ce qui prouve le chargement. L'éventuelle obligation d'ajouter `--verbose` et l'existence de `--max-turns` en 2.1.296 sont à confirmer en phase F ;
 - `--permission-mode dontAsk` avec `--allowedTools` explicite, car `-p` ignore les `allow` d'un projet non approuvé ;
 - points de validation sur plusieurs tours : `--session-id <uuid>`, puis `--resume <uuid> "<réponse>"` ;
 - pas de `claude plugin eval` en v0.1 : coût multiplié, et bac à sable incompatible avec Flutter sur cette machine.
 
-1. **Bootstrap** dans un dossier temporaire : projet créé, `flutter test` vert, docs socle en DRAFT, `.forge/` présent.
-2. **Feature TDD** : checkpoint montrant ROUGE puis VERT avec sorties de commande.
-3. **Préservation** : un fichier modifié non commité avant le lancement est intact après.
-4. **Blocage** : demande explicite de `git reset --hard` refusée par le hook avec message clair.
-5. **Reprise** : session interrompue après l'étape 7, recover-session propose l'étape 8 sans refaire 1 à 7.
-6. **Dépôt existant** : l'analyse ne modifie aucun fichier, et après un accord partiel seuls les items approuvés sont appliqués ; README et `CLAUDE.md` existants intacts.
-7. **Secret** : un commit qui contient une clé AWS est refusé par secret-scan ; le secret n'apparaît dans aucun message.
-8. **Débogage** : un test rouge inattendu est reproduit, sa cause prouvée avant le correctif, le correctif commité sur `fix/…` après revue.
-9. **PR et CI** : sur un dépôt de test jetable, CI ajoutée, dépôt créé, PR ouverte, checks verts ; rien de fusionné.
+1. **Bootstrap par l'orchestrateur** dans un dossier vide : mandat `scaffold` au scaffold-engineer, rapport à `INTERFACE: 1`, `.forge/config.yaml` écrit depuis son `TOOLCHAIN`, `flutter test` vert, TRD en DRAFT, aucune CI.
+6. **Dépôt existant** : l'analyse ne modifie aucun fichier, et après un accord partiel seuls les items approuvés sont appliqués ; README et `CLAUDE.md` existants intacts ; mandats à l'interface 1 au product-architect de l'orchestrateur puis au flutter-architect ; `.forge/config.yaml` au schéma 2.
 10. **Mise à jour de dépendances** (critère de sortie v0.3) : inventaire sans modification, plan de lots, seuls les lots approuvés appliqués et commités avec leur lockfile, tests verts après chacun, rapport avant/après ; ni `flutter upgrade` ni `dart pub`.
-11. **Builds locaux** : tâche `build` de devops-engineer ; trois états par plateforme, artefacts vérifiés par la session principale.
-12. **CI rouge** : diagnostic `ci-diagnosis` sur une vraie PR rouge, lignes de journal revérifiées, correctif orienté vers le code ; ni relance ni push.
+11. **Builds locaux** : mandat `build` au devops-engineer ; trois états par plateforme, artefacts vérifiés par la session principale.
+12. **CI rouge** : mandat `ci-diagnosis` depuis le github-workflow de l'orchestrateur, sur une vraie PR rouge, lignes de journal revérifiées, correctif orienté vers le code ; ni relance ni push.
+13. **Sans orchestrateur** : adopt-existing-project et update-project s'arrêtent sur la vérification, rien changé.
+14. **Critère v0.1 de l'orchestrateur** : bootstrap, une fonctionnalité en TDD (ROUGE puis VERT consignés, mandats à l'interface 1), commit propre, reprise après interruption ; aucun garde en double.
+
+Les scénarios 2 à 5 et 7 à 9 de la v0.3 sont partis avec les composants qu'ils testaient ; les numéros restent pour l'historique.
 
 Le rapport de test du plugin sépare trois colonnes : exécuté automatiquement, vérifié manuellement, bloqué (raison). Les scénarios GitHub utilisent un dépôt de test privé jetable, créé uniquement avec accord.
 
@@ -553,6 +477,13 @@ Ces points ont été vérifiés en phase A contre la documentation officielle (2
 
 Côté outils : Flutter stable courant 3.47.7 (installé : 3.44.3) ; sous-commandes `gh` vérifiées par `--help` ; quotas GitHub Actions ci-dessus, multiplicateur macOS non vérifié.
 
+Vérifiés le 2026-10-29 pour la v1.0 (détail : `PROGRESS.md`, phase A v1.0) :
+
+- [x] Les 382 cas des suites de guard-destructive, secret-scan, protect-sensitive et checkpoint-reminder, rejoués contre les hooks de plugin-orchestrator 0.1.0 : mêmes décisions, seuls les textes diffèrent
+- [x] `flutter create .` dans un dossier qui contient `.forge/` : `.forge/` intact, `.gitignore`, `README.md`, `analysis_options.yaml`, `pubspec.yaml` écrits à la racine
+- [x] `orch.sh approve` sans `approvals.log` : le journal est créé ; un APPROVED sans empreinte repasse en REVIEW à sa première modification
+- [x] `--plugin-dir` répétable (Claude Code 2.1.309) : les deux plugins chargés `@inline`
+
 Vérifiés le 2026-10-20 pour la v0.2 (détail : `PROGRESS.md`, phase A v0.2) :
 
 - [x] `permissionDecision: "ask"` d'un PreToolUse : invite étiquetée `[plugin:<nom>]`, y compris pour un sous-agent en arrière-plan ; refus en `-p`, raison lue par Claude ; précédence `deny` > `defer` > `ask` > `allow`
@@ -563,11 +494,13 @@ Vérifiés le 2026-10-20 pour la v0.2 (détail : `PROGRESS.md`, phase A v0.2) :
 
 | Risque | Effet | Parade |
 | --- | --- | --- |
-| Le guard-destructive est contourné par une syntaxe imprévue | Commande destructive exécutée | Deuxième couche `deny` ; tests à motifs larges ; revue du hook à chaque version |
+| Les gardes communs (orchestrateur) sont contournés par une syntaxe imprévue | Commande destructive exécutée | Deuxième couche `deny` ; tests à motifs larges dans plugin-orchestrator ; revue de ses hooks à chaque version |
+| Les deux plugins divergent sur le contrat de délégation | Un mandat ou un rapport mal lu, un workflow arrêté | Interface versionnée (`interface: 1`, écho `INTERFACE: 1`) ; `test_agents.sh` fige les sections des rapports ; scénarios 1 et 14 avec les deux plugins ; copies de gabarits vérifiées par `test_templates.sh` |
+| plugin-flutter 0.x installé à côté de l'orchestrateur | Hooks en double, délégation refusée | Documenté (INSTALLATION, TROUBLESHOOTING) ; résolu par la mise à jour vers la 1.0 |
 | Les consignes d'écriture « par dossier » des agents ne sont pas respectées | Fichiers modifiés hors périmètre | agent-scope-guard refuse l'appel d'outil ; le reviewer compare `git diff --name-only` au périmètre déclaré |
 | Un frontmatter d'agent illisible | L'agent reçoit tous les outils, sans message | Test statique strict du frontmatter dans `run-all.sh` |
 | Un hook qui plante laisse passer | Garde-fou inopérant | `exit 2` sur erreur interne et `onFailure: "block"` ; tests d'erreur interne |
-| Checkpoint non mis à jour | Reprise sur un état faux | Hook checkpoint-reminder ; recover-session croise avec Git |
+| Checkpoint non mis à jour | Reprise sur un état faux | checkpoint-reminder et recover-session de l'orchestrateur, qui croise avec Git |
 | Documentation trop lourde pour un débutant | Abandon du workflow | Socle de quatre documents, optionnels à la demande |
-| Coût en quota des agents | Session coupée en plein cycle | TDD en session principale ; agents aux jalons seulement |
+| Coût en quota des agents | Session coupée en plein cycle | TDD en session principale ; agents sur mandat, aux jalons seulement |
 | Évolution du format des plugins | Plugin non chargé après mise à jour de Claude Code | Tests statiques en CI ; version minimale documentée dans INSTALLATION.md |

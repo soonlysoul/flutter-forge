@@ -26,10 +26,10 @@ Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `pl
 
 - [x] A — Vérifications (2026-10-29), détail ci-dessous
 - [x] B à D — TDD : garde, agents à l'interface 1, retraits, gabarits, skills restantes, scénarios
-- [ ] Orchestrateur 0.1.1 (dépôt voisin, local)
-- [ ] E — Revue indépendante du diff
-- [ ] G — Docs, manifestes, CHANGELOG 1.0.0 (migration des projets 0.x), ARCHITECTURE.md
-- [ ] F.1 — `tests/run-all.sh` vert, `claude plugin validate --strict`, coût permanent
+- [x] Orchestrateur 0.1.1 préparé : branche locale `fix/v0.1.1` de plugin-orchestrator, commit `ae47780` (mandat `scaffold`, amendement daté de son architecture, CHANGELOG « à venir », PROGRESS) ; sa suite → exit 0, 18 réussies, coût 1 897 tokens ; ni version ni publication
+- [ ] E — Revue indépendante du diff (en cours)
+- [x] G — Docs, manifestes (1.0.0), CHANGELOG 1.0.0 « en cours » avec la migration des projets 0.x, ARCHITECTURE.md en REVIEW
+- [x] F.1 — `bash tests/run-all.sh` → exit 0 : 14 réussies (10 suites, 710 assertions, 1 saut : `dart` absent pour format-dart ; 4 validations `--strict`) ; coût permanent ~1 074 tokens (2 skills, 5 agents, 2 hooks), contre ~1 651
 - [ ] F.2 — Scénarios headless 1, 6, 10, 11, 13, 14 (12 en option), sur accord
 - [ ] Publication, sur accord
 

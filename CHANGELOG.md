@@ -2,6 +2,35 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/) : correctif pour une consigne, mineure pour un skill ou un agent ajouté, majeure pour un changement de format de `.forge/` qui casse la reprise.
 
+## [1.0.0] — en cours
+
+plugin-flutter devient le plugin Flutter de plugin-orchestrator 0.1.0 : les workflows communs à tous les langages et les garde-fous communs passent à l'orchestrateur, qui confie à plugin-flutter, par des mandats à l'interface 1 de son contrat de délégation, tout ce qui demande de comprendre Flutter. Les deux plugins s'installent ensemble. Majeure : des skills, un agent et des hooks partent, et `.forge/config.yaml` passe au format de l'orchestrateur (schéma 2) — un projet 0.x se migre en ajoutant le bloc `parts` à la main ([Installation](docs/INSTALLATION.md#migrer-un-projet-de-plugin-flutter-0x)).
+
+### Ajouté
+
+- Agent `scaffold-engineer` (sonnet) : reçoit le mandat `scaffold` du `bootstrap-project` de l'orchestrateur — `flutter create … .` dans le dossier de la session, jamais `--overwrite`, structure `lib/app`, `lib/core`, `lib/features` et `integration_test/`, modes stricts de l'analyseur, TRD en DRAFT, `flutter test` et `flutter analyze` à 0 — et rend `SCAFFOLD`, `TOOLCHAIN` (les lignes que l'orchestrateur écrit dans `.forge/config.yaml`), `PERMISSIONS` (le fragment Flutter, jamais écrit par lui), `VERSIONS` et `TARGETS`. Ni CI ni commit. Un projet hors du dossier de la session le fait s'arrêter en `blocked`. Sa portée dans agent-scope-guard : `lib/`, `test/`, `integration_test/`, `docs/technical/` et le seul fichier racine `analysis_options.yaml`.
+- Écho `INTERFACE: 1` à la fin du rapport des cinq agents, juste avant `STATUS`, que l'orchestrateur vérifie avant de se servir d'un rapport ; un mandat d'une autre interface n'est pas exécuté (`STATUS: blocked`, rien d'écrit).
+- Les mandats de l'orchestrateur, nommés par chaque agent : `write-tests` (test-engineer, dont un test de non-régression unique pour debug-project), `review` (code-reviewer, avec la cause racine pour debug-project ; un correctif qui masque le symptôme est bloquant), `check-dependency` et `diagnose` (flutter-architect, rapports `DEPENDENCY`/`ADR` et `DIAGNOSIS`/`FIX_DIRECTION`, rien d'écrit), `ci-template` (devops-engineer, nouveau : la CI Flutter depuis le gabarit), `build`, `ci-diagnosis` et `workflow-change`.
+- `templates/permissions-fragment.json` : les règles de permission de Flutter, que le scaffold rend à l'orchestrateur.
+- Vérification de plugin-orchestrator en tête d'`update-project` et d'`adopt-existing-project` : sans lui (0.1.0 ou plus), elles s'arrêtent avant tout, sans rien changer, et donnent sa commande d'installation.
+- Scénarios 13 (sans orchestrateur) et 14 (le critère v0.1 de l'orchestrateur avec plugin-flutter 1.0) ; `tests/scenarios/headless.sh` charge `FORGE_ORCHESTRATOR_DIR` par un second `--plugin-dir`.
+
+### Modifié
+
+- `.forge/config.yaml` au format de l'orchestrateur : `templates/forge-config.yaml` en `schema_version: 2`, une partie à la racine `plugin: plugin-flutter`, `interface: 1`, sa toolchain Flutter et ses `platforms`. `update-project` l'exige et s'arrête sur un fichier 0.x en montrant le bloc `parts` à ajouter ; `adopt-existing-project` l'écrit ; les agents lisent les plateformes de la partie.
+- `adopt-existing-project` : le PRD est reconstruit par `plugin-orchestrator:product-architect`, à l'interface 1 ; la branche est créée par le skill lui-même ; le plan, `CLAUDE.md` et `.claude/settings.json` viennent des gabarits du plugin, qui nomment les workflows de l'orchestrateur ; l'approbation des documents est consignée par l'orchestrateur.
+- `update-project` et `adopt-existing-project` passent par le `git-workflow`, le `debug-project` et le `github-workflow` de l'orchestrateur.
+- `templates/project-settings.json` : les règles génériques de l'orchestrateur 0.1.0 ajoutées (`git --version`, `jq --version`, `git show`, `git ls-files` sans demander ; lecture des keystores et certificats refusée).
+- Gabarits de documents (TRD, plan, DECISIONS, CLAUDE) déplacés sous `templates/doc-templates/`, avec l'état REVIEW : un document approuvé qui change repasse en REVIEW (doc-status-guard de l'orchestrateur). `CLAUDE.md` nomme les workflows de l'orchestrateur.
+- `flutter-architect` : `flutter doctor` dans sa liste de commandes, pour un diagnostic ; un TRD ou un DECISIONS.md nouveau part de son gabarit.
+- `code-reviewer` : le diff indexé se compare à la branche par défaut du projet, plus à `main` en dur.
+
+### Retiré
+
+- Skills `create-feature`, `debug-project`, `github-workflow`, `git-workflow`, `recover-session` et `bootstrap-project`, agent `product-architect`, hooks `guard-destructive`, `secret-scan`, `protect-sensitive` et `checkpoint-reminder` : ce sont ceux de plugin-orchestrator. Leurs tests partent avec eux, après vérification que les 382 cas des quatre suites de hooks donnent les mêmes décisions contre les hooks de l'orchestrateur. Le lexer `hooks/scripts/lib/shell-lexer.sh` reste : agent-scope-guard s'en sert.
+- Gabarit `PRD.md` (celui de l'orchestrateur) et `reference/pr-body.md`.
+- Scénarios 2 à 5 et 7 à 9, qui testaient les composants retirés.
+
 ## [0.3.0] — 2026-10-20
 
 Mettre à jour les dépendances par lots validés, adopter une app existante sans rien réécrire, repérer les écarts entre les documents et le code. Le format de `.forge/` ne change pas.
@@ -16,7 +45,7 @@ Mettre à jour les dépendances par lots validés, adopter une app existante san
 
 ### Modifié
 
-- `templates/project-settings.json` : les commandes de `flutter pub` qui ne modifient rien (`get --enforce-lockfile`, `outdated`, `deps`, `add --dry-run`), `flutter --version --machine` et `git status <options>` passent sans demander ; `flutter pub upgrade` sans argument, `flutter upgrade`, `flutter downgrade` et `flutter channel` demandent d'abord. Un projet créé avec la v0.2 garde ses règles : les ajouter à la main (voir [Installation](docs/INSTALLATION.md#mettre-à-jour-un-projet-créé-avec-la-v02)).
+- `templates/project-settings.json` : les commandes de `flutter pub` qui ne modifient rien (`get --enforce-lockfile`, `outdated`, `deps`, `add --dry-run`), `flutter --version --machine` et `git status <options>` passent sans demander ; `flutter pub upgrade` sans argument, `flutter upgrade`, `flutter downgrade` et `flutter channel` demandent d'abord. Un projet créé avec la v0.2 garde ses règles : les ajouter à la main (voir [Installation](docs/INSTALLATION.md#migrer-un-projet-de-plugin-flutter-0x)).
 - `agent-scope-guard` : périmètre de product-architect (`docs/product/`, aucune commande) ; un agent sans liste de commandes ne peut plus rien lancer.
 - `bootstrap-project` confie le PRD d'un brief long à product-architect. `create-feature` traite les divergences relevées à la revue : une modification du PRD ou du TRD y devient un point de validation.
 - `flutter-architect` ne lance `flutter pub deps` que sur un lockfile à jour, puisque la commande réécrit un lockfile périmé ; pour une app adoptée, il décrit la pile existante et propose ses ADR.

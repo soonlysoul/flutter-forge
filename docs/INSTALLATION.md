@@ -5,12 +5,13 @@
 | Outil | Version | Pourquoi |
 | --- | --- | --- |
 | Claude Code | **2.1.295 ou plus** | Les hooks déclarent `onFailure`, apparu en 2.1.295. Une version antérieure ne garantit pas le blocage en cas d'erreur d'un hook |
-| `jq` | toute version récente | Les hooks lisent leur entrée JSON avec `jq`. **Sans lui, guard-destructive bloque toutes les commandes shell** (fail-closed) |
-| `git` | 2.x | Workflows, checkpoint-reminder |
+| plugin-orchestrator | **0.1.0 ou plus**, installé avec plugin-flutter | Les workflows (démarrage, fonctionnalités, Git, GitHub, reprise, débogage) et les garde-fous communs sont les siens. Sans lui, les skills de plugin-flutter s'arrêtent d'abord en le nommant, et ses agents n'ont personne pour les mandater |
+| `jq` | toute version récente | Les hooks lisent leur entrée JSON avec `jq`. Sans lui, agent-scope-guard bloque tous les appels des agents du plugin, et le guard-destructive de l'orchestrateur toutes les commandes shell (fail-closed) |
+| `git` | 2.x | Workflows de l'orchestrateur, mise à jour des dépendances, adoption |
 | Flutter et Dart | canal stable | Projets générés, `format-dart` |
 | `bash` | 5.x vérifié | Les hooks s'appellent par `bash` sur le `PATH`. bash 3.2 (macOS par défaut) : non vérifié |
-| `gh` | 2.x, connecté (`gh auth login`) | Skill `github-workflow` et agent devops-engineer seulement. Vérifié avec 2.101.0 |
-| gitleaks | 8.19 ou plus, **facultatif, recommandé** | Lancé par `secret-scan` s'il est sur le `PATH` ; sans lui, seuls quelques motifs sont détectés. Vérifié avec 8.30.1. Sous NixOS : `home.packages = [ pkgs.gitleaks ];` |
+| `gh` | 2.x, connecté (`gh auth login`) | Agent devops-engineer, sur les mandats du github-workflow de l'orchestrateur. Vérifié avec 2.101.0 |
+| gitleaks | 8.19 ou plus, **facultatif, recommandé** | Lancé par le secret-scan de l'orchestrateur s'il est sur le `PATH`. Sous NixOS : `home.packages = [ pkgs.gitleaks ];` |
 
 Vérifier : `claude --version`, `jq --version`, `git --version`, `flutter --version`, `gh auth status`, `gitleaks version`.
 
@@ -19,23 +20,24 @@ Vérifier : `claude --version`, `jq --version`, `git --version`, `flutter --vers
 ## Essayer sans installer
 
 ```bash
-claude --plugin-dir /chemin/vers/plugin-flutter
+claude --plugin-dir /chemin/vers/plugin-flutter --plugin-dir /chemin/vers/plugin-orchestrator
 ```
 
-Le plugin vaut pour cette session seulement et apparaît comme `plugin-flutter@inline`. Après une modification de ses fichiers : `/reload-plugins`.
+Les deux plugins valent pour cette session seulement et apparaissent comme `plugin-flutter@inline` et `plugin-orchestrator@inline`, à la place d'une copie installée du même nom. Après une modification de leurs fichiers : `/reload-plugins`.
 
 ## Installer sur un appareil
 
-Le plugin est publié dans le dépôt public [`soonlysoul/plugin-flutter`](https://github.com/soonlysoul/plugin-flutter) et proposé par la marketplace `soon`, elle-même dans le dépôt public [`soonlysoul/claude-plugins`](https://github.com/soonlysoul/claude-plugins). Aucun compte GitHub n'est nécessaire.
+Les deux plugins sont publiés dans les dépôts publics [`soonlysoul/plugin-flutter`](https://github.com/soonlysoul/plugin-flutter) et [`soonlysoul/plugin-orchestrator`](https://github.com/soonlysoul/plugin-orchestrator), et proposés par la marketplace `soon`, elle-même dans le dépôt public [`soonlysoul/claude-plugins`](https://github.com/soonlysoul/claude-plugins). Aucun compte GitHub n'est nécessaire. Installez-les **ensemble** : l'un sans l'autre, les skills concernées s'arrêtent en nommant le plugin manquant.
 
 En shell :
 
 ```bash
 claude plugin marketplace add soonlysoul/claude-plugins
+claude plugin install plugin-orchestrator@soon --scope user
 claude plugin install plugin-flutter@soon --scope user
 ```
 
-En session : `/plugin marketplace add soonlysoul/claude-plugins`, puis `/plugin install plugin-flutter@soon`, et confirmer dans le panneau.
+En session : `/plugin marketplace add soonlysoul/claude-plugins`, puis `/plugin install plugin-orchestrator@soon` et `/plugin install plugin-flutter@soon`, et confirmer dans le panneau.
 
 **Appareil sans clé SSH GitHub.** Claude Code essaie d'abord SSH pour un dépôt GitHub. Exportez `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` (par exemple dans le profil du shell) pour passer directement par HTTPS : sans cette variable, l'installation depuis `/plugin` et les mises à jour échouent sur un tel appareil, même si `claude plugin install` en shell réussit.
 
@@ -54,11 +56,11 @@ N'ajoutez pas les deux marketplaces, `soon` et `plugin-flutter`, sur la même ma
 
 | Portée | Effet |
 | --- | --- |
-| `user` | Le plugin est actif dans **toutes** vos sessions. Ses hooks protègent donc tous vos projets, pas seulement les projets Flutter |
+| `user` | Le plugin est actif dans **toutes** vos sessions |
 | `project` | Actif pour ce projet, pour tous ceux qui l'ouvrent ; déclaré dans le `.claude/settings.json` du projet |
 | `local` | Actif pour ce projet, pour vous seul |
 
-Les hooks restent inertes hors de leur contexte : `format-dart` ne touche que les `.dart`, `checkpoint-reminder` ne parle qu'en présence de `.forge/checkpoint.md`, `agent-scope-guard` ne vise que les cinq agents du plugin, `protect-sensitive` n'agit que dans un projet qui a `.forge/` (sauf pour `.forge/config.yaml`). `guard-destructive` et `secret-scan` agissent partout, et c'est voulu : une commande destructive ou un secret commité sont un problème dans n'importe quel dépôt.
+Donnez la même portée aux deux plugins. Les hooks de plugin-flutter restent inertes hors de leur contexte : `format-dart` ne touche que les `.dart`, `agent-scope-guard` ne vise que les cinq agents du plugin. Les garde-fous qui agissent partout — commandes destructives, secrets — sont ceux de l'orchestrateur.
 
 ## Vérifier l'installation
 
@@ -66,7 +68,7 @@ Les hooks restent inertes hors de leur contexte : `format-dart` ne touche que le
 claude plugin details plugin-flutter
 ```
 
-Attendu : 8 skills, 5 agents, des hooks sur `PreToolUse`, `PostToolUse` et `Stop`, environ 1 650 jetons ajoutés à chaque session. Un skill ne charge son contenu qu'à son invocation : environ 4 700 jetons pour update-project ou adopt-existing-project.
+Attendu : 2 skills, 5 agents, des hooks sur `PreToolUse` et `PostToolUse`, environ 1 070 jetons ajoutés à chaque session. Un skill ne charge son contenu qu'à son invocation : environ 5 500 jetons pour update-project, 5 800 pour adopt-existing-project.
 
 Depuis le dossier du plugin, la suite de tests déterministes :
 
@@ -74,46 +76,57 @@ Depuis le dossier du plugin, la suite de tests déterministes :
 bash tests/run-all.sh
 ```
 
-## La première ouverture d'un projet généré
+## La première ouverture d'un projet
 
-bootstrap-project propose d'installer des règles de permission dans `<projet>/.claude/settings.json`. Trois points à connaître :
+Le `bootstrap-project` de l'orchestrateur, comme `adopt-existing-project`, propose d'installer des règles de permission dans `<projet>/.claude/settings.json` : les règles génériques de l'orchestrateur et celles de Flutter (`templates/permissions-fragment.json`, rendues par le scaffold-engineer). Trois points à connaître :
 
 - les règles `allow` du projet ne s'appliquent **qu'après acceptation de la confiance du workspace**, à la première session interactive ouverte dans ce dossier ; `deny` et `ask` s'appliquent toujours ;
-- ouvrez la session **à la racine du projet** : c'est elle qui fixe `CLAUDE_PROJECT_DIR`, que les hooks utilisent comme racine ;
-- en mode non interactif (`claude -p`), Claude Code refuse l'écriture de `.claude/settings.json`, qu'il protège. bootstrap-project donne alors la commande de copie à lancer vous-même : `! mkdir -p <projet>/.claude && cp <plugin>/templates/project-settings.json <projet>/.claude/settings.json`, avec `.` pour le dossier courant. De même pour `.forge/config.yaml`, que le hook protect-sensitive protège : le skill donne la commande `! … sed … > <projet>/.forge/config.yaml` qui le crée.
+- ouvrez la session **à la racine du projet** : c'est elle qui fixe `CLAUDE_PROJECT_DIR`, que les hooks utilisent comme racine, et le scaffold-engineer ne crée l'app que là ;
+- en mode non interactif (`claude -p`), Claude Code refuse l'écriture de `.claude/settings.json`, qu'il protège : le skill donne la commande de copie à lancer vous-même. De même pour `.forge/config.yaml`, que le protect-sensitive de l'orchestrateur protège.
 
-## Mettre à jour un projet créé avec la v0.2
+## Migrer un projet de plugin-flutter 0.x
 
-Les fichiers d'un projet vous appartiennent : une mise à jour du plugin ne les touche pas. Pour profiter des règles de la v0.3, qui servent à `update-project`, ajoutez à la main dans `<projet>/.claude/settings.json` :
+Les fichiers d'un projet vous appartiennent : la mise à jour du plugin ne les touche pas, et Claude n'édite jamais `.forge/config.yaml`. Après avoir installé les deux plugins et ouvert une nouvelle session :
 
-- en `allow` : `Bash(flutter pub get --enforce-lockfile)`, `Bash(flutter pub outdated)`, `Bash(flutter pub outdated *)`, `Bash(flutter pub deps)`, `Bash(flutter pub deps *)`, `Bash(flutter pub add --dry-run *)`, `Bash(git status *)`, `Bash(flutter --version --machine)` ;
-- en `ask` : `Bash(flutter pub upgrade)`, `Bash(flutter upgrade*)`, `Bash(flutter downgrade*)`, `Bash(flutter channel *)`.
+1. **`.forge/config.yaml`**, à éditer vous-même : `schema_version: 2`, le bloc `platforms:` de premier niveau retiré, et ce bloc `parts` ajouté, avec vos plateformes. Les skills des deux plugins le montrent quand elles trouvent un fichier sans `parts`, et s'arrêtent jusque-là.
 
-Sans elles, le skill fonctionne, mais Claude demande la permission pour chaque commande d'inventaire. Le format de `.forge/` ne change pas.
+   ```yaml
+   parts:
+     app:
+       path: .
+       plugin: plugin-flutter
+       interface: 1
+       toolchain:
+         test: flutter test
+         format: dart format --output=none --set-exit-if-changed .
+         analyze: flutter analyze
+         add_dep: flutter pub add
+         manifests: [pubspec.yaml, pubspec.lock]
+         integration_test: flutter test integration_test -d <device>
+       platforms: [android, web, linux]
+   ```
+
+2. **`.claude/settings.json`**, facultatif : les règles génériques que l'orchestrateur ajoute — en `allow` : `Bash(git --version)`, `Bash(jq --version)`, `Bash(git show *)`, `Bash(git ls-files)`, `Bash(git ls-files *)` ; en `deny` : `Read(./**/*.jks)`, `Read(./**/*.keystore)`, `Read(./**/*.p12)`, `Read(./**/*.pfx)`. Un projet de la v0.1 ou de la v0.2 trouve toutes les règles de la 1.0 dans `templates/project-settings.json` du plugin, à comparer avec le sien.
+3. **Documents.** Un PRD ou un TRD approuvé sous la 0.x n'a pas d'empreinte dans `.forge/approvals.log` : le doc-status-guard de l'orchestrateur le repasse en REVIEW à sa première modification. Le `create-feature` de l'orchestrateur demande alors votre approbation, et la consigne.
+4. **`CLAUDE.md`** du projet : il nomme encore `/plugin-flutter:create-feature` et ses voisins. Remplacez-les par `/plugin-orchestrator:…`, comme dans `templates/doc-templates/CLAUDE.md` du plugin.
+
+Tant que plugin-flutter 0.x reste installé à côté de l'orchestrateur, les hooks communs tournent en double (mêmes blocages, en plus lent) et l'orchestrateur refuse de lui confier quoi que ce soit : ses agents ne répondent pas `INTERFACE: 1`. La mise à jour vers la 1.0 règle les deux.
 
 Une app Flutter qui n'a jamais eu de `.forge/` s'adopte par `/plugin-flutter:adopt-existing-project` (voir le [guide](USER_GUIDE.md#adopter-une-app-existante--adopt-existing-project)).
-
-## Mettre à jour un projet créé avec la v0.1
-
-Ajoutez à la main dans `<projet>/.claude/settings.json` les règles de la v0.2, puis celles de la v0.3 (section précédente) :
-
-- en `allow` : `Bash(gh --version)`, `Bash(gh auth status)`, `Bash(gh repo view)`, `Bash(gh repo view *)`, `Bash(gh pr view *)`, `Bash(gh pr checks *)`, `Bash(gh run list *)`, `Bash(gh run view *)`, `Bash(gh run watch *)`, `Bash(gh workflow list)`, `Bash(gh workflow view *)`, `Bash(gh issue list *)`, `Bash(gh issue view *)`, `Bash(git remote -v)`, `Bash(git rev-parse *)`, `Bash(git branch --show-current)`, `Bash(flutter --version)`, `Bash(flutter doctor)`, `Bash(flutter doctor *)`, `Bash(flutter devices)`, `Bash(flutter build *)` ;
-- en `ask` : `Bash(gh repo create *)`, `Bash(gh pr edit *)`, `Bash(gh issue create *)`, `Bash(gh run rerun *)`, `Bash(gh workflow run *)`.
-
-Le format de `.forge/` ne change pas. La CI s'ajoute par `/plugin-flutter:github-workflow ci`.
 
 ## Mettre à jour
 
 - **Marketplace locale** : le plugin est lu sur place. Une modification de ses fichiers s'applique à la session suivante, ou tout de suite par `/reload-plugins`. Rien à réinstaller, et `version` n'y change rien.
-- **Marketplace `soon`** : `claude plugin marketplace update soon`, puis `claude plugin update plugin-flutter@soon`. Un appareil ne reçoit une nouvelle copie que si la `version` du plugin a changé. Pour ne plus y penser : `/plugin` → Marketplaces → `soon` → *Enable auto-update*.
+- **Marketplace `soon`** : `claude plugin marketplace update soon`, puis `claude plugin update plugin-orchestrator@soon` et `claude plugin update plugin-flutter@soon`. Un appareil ne reçoit une nouvelle copie que si la `version` du plugin a changé. Pour ne plus y penser : `/plugin` → Marketplaces → `soon` → *Enable auto-update*.
 
 ## Désinstaller
 
 ```bash
 claude plugin uninstall plugin-flutter@soon --scope user
+claude plugin uninstall plugin-orchestrator@soon --scope user
 claude plugin marketplace remove soon     # retire aussi la marketplace et ses plugins
 ```
 
 En session : `/plugin uninstall plugin-flutter`.
 
-Les projets générés gardent leurs fichiers (`.forge/`, `.claude/settings.json`, docs) : ils vous appartiennent.
+Les projets gardent leurs fichiers (`.forge/`, `.claude/settings.json`, docs) : ils vous appartiennent.

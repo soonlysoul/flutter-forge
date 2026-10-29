@@ -1,43 +1,34 @@
 # plugin-flutter
 
-Plugin Claude Code qui encadre la création et la maintenance d'applications Flutter et Dart : des workflows (skills), des spécialistes (agents) et des garde-fous déterministes (hooks). Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
+Plugin Claude Code pour les applications Flutter et Dart, à utiliser avec [plugin-orchestrator](https://github.com/soonlysoul/plugin-orchestrator). L'orchestrateur mène le projet — démarrage, fonctionnalités en TDD, Git, GitHub, reprise, débogage — et confie à plugin-flutter tout ce qui demande de comprendre Flutter : le squelette de l'app, ses tests, sa revue, son architecture, ses builds et sa CI, la mise à jour de ses dépendances, l'adoption d'une app existante. Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-Version **0.3.0**. Claude Code **2.1.295 ou plus** requis.
+Version **1.0.0**. Claude Code **2.1.295 ou plus** et plugin-orchestrator **0.1.0 ou plus** requis.
 
 ## Ce que fait le plugin
 
-Créer un projet, développer une fonctionnalité en TDD, committer proprement, reprendre après une interruption (v0.1) ; publier sur GitHub avec une CI, ouvrir une pull request, corriger une erreur avec méthode (v0.2) ; mettre à jour les dépendances par lots validés, adopter une app existante sans rien réécrire, repérer les écarts entre les documents et le code (v0.3).
+Depuis la 1.0, les workflows communs à tous les langages sont ceux de plugin-orchestrator (`/plugin-orchestrator:bootstrap-project`, `create-feature`, `git-workflow`, `github-workflow`, `recover-session`, `debug-project`), comme les garde-fous communs (commandes destructives, secrets, fichiers sensibles, rappel du checkpoint). L'orchestrateur envoie un **mandat** à un agent de plugin-flutter, qui rend un rapport terminé par `INTERFACE: 1` : la version du contrat de délégation, vérifiée avant que le rapport serve.
 
 | Composant | Rôle |
 | --- | --- |
-| Skill `bootstrap-project` | Crée l'app : nom, package id et plateformes validés, `flutter create`, Git, documents de base en DRAFT, dossier `.forge/`, test de base vert |
-| Skill `create-feature` | Une fonctionnalité en 15 étapes TDD : tests d'abord, ROUGE puis VERT consignés, revue indépendante, commit préparé |
-| Skill `git-workflow` | Branches nommées, ajout explicite des fichiers, commits Conventional Commits, push d'une branche de travail seulement si préautorisé |
-| Skill `recover-session` | Reprend un travail interrompu depuis le disque (checkpoint, Git), sans rien modifier avant votre accord |
-| Skill `github-workflow` | Crée le dépôt GitHub après confirmation, ajoute la CI, ouvre la pull request avec tests et plateformes, suit la CI |
-| Skill `debug-project` | Reproduit une erreur, en trouve la cause racine avec preuve, écrit un test de non-régression ROUGE puis VERT, committe un correctif minimal |
 | Skill `update-project` | Met à jour les dépendances par lots que vous validez, sur une branche `chore/deps-<slug>` : analyse et tests après chaque lot, un commit par lot avec son lockfile, rapport avant/après. Ne change jamais la version de Flutter elle-même |
-| Skill `adopt-existing-project` | Prend en charge une app Flutter existante : analyse en lecture seule, plan de mise en conformité que vous validez, puis `.forge/`, documents reconstruits depuis le code et liste des divergences |
-| Agent `product-architect` | PRD et critères d'acceptation numérotés `AC-xxx`, testables ; écrit seulement sous `docs/product/`, sans shell |
-| Agent `flutter-architect` | TRD, décisions (ADR), dépendances justifiées ; écrit seulement sous `docs/` |
-| Agent `test-engineer` | Écrit les tests d'abord et rapporte la sortie ROUGE ; écrit seulement sous `test/` et `integration_test/` |
-| Agent `code-reviewer` | Relit le diff sans rien écrire ; constats bloquant / important / mineur, et divergences avec les documents |
-| Agent `devops-engineer` | Builds par plateforme et diagnostic d'une CI rouge à partir de ses journaux ; écrit seulement sous `.github/`, ne pousse rien |
-| Hook `guard-destructive` | Bloque `git reset --hard`, `push --force`, `rm -rf` hors `build/`, `gh repo delete`, `pub publish`… |
-| Hook `agent-scope-guard` | Impose à chaque agent ses dossiers d'écriture et sa liste de commandes |
-| Hook `secret-scan` | Bloque un commit qui contient un fichier `.env`, un keystore ou une clé (AWS, GitHub, `sk-`, Google, clé privée) ; lance aussi gitleaks s'il est installé |
-| Hook `protect-sensitive` | Demande confirmation avant d'écrire un fichier de signature, des entitlements, un workflow de CI ou `.forge/config.yaml` |
+| Skill `adopt-existing-project` | Prend en charge une app Flutter existante : analyse en lecture seule, plan de mise en conformité que vous validez, puis `.forge/` au format de l'orchestrateur, documents reconstruits depuis le code et liste des divergences |
+| Agent `scaffold-engineer` | Crée l'app au démarrage d'un projet (mandat `scaffold` de l'orchestrateur) : `flutter create`, structure, modes stricts de l'analyseur, TRD en DRAFT, test de base vert ; rend la toolchain, les règles de permission Flutter, les versions et les plateformes |
+| Agent `flutter-architect` | TRD, décisions (ADR), compatibilité d'une dépendance avec les plateformes (`check-dependency`), diagnostic d'un comportement de Flutter (`diagnose`) ; écrit seulement sous `docs/` |
+| Agent `test-engineer` | Écrit les tests d'abord et rapporte la sortie ROUGE (`write-tests`), ou un test de non-régression ; écrit seulement sous `test/` et `integration_test/` |
+| Agent `code-reviewer` | Relit le diff sans rien écrire (`review`) ; constats bloquant / important / mineur, et divergences avec les documents |
+| Agent `devops-engineer` | Pose la CI Flutter (`ci-template`), builde chaque plateforme (`build`), diagnostique une CI rouge à partir de ses journaux ; écrit seulement sous `.github/`, ne pousse rien |
+| Hook `agent-scope-guard` | Impose à chaque agent du plugin ses dossiers d'écriture et sa liste de commandes |
 | Hook `format-dart` | `dart format` sur chaque fichier `.dart` modifié |
-| Hook `checkpoint-reminder` | Rappelle une fois de mettre à jour `.forge/checkpoint.md` quand il est périmé |
 
 ## Démarrage rapide
 
 Prérequis : Claude Code ≥ 2.1.295, `git`, `jq`, Flutter (canal stable) ; pour GitHub, `gh` connecté ; gitleaks recommandé.
 
-Sur chaque appareil, depuis la marketplace publique `soon` :
+Sur chaque appareil, depuis la marketplace publique `soon`, les deux plugins :
 
 ```bash
 claude plugin marketplace add soonlysoul/claude-plugins
+claude plugin install plugin-orchestrator@soon --scope user
 claude plugin install plugin-flutter@soon --scope user
 ```
 
@@ -50,18 +41,20 @@ mkdir mon_app && cd mon_app && claude
 ```
 
 ```
-/plugin-flutter:bootstrap-project mon_app
+/plugin-orchestrator:bootstrap-project une appli de notes en Flutter
 ```
 
 Le dossier où la session est lancée sert de racine du projet aux hooks et aux règles de permission.
 
 Pour une app Flutter qui existe déjà : ouvrez Claude Code à sa racine, sur sa branche principale, sans modification en cours, et lancez `/plugin-flutter:adopt-existing-project`. Rien n'est écrit avant que vous ayez validé son plan.
 
-Pour l'essayer sans l'installer, depuis une copie du dépôt : `claude --plugin-dir /chemin/vers/plugin-flutter`.
+Un projet créé avec plugin-flutter 0.x se migre en ajoutant le bloc `parts` à `.forge/config.yaml` : voir [Installation](docs/INSTALLATION.md#migrer-un-projet-de-plugin-flutter-0x).
+
+Pour l'essayer sans l'installer, depuis des copies des deux dépôts : `claude --plugin-dir /chemin/vers/plugin-flutter --plugin-dir /chemin/vers/plugin-orchestrator`.
 
 ## Documentation
 
-- [Installation, mise à jour, désinstallation](docs/INSTALLATION.md)
+- [Installation, migration, mise à jour, désinstallation](docs/INSTALLATION.md)
 - [Guide d'utilisation](docs/USER_GUIDE.md)
 - [Sécurité : les trois couches et leurs limites](docs/SECURITY.md)
 - [Dépannage](docs/TROUBLESHOOTING.md)

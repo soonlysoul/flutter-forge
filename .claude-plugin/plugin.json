@@ -1,12 +1,12 @@
 {
   "name": "plugin-flutter",
-  "version": "0.3.0",
-  "description": "Flutter/Dart project workflows: bootstrap, adoption of an existing app, TDD features, dependency updates, Git hygiene, session recovery, GitHub pull requests and CI, debugging.",
+  "version": "1.0.0",
+  "description": "Flutter/Dart language plugin of plugin-orchestrator: scaffold of a Flutter app, tests, review, architecture, builds and CI by mandate at interface 1, dependency updates, adoption of an existing app.",
   "author": {
     "name": "Soon"
   },
   "homepage": "https://github.com/soonlysoul/plugin-flutter",
   "repository": "https://github.com/soonlysoul/plugin-flutter",
   "license": "MIT",
-  "keywords": ["flutter", "dart", "tdd", "git", "github", "ci", "dependencies"]
+  "keywords": ["flutter", "dart", "tdd", "ci", "dependencies", "plugin-orchestrator"]
 }

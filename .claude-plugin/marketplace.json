@@ -8,7 +8,7 @@
     {
       "name": "plugin-flutter",
       "source": "./",
-      "description": "Flutter/Dart project workflows: bootstrap, TDD features, Git hygiene, session recovery, GitHub pull requests and CI, debugging."
+      "description": "Flutter/Dart language plugin of plugin-orchestrator: scaffold, tests, review, architecture, builds and CI by mandate, dependency updates, adoption of an existing app."
     }
   ]
 }
