@@ -41,6 +41,7 @@ for file in "$AGENTS"/*.md; do
   says "$file" "$agent: speaks interface 1 of plugin-orchestrator's delegation contract" "interface 1 of the delegation contract of plugin-orchestrator"
   says "$file" "$agent: does not carry out a mandate of another interface" "A mandate that names another interface is not carried out"
   says "$file" "$agent: says which interface it was asked" "saying which interface was asked"
+  says "$file" "$agent: a request without an interface line is read as interface 1" "A mandate without an \`interface:\` line is read as interface 1"
   grep -qE '^description:.*plugin-orchestrator' "$file" && pass "$agent: its description names the mandates of plugin-orchestrator" \
     || fail "$agent: its description names the mandates of plugin-orchestrator" "$(grep '^description:' "$file")"
 done
@@ -84,6 +85,8 @@ says "$DEVOPS" "ci-template fills the plugin's CI template" "templates/github-wo
 says "$DEVOPS" "ci-template pins the local Flutter version" "__FLUTTER_VERSION__"
 says "$DEVOPS" "ci-template sets the default branch" "__DEFAULT_BRANCH__"
 says "$DEVOPS" "ci-template writes the file the mandate names" "the file the mandate names"
+grep -qF '> .github/workflows/ci.yml`' "$DEVOPS" && fail "the refused-write command writes the file the mandate names" "hard-coded ci.yml" \
+  || pass "the refused-write command writes the file the mandate names"
 says "$DEVOPS" "reads the platforms of the part" "\`platforms\` of the part"
 grep -qF 'platforms.enabled' "$DEVOPS" && fail "no platforms.enabled left (schema 1)" "$(grep -nF 'platforms.enabled' "$DEVOPS")" \
   || pass "no platforms.enabled left (schema 1)"
@@ -109,7 +112,29 @@ if [[ -f $SC ]]; then
     && pass "scaffold-engineer: SCAFFOLD, TOOLCHAIN, PERMISSIONS, VERSIONS, TARGETS, then the tail" \
     || fail "scaffold-engineer: SCAFFOLD, TOOLCHAIN, PERMISSIONS, VERSIONS, TARGETS, then the tail" "$(sections "$SC")"
   says "$SC" "creates the app with flutter create in the project root" "flutter create --org <org> --project-name <name> --platforms <platforms> --description"
-  says "$SC" "never overwrites an existing file" "--overwrite"
+  says "$SC" "never overwrites an existing file" "never \`--overwrite\`"
+  # Review of v1.0 (M1): a line that mentions --overwrite, or the orchestrator's root documents,
+  # forbids them or leaves them to the orchestrator; a mutation asking for them must fail.
+  bad=$(grep -n -- '--overwrite' "$SC" | grep -viE 'never')
+  [[ -z $bad ]] && pass "every mention of --overwrite forbids it" || fail "every mention of --overwrite forbids it" "$bad"
+  # The two sentences that leave the root to the orchestrator are removed word for word: nothing
+  # else may name those documents.
+  text=$(<"$SC") missing=""
+  for sentence in 'The orchestrator keeps the root — `.forge/`, `docs/product/`, `docs/engineering/`, `CLAUDE.md`, the secret patterns of `.gitignore` — and the first commit.' \
+    'Nothing under `docs/product/` or `docs/engineering/`, and no `CLAUDE.md`: those are the orchestrator'"'"'s'; do
+    [[ $text == *"$sentence"* ]] || missing+=" [$sentence]"
+    text=${text//"$sentence"/}
+  done
+  bad=$(grep -nE 'docs/engineering/|docs/product/|CLAUDE\.md' <<<"$text")
+  [[ -z $missing && -z $bad ]] && pass "the root documents are named only to leave them to the orchestrator" \
+    || fail "the root documents are named only to leave them to the orchestrator" "${missing:-}${bad}"
+  says "$SC" "checks the directory of the mandate" "\`directory\` is \`.\`"
+  # Review of v1.0 (I2): a device placeholder is not a command; the device comes from flutter devices.
+  says "$SC" "resolves the integration test device from flutter devices" "a device of \`flutter devices\`"
+  says "$SC" "no device: integration_test none" "\`integration_test: none\`"
+  grep -qF '<device>' "$SC" && fail "no device placeholder left in the scaffold-engineer" "$(grep -nF '<device>' "$SC")" \
+    || pass "no device placeholder left in the scaffold-engineer"
+  says "$SC" "starting a project needs plugin-orchestrator 0.1.1" "plugin-orchestrator 0.1.1"
   says "$SC" "scaffolds only the project at the session root" ".forge/\` at the session root"
   says "$SC" "the toolchain lines come from the plugin's config template" "templates/forge-config.yaml"
   says "$SC" "the permission fragment comes from the plugin's template" "templates/permissions-fragment.json"

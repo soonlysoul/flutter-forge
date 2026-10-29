@@ -193,6 +193,15 @@ check block "flutter create --overwrite replaces existing files" "$(shell_input 
 check block "flutter create --overwrite placed first" "$(shell_input "$SC" 'flutter create --overwrite --org com.example .')"
 check block "flutter create in another directory" "$(shell_input "$SC" 'flutter create --org com.example notes_app')"
 check block "flutter create without a target" "$(shell_input "$SC" 'flutter create')"
+# Review of v1.0 (I1): --list-samples writes its JSON to any new path before checking the target.
+check block "flutter create --list-samples writes outside the project" "$(shell_input "$SC" 'flutter create --list-samples=/home/u/samples.json .')"
+check block "flutter create --list-samples with a separate value" "$(shell_input "$SC" 'flutter create --list-samples /tmp/s.json .')"
+check block "flutter create of another template" "$(shell_input "$SC" 'flutter create --template=plugin --org com.example .')"
+check block "flutter create from a sample" "$(shell_input "$SC" 'flutter create --sample=material.AppBar.1 .')"
+check block "flutter create with an option it does not need" "$(shell_input "$SC" 'flutter create --offline --org com.example .')"
+check block "an option of the allowlist without its value" "$(shell_input "$SC" 'flutter create --org .')"
+check allow "flutter create with the = forms" "$(shell_input "$SC" 'flutter create --org=com.example --project-name=notes_app --platforms=linux --description=Notes .')"
+check allow "flutter create with only the organization" "$(shell_input "$SC" 'flutter create --org com.example .')"
 check block "flutter config changes the machine" "$(shell_input "$SC" 'flutter config --enable-linux-desktop')"
 check block "flutter pub add" "$(shell_input "$SC" 'flutter pub add riverpod')"
 check block "flutter build is the devops-engineer's" "$(shell_input "$SC" 'flutter build web')"
@@ -205,6 +214,14 @@ run_hook "$SCOPE" "$(write_input "$SC" /work/proj/CLAUDE.md)"
 [[ $HOOK_STDERR == *scaffold-engineer* && $HOOK_STDERR == *docs/technical/* && $HOOK_STDERR == *analysis_options.yaml* ]] \
   && pass "scaffold-engineer write refusal names its directories and its file" \
   || fail "scaffold-engineer write refusal names its directories and its file" "$HOOK_STDERR"
+
+echo "# shell structure, through the lexer"
+# Review of v1.0 (M7): the guard suites that exercised the lexer left with their hooks.
+for structured in 'flutter test `cat list`' 'flutter test; git push' 'flutter test | tee out' $'flutter test\ngit push' \
+  'flutter test <(cat list)' 'flutter test & git push' 'flutter test 2>&1' $'flutter test <<EOF\nx\nEOF'; do
+  check block "compound or redirected: ${structured//$'\n'/\\n}" "$(shell_input "$T" "$structured")"
+done
+check allow "quoted text is not structure" "$(shell_input "$T" "flutter test --name 'a; b | c'")"
 
 echo "# project root"
 check allow "CLAUDE_PROJECT_DIR is the root when set" \

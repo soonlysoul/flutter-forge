@@ -27,11 +27,38 @@ Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `pl
 - [x] A — Vérifications (2026-10-29), détail ci-dessous
 - [x] B à D — TDD : garde, agents à l'interface 1, retraits, gabarits, skills restantes, scénarios
 - [x] Orchestrateur 0.1.1 préparé : branche locale `fix/v0.1.1` de plugin-orchestrator, commit `ae47780` (mandat `scaffold`, amendement daté de son architecture, CHANGELOG « à venir », PROGRESS) ; sa suite → exit 0, 18 réussies, coût 1 897 tokens ; ni version ni publication
-- [ ] E — Revue indépendante du diff (en cours)
+- [x] E — Revue indépendante du diff : « prête avec corrections », 0 bloquant, 3 importants, 11 mineurs ; corrections en TDD, détail ci-dessous
 - [x] G — Docs, manifestes (1.0.0), CHANGELOG 1.0.0 « en cours » avec la migration des projets 0.x, ARCHITECTURE.md en REVIEW
 - [x] F.1 — `bash tests/run-all.sh` → exit 0 : 14 réussies (10 suites, 710 assertions, 1 saut : `dart` absent pour format-dart ; 4 validations `--strict`) ; coût permanent ~1 074 tokens (2 skills, 5 agents, 2 hooks), contre ~1 651
 - [ ] F.2 — Scénarios headless 1, 6, 10, 11, 13, 14 (12 en option), sur accord
 - [ ] Publication, sur accord
+
+### Phase E v1.0 — Revue indépendante
+
+Un sous-agent relecteur, sans l'historique de cette session, a relu `main..44017f2` de plugin-flutter et `main..ae47780` de plugin-orchestrator, avec pour exigences l'architecture de l'orchestrateur (contrat de délégation, partage, migration), les références de ses mandats et D43 à D52. Il a rejoué la garde sur des entrées non testées et le vrai Flutter 3.44.4 dans le scratchpad. Verdict : « prête avec corrections ». Chaque constat retenu a d'abord été reproduit, puis fixé par un test ROUGE (26 échecs sur quatre suites), puis corrigé.
+
+| Constat | Vérification | Traitement |
+| --- | --- | --- |
+| **I1** `flutter create --list-samples=<chemin> .` passait la garde du scaffold-engineer ; Flutter écrit le JSON des exemples à ce chemin avant de vérifier la cible | reproduit : exit 0 de la garde, et `--template=plugin` aussi | Liste fermée : `--org`, `--project-name`, `--platforms`, `--description`, chacune avec sa valeur, puis la cible `.` ; 8 tests |
+| **I2** `integration_test: … -d <device>` copié tel quel dans `.forge/config.yaml` : un faux appareil, que la garde refuse au test-engineer (lu comme une redirection), et aucun test d'intégration possible ; en 0.3, create-feature choisissait l'appareil | reproduit : exit 2 | Le scaffold rend `-d <id>` d'un appareil de `flutter devices` qui fait tourner une plateforme du mandat (le bureau de la machine d'abord), sinon `integration_test: none` ; dans le gabarit, la ligne devient un commentaire, comme chez l'orchestrateur ; l'adoption la laisse en commentaire et le dit ; migration documentée |
+| **I3** `TOOLS` des scénarios sans `Bash(bash *)` : en `dontAsk`, les appels `bash …/orch.sh` de l'orchestrateur sont refusés, scénarios 1 et 14 arrêtés | lu (`README.md` des scénarios) | `Bash(bash *)` ajouté, avec sa raison |
+| M1 deux contrôles du scaffold tautologiques (`--overwrite`, documents racine) | reproduit par le relecteur | Toute mention de `--overwrite` doit l'interdire ; les documents racine ne sont nommés que dans deux phrases épinglées mot pour mot |
+| M2 la migration 0.x ne disait que « ajouter `parts` » | lu | `schema_version: 2`, `platforms` de premier niveau retiré, `parts` ajouté ; un `parts` sans schéma 2 arrête aussi update-project |
+| M3 checkpoint écrit à la main : `orch.sh` ne garde que les étapes numérotées, et le recover-session de l'orchestrateur ne connaît que ses skills | reproduit par le relecteur ; lu (`recover-session`, ligne 63) | Étapes numérotées exigées ; `skill: plugin-flutter:update-project` et `plugin-flutter:adopt-existing-project` |
+| M4 champ `directory` du mandat ignoré | lu | Vérifié : `.` ou absent, sinon `blocked` |
+| M6 formulations périmées (« the plugin asks… », grille des divergences, en-tête du lexer, libellés de tests, fichier CI codé en dur) | lu | Corrigées ; un test refuse les anciennes formulations |
+| M7 couverture du lexer partie avec les suites des hooks | sondé par le relecteur : tout bloqué | 9 tests : accents graves, `;`, `\|`, saut de ligne, `<(…)`, `&`, `2>&1`, heredoc bloqués, texte cité accepté |
+| M8 le démarrage d'un projet exige l'orchestrateur 0.1.1 | lu | Écrit dans le scaffold-engineer, le README, INSTALLATION, le guide, ARCHITECTURE et le CHANGELOG ; les deux skills gardent 0.1.0 |
+| M10 rien pour un mandat sans ligne `interface:` | lu | Lu comme l'interface 1, dans les cinq agents |
+| M11 commit à suite rouge (`test_docs`) | — | Phase G faite depuis (`51b944a`) |
+
+Non traités, et pourquoi :
+
+- **M5** reprise d'un bootstrap en sous-dossier : le relecteur craint une boucle (le bootstrap de l'orchestrateur s'arrête sur un dossier qui tient `.forge/`). Son recover-session reprend « sans relancer les étapes antérieures », ce qui l'écarte sur le papier ; le même chemin existait en 0.1.0 pour la reprise après mise à jour d'un plugin. À vérifier en session (F.2, variante du scénario 1), puis du côté de l'orchestrateur s'il le faut.
+- **M9** deux pertes face au bootstrap de la 0.3 : les plateformes que la machine sait compiler ne sont plus montrées avant le choix, et le `CLAUDE.md` d'un nouveau projet est celui, générique, de l'orchestrateur, sans l'organisation Flutter ni les tests ciblés (que le TRD porte). Ce sont des étapes de l'orchestrateur : candidates à un amendement de son côté, pas de correctif ici.
+- Vu en passant : le `project-settings.json` générique de l'orchestrateur n'a pas de règle pour `bash …/orch.sh`, si bien qu'une session interactive demande la permission à chaque écriture d'état. Hors de ce dépôt.
+
+Mutations des corrections : 12 sur 12 détectées, après deux tests resserrés (une ligne mutée qui citait aussi « orchestrator » échappait au contrôle des documents racine ; un nom de skill nu échappait derrière l'autre occurrence). Suite complète : exit 0 — 14 réussies (10 suites, 750 assertions, 1 saut ; 4 validations `--strict`). Coût permanent inchangé : ~1 074 tokens.
 
 ### Phase A v1.0 — Vérifications
 

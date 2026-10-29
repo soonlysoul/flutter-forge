@@ -62,7 +62,9 @@ if [[ -f $UP ]]; then
   says "$UP" "fills the report template" "skills/update-project/reference/deps-report.md"
   says "$UP" "runs each command alone, as the permission rules expect" "one command per call"
   says "$UP" "two identical failures stop" "fails twice with the same error"
-  says "$UP" "writes the checkpoint" "skill: update-project"
+  says "$UP" "writes the checkpoint, named for plugin-orchestrator:recover-session" "skill: plugin-flutter:update-project"
+  says "$UP" "numbered step lines, which orch.sh keeps" "numbered step lines"
+  grep -qF 'skill: update-project' "$UP" && fail "no bare skill: update-project" "$(grep -nF 'skill: update-project' "$UP")" || pass "no bare skill: update-project"
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$UP" "report category $category" "$category"; done
   only_in "$UP" "never runs flutter upgrade, downgrade or channel itself" 'flutter (upgrade|downgrade|channel)' \
     'Never run `flutter upgrade`, `flutter downgrade` or `flutter channel <name>`: they change Flutter for every project on this machine.' \
@@ -143,7 +145,9 @@ if [[ -f $AD ]]; then
   says "$AD" "lists the divergences in .forge/reports/" ".forge/reports/divergences-"
   says "$AD" "uses the divergence checklist" "skills/adopt-existing-project/reference/divergences.md"
   says "$AD" "regenerated plugin registrants are reported" "registrant"
-  says "$AD" "writes the checkpoint once .forge/ exists" "skill: adopt-existing-project"
+  says "$AD" "writes the checkpoint once .forge/ exists, named for plugin-orchestrator:recover-session" "skill: plugin-flutter:adopt-existing-project"
+  says "$AD" "numbered step lines, which orch.sh keeps" "numbered step line"
+  grep -qF 'skill: adopt-existing-project' "$AD" && fail "no bare skill: adopt-existing-project" "$(grep -nF 'skill: adopt-existing-project' "$AD")" || pass "no bare skill: adopt-existing-project"
   says "$AD" "runs each command alone, as the permission rules expect" "one command per call"
   says "$AD" "two identical failures stop" "fails twice with the same error"
   for category in "**passed**" "**failed**" "**blocked**" "**not run**"; do says "$AD" "report category $category" "$category"; done
@@ -250,6 +254,12 @@ says "$UP" "update-project: the part of plugin-flutter, at interface 1" "\`plugi
 says "$UP" "update-project: a schema 1 file stops it" "A file without \`parts\` (\`schema_version: 1\`)"
 says "$UP" "update-project: shows the parts block, filled in for Flutter" "the \`parts\` block of \`\${CLAUDE_PLUGIN_ROOT}/templates/forge-config.yaml\`"
 says "$UP" "update-project: the user edits the file" "the user edits the file"
+# Review of v1.0 (M2): parts alone is not the migration.
+for file in "$UP" "$AD"; do
+  says "$file" "${file#"$PLUGIN_ROOT"/}: the migration sets schema_version 2 and drops the top-level platforms" \
+    "\`schema_version: 2\`, the top-level \`platforms\` block removed"
+done
+says "$UP" "update-project: a file with parts but another schema version stops too" "whose \`schema_version\` is not 2"
 says "$UP" "update-project: a red baseline goes to plugin-orchestrator's debug-project" "plugin-orchestrator:debug-project"
 says "$UP" "update-project: the pull request is plugin-orchestrator's" "/plugin-orchestrator:github-workflow pr"
 says "$AD" "adopt-existing-project: the pull request is plugin-orchestrator's" "/plugin-orchestrator:github-workflow pr"
@@ -262,6 +272,10 @@ bad=$(grep -rnoE "[A-Za-z_./-]*:?\b($retired)\b" "$PLUGIN_ROOT"/{agents,skills,t
   | grep -vE ":/?plugin-orchestrator:($retired)\$")
 [[ -z $bad ]] && pass "agents, skills, templates and hooks cite those workflows only as plugin-orchestrator:<name>" \
   || fail "agents, skills, templates and hooks cite those workflows only as plugin-orchestrator:<name>" "$bad"
+# Review of v1.0 (M6): the hooks that ask before a write are plugin-orchestrator's.
+bad=$(grep -rnE 'The plugin asks|plugin asks the user|a plugin-flutter workflow cannot run|shared by the plugin-flutter guard hooks' \
+  "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null)
+[[ -z $bad ]] && pass "no wording of the hooks that left" || fail "no wording of the hooks that left" "$bad"
 bad=$(grep -rnE 'skills/(create-feature|debug-project|git-workflow|github-workflow|recover-session|bootstrap-project)/|agents/product-architect' \
   "$PLUGIN_ROOT"/{agents,skills,templates,hooks} 2>/dev/null)
 [[ -z $bad ]] && pass "no path of a retired component" || fail "no path of a retired component" "$bad"

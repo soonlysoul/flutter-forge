@@ -8,7 +8,7 @@ Oct 17, 2026 · @Soon
 
 **Statut du document : REVIEW** depuis le 2026-10-29, pendant la v1.0 (décisions D43 à D52 de `PROGRESS.md`). Version précédente : APPROVED le 2026-10-20 (« je valide »), à la clôture de la v0.3.0, avec les décisions D27 à D42 et les corrections des phases E et F.2 (`docs/V0.3_REPORT.md`) ; avant elle, APPROVED à la clôture de la v0.2.0 (D12 à D26) et de la v0.1.0 (phase A, D1 à D9).
 
-Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.309. Dépendance : **plugin-orchestrator 0.1.0 ou plus**, installé avec lui. Le modèle de plugin ne déclare pas de dépendance entre plugins : tout se vérifie à l'exécution, dans les deux sens (l'écho `INTERFACE: 1` côté orchestrateur, la présence de l'orchestrateur côté skills de plugin-flutter).
+Version minimale de Claude Code : **2.1.295** (champ `onFailure` des hooks). Version vérifiée : 2.1.309. Dépendance : **plugin-orchestrator 0.1.0 ou plus**, installé avec lui ; 0.1.1 ou plus pour le démarrage d'un projet (mandat `scaffold`), à publier avant plugin-flutter 1.0. Le modèle de plugin ne déclare pas de dépendance entre plugins : tout se vérifie à l'exécution, dans les deux sens (l'écho `INTERFACE: 1` côté orchestrateur, la présence de l'orchestrateur côté skills de plugin-flutter).
 
 Principes directeurs :
 
@@ -294,11 +294,11 @@ parts:
       analyze: flutter analyze
       add_dep: flutter pub add
       manifests: [pubspec.yaml, pubspec.lock]
-      integration_test: flutter test integration_test -d <device>
+      integration_test: flutter test integration_test -d linux   # un appareil de flutter devices, rendu par le scaffold
     platforms: [android, web, linux]
 ```
 
-Les lignes de `toolchain` sont celles que le scaffold-engineer rend dans `TOOLCHAIN`, et que l'orchestrateur lance lui-même aux étapes mécaniques (règle « mécanique = clé, jugement = mandat »). Un fichier en `schema_version: 1` (plugin-flutter 0.x, `platforms.enabled` au premier niveau) arrête les skills des deux plugins, qui montrent le bloc `parts` à ajouter.
+Les lignes de `toolchain` sont celles que le scaffold-engineer rend dans `TOOLCHAIN` — `integration_test` avec un appareil de `flutter devices` qui fait tourner une plateforme de la partie, ou `none` ; dans `templates/forge-config.yaml`, la ligne reste un commentaire, puisque l'orchestrateur copie ces lignes comme des commandes —, et que l'orchestrateur lance lui-même aux étapes mécaniques (règle « mécanique = clé, jugement = mandat »). Un fichier en `schema_version: 1` (plugin-flutter 0.x, `platforms.enabled` au premier niveau) arrête les skills des deux plugins, qui montrent le bloc `parts` à ajouter.
 
 Actions toujours soumises à un accord dans la conversation, quelle que soit la config : fusion dans la branche principale, changement de visibilité, suppression, release publique, toute dépense, tout changement de fournisseur ou de mode d'authentification. Aucun jeton ni secret n'est affiché, écrit dans un fichier de `.forge/` ou passé en argument de commande visible.
 

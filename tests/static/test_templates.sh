@@ -49,7 +49,7 @@ else
     'Bash(flutter devices)' 'Bash(flutter build *)'; do
     grep -qxF "$rule" <<<"$allow" || missing+=" $rule"
   done
-  [[ -z $missing ]] && pass "read-only gh, git and flutter commands of the v0.2 workflows run without asking" || fail "read-only gh, git and flutter commands of the v0.2 workflows run without asking" "missing:$missing"
+  [[ -z $missing ]] && pass "read-only gh, git and flutter commands run without asking" || fail "read-only gh, git and flutter commands run without asking" "missing:$missing"
 
   missing=""
   for rule in 'Bash(gh repo create *)' 'Bash(gh pr edit *)' 'Bash(gh issue create *)' 'Bash(gh run rerun *)' 'Bash(gh workflow run *)'; do
@@ -128,12 +128,18 @@ if [[ -f $CONFIG ]]; then
   for line in '  app:' '    path: .' '    plugin: plugin-flutter' '    interface: 1' '    toolchain:' \
     '      test: flutter test' '      format: dart format --output=none --set-exit-if-changed .' \
     '      analyze: flutter analyze' '      add_dep: flutter pub add' \
-    '      manifests: [pubspec.yaml, pubspec.lock]' '      integration_test: flutter test integration_test -d <device>'; do
+    '      manifests: [pubspec.yaml, pubspec.lock]'; do
     grep -qxF -- "$line" <<<"$parts" || missing+=" [$line]"
   done
   [[ -z $missing ]] && pass "parts: the root, plugin-flutter, interface 1 and the Flutter toolchain" \
     || fail "parts: the root, plugin-flutter, interface 1 and the Flutter toolchain" "missing:$missing"
   grep -qE '^    platforms: \[[a-z, ]+\]$' <<<"$parts" && pass "the part declares its platforms" || fail "the part declares its platforms" "$parts"
+  # Review of v1.0 (I2): the orchestrator copies these lines as plain commands; a <device>
+  # placeholder blocks every integration test. The line stays a comment until a device is known.
+  grep -q '<device>' <<<"$parts" && fail "no active toolchain line holds a placeholder" "$(grep '<device>' <<<"$parts")" \
+    || pass "no active toolchain line holds a placeholder"
+  grep -qxF '      # integration_test: flutter test integration_test -d <device id from flutter devices>   # optional' "$CONFIG" \
+    && pass "integration_test is a comment, to fill with a device of flutter devices" || fail "integration_test is a comment, to fill with a device of flutter devices"
   auth=$(awk '/^authorizations:/ { inside = 1; next } /^[^ #]/ { inside = 0 } inside && /:/ { print }' "$CONFIG")
   [[ -n $auth ]] && pass "authorizations block present" || fail "authorizations block present"
   not_false=$(grep -vE '^\s+[a-z_]+: false(\s+#.*)?$' <<<"$auth")

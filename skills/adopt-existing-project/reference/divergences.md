@@ -19,7 +19,7 @@ Nothing listed here was fixed by the adoption.
 | tests | tests are expected for each feature | no tests, or tests failing at the baseline (`flutter test --no-pub`) |
 | secrets | `.gitignore` excludes secrets | `.env*`, keystores or `key.properties` tracked, or patterns missing from `.gitignore` |
 
-Severity: **blocking** (a plugin-flutter workflow cannot run until it is resolved), **to fix** (wrong or misleading), **note** (a difference of convention).
+Severity: **blocking** (a workflow of plugin-orchestrator or plugin-flutter cannot run until it is resolved), **to fix** (wrong or misleading), **note** (a difference of convention).
 
 ## Divergences
 

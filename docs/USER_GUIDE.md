@@ -13,11 +13,11 @@ Quand un workflow a besoin de vous, il pose sa question **en texte**, écrit le 
 
 ## Avec plugin-orchestrator
 
-Depuis la 1.0, plugin-flutter est le plugin Flutter de [plugin-orchestrator](https://github.com/soonlysoul/plugin-orchestrator) : installez les deux. Les workflows communs à tous les langages sont les siens, et lui seul les lance :
+Depuis la 1.0, plugin-flutter est le plugin Flutter de [plugin-orchestrator](https://github.com/soonlysoul/plugin-orchestrator) : installez les deux (l'orchestrateur 0.1.1 ou plus pour démarrer un projet). Les workflows communs à tous les langages sont les siens, et lui seul les lance :
 
 | Pour | Lancez | Ce que fait plugin-flutter |
 | --- | --- | --- |
-| Créer une app | `/plugin-orchestrator:bootstrap-project une appli de notes en Flutter` | Le scaffold-engineer reçoit le mandat `scaffold` : `flutter create` dans le dossier de la session, structure `lib/app`, `lib/core`, `lib/features`, modes stricts de l'analyseur, TRD en DRAFT, `flutter test` et `flutter analyze` à 0 ; il rend la toolchain que l'orchestrateur écrit dans `.forge/config.yaml`, les règles de permission Flutter, les versions et les plateformes. Ni CI, ni commit : ils sont à l'orchestrateur |
+| Créer une app | `/plugin-orchestrator:bootstrap-project une appli de notes en Flutter` | Le scaffold-engineer reçoit le mandat `scaffold` : `flutter create` dans le dossier de la session, structure `lib/app`, `lib/core`, `lib/features`, modes stricts de l'analyseur, TRD en DRAFT, `flutter test` et `flutter analyze` à 0 ; il rend la toolchain que l'orchestrateur écrit dans `.forge/config.yaml` — avec la commande des tests d'intégration sur un appareil que `flutter devices` trouve, ou sans elle —, les règles de permission Flutter, les versions et les plateformes. Ni CI, ni commit : ils sont à l'orchestrateur |
 | Une fonctionnalité en TDD | `/plugin-orchestrator:create-feature AC-001` | Le test-engineer écrit les tests (`write-tests`) et rend la sortie ROUGE ; le flutter-architect vérifie une nouvelle dépendance contre vos plateformes (`check-dependency`) ; le code-reviewer relit le diff indexé (`review`) |
 | Corriger une panne | `/plugin-orchestrator:debug-project` | Le flutter-architect confirme ou réfute une hypothèse qui dépend de Flutter, de Dart ou d'une plateforme (`diagnose`) ; le test-engineer écrit le test de non-régression ; le code-reviewer relit le correctif |
 | GitHub et la CI | `/plugin-orchestrator:github-workflow ci`, `pr`, `checks` | Le devops-engineer écrit `.github/workflows/ci.yml` depuis le gabarit Flutter, avec votre version de Flutter (`ci-template`), builde vos plateformes (`build`), lit les journaux d'une CI rouge (`ci-diagnosis`), corrige le workflow (`workflow-change`) |

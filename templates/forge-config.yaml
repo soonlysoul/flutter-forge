@@ -26,5 +26,5 @@ parts:
       analyze: flutter analyze
       add_dep: flutter pub add
       manifests: [pubspec.yaml, pubspec.lock]
-      integration_test: flutter test integration_test -d <device>
+      # integration_test: flutter test integration_test -d <device id from flutter devices>   # optional
     platforms: [android, web, linux]

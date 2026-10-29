@@ -45,8 +45,12 @@ next ones `resume` with the same id.
 Allowed tools used by the scenarios (`$TOOLS`):
 
 ```bash
-TOOLS=(Read Write Edit Glob Grep Skill Agent "Bash(flutter *)" "Bash(dart *)" "Bash(git *)" "Bash(jq *)" "Bash(ls *)" "Bash(mkdir *)" "Bash(touch *)")
+TOOLS=(Read Write Edit Glob Grep Skill Agent "Bash(flutter *)" "Bash(dart *)" "Bash(git *)" "Bash(jq *)" "Bash(ls *)" "Bash(mkdir *)" "Bash(touch *)" "Bash(bash *)")
 ```
+
+`Bash(bash *)` lets the orchestrator's skills run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/orch.sh …`
+(`init`, `checkpoint`, `status`, `approve`): in `dontAsk`, a command outside `--allowedTools` is
+denied, and scenarios 1 and 14 would stop at their first state write.
 
 `Bash(git *)` deliberately allows every git command at the permission layer: the guard hooks of
 plugin-orchestrator block on their own.

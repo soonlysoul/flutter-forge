@@ -2,7 +2,7 @@
 
 Plugin Claude Code pour les applications Flutter et Dart, à utiliser avec [plugin-orchestrator](https://github.com/soonlysoul/plugin-orchestrator). L'orchestrateur mène le projet — démarrage, fonctionnalités en TDD, Git, GitHub, reprise, débogage — et confie à plugin-flutter tout ce qui demande de comprendre Flutter : le squelette de l'app, ses tests, sa revue, son architecture, ses builds et sa CI, la mise à jour de ses dépendances, l'adoption d'une app existante. Il ne contient aucune dépendance propre à une application et sert à plusieurs projets.
 
-Version **1.0.0**. Claude Code **2.1.295 ou plus** et plugin-orchestrator **0.1.0 ou plus** requis.
+Version **1.0.0**. Claude Code **2.1.295 ou plus** et plugin-orchestrator **0.1.0 ou plus** requis ; **0.1.1 ou plus** pour démarrer un nouveau projet.
 
 ## Ce que fait le plugin
 

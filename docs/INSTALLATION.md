@@ -5,7 +5,7 @@
 | Outil | Version | Pourquoi |
 | --- | --- | --- |
 | Claude Code | **2.1.295 ou plus** | Les hooks déclarent `onFailure`, apparu en 2.1.295. Une version antérieure ne garantit pas le blocage en cas d'erreur d'un hook |
-| plugin-orchestrator | **0.1.0 ou plus**, installé avec plugin-flutter | Les workflows (démarrage, fonctionnalités, Git, GitHub, reprise, débogage) et les garde-fous communs sont les siens. Sans lui, les skills de plugin-flutter s'arrêtent d'abord en le nommant, et ses agents n'ont personne pour les mandater |
+| plugin-orchestrator | **0.1.0 ou plus**, installé avec plugin-flutter ; **0.1.1 ou plus** pour démarrer un nouveau projet, dont le mandat `scaffold` accepte le `.gitignore` qu'écrit `flutter create` | Les workflows (démarrage, fonctionnalités, Git, GitHub, reprise, débogage) et les garde-fous communs sont les siens. Sans lui, les skills de plugin-flutter s'arrêtent d'abord en le nommant, et ses agents n'ont personne pour les mandater |
 | `jq` | toute version récente | Les hooks lisent leur entrée JSON avec `jq`. Sans lui, agent-scope-guard bloque tous les appels des agents du plugin, et le guard-destructive de l'orchestrateur toutes les commandes shell (fail-closed) |
 | `git` | 2.x | Workflows de l'orchestrateur, mise à jour des dépendances, adoption |
 | Flutter et Dart | canal stable | Projets générés, `format-dart` |
@@ -102,9 +102,11 @@ Les fichiers d'un projet vous appartiennent : la mise à jour du plugin ne les t
          analyze: flutter analyze
          add_dep: flutter pub add
          manifests: [pubspec.yaml, pubspec.lock]
-         integration_test: flutter test integration_test -d <device>
+         # integration_test: flutter test integration_test -d <device id from flutter devices>   # optional
        platforms: [android, web, linux]
    ```
+
+   La ligne `integration_test` reste un commentaire tant qu'aucun appareil n'y est nommé : les tests d'intégration sont alors classés bloqués. Pour les lancer, décommentez-la avec un identifiant que `flutter devices` affiche (`linux` sur une machine Linux, `chrome` pour le web).
 
 2. **`.claude/settings.json`**, facultatif : les règles génériques que l'orchestrateur ajoute — en `allow` : `Bash(git --version)`, `Bash(jq --version)`, `Bash(git show *)`, `Bash(git ls-files)`, `Bash(git ls-files *)` ; en `deny` : `Read(./**/*.jks)`, `Read(./**/*.keystore)`, `Read(./**/*.p12)`, `Read(./**/*.pfx)`. Un projet de la v0.1 ou de la v0.2 trouve toutes les règles de la 1.0 dans `templates/project-settings.json` du plugin, à comparer avec le sien.
 3. **Documents.** Un PRD ou un TRD approuvé sous la 0.x n'a pas d'empreinte dans `.forge/approvals.log` : le doc-status-guard de l'orchestrateur le repasse en REVIEW à sa première modification. Le `create-feature` de l'orchestrateur demande alors votre approbation, et la consigne.

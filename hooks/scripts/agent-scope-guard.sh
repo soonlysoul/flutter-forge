@@ -56,7 +56,7 @@ case $agent in
   scaffold-engineer)
     write_dirs="lib test integration_test docs/technical"
     write_files="analysis_options.yaml"
-    allowed_commands="flutter create <options> . (never --overwrite), flutter --version, flutter devices, flutter doctor, flutter pub get, flutter test, flutter analyze, $GIT_READ"
+    allowed_commands="flutter create [--org|--project-name|--platforms|--description <value>] ., flutter --version, flutter devices, flutter doctor, flutter pub get, flutter test, flutter analyze, $GIT_READ"
     ;;
   *) block "no scope is defined for agent $agent." ;;
 esac
@@ -137,10 +137,20 @@ command_allowed() {
       esac
       local word
       if [[ $1 == flutter && ${2-} == create ]]; then
-        # Only into the project root, the session's: the last word is the target, and nothing may be overwritten.
+        # Only into the project root, the session's: the last word is the target. Only the four
+        # options of the scaffold, each with its value: --overwrite would replace existing files,
+        # and --list-samples writes a file wherever it is told, before the target is checked.
         (($# >= 3)) && [[ ${!#} == . ]] || return 1
-        for word in "${@:3}"; do
-          [[ $word != --overwrite ]] || return 1
+        local options=("${@:3:$#-3}") i=0
+        while ((i < ${#options[@]})); do
+          case ${options[i]} in
+            --org=?* | --project-name=?* | --platforms=?* | --description=?*) i=$((i + 1)) ;;
+            --org | --project-name | --platforms | --description)
+              ((i + 1 < ${#options[@]})) && [[ ${options[i + 1]} != -* ]] || return 1
+              i=$((i + 2))
+              ;;
+            *) return 1 ;;
+          esac
         done
         return 0
       fi
