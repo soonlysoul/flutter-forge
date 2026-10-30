@@ -32,6 +32,7 @@ Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `pl
 - [x] F.1 — `bash tests/run-all.sh` → exit 0 : 14 réussies (10 suites, 710 assertions, 1 saut : `dart` absent pour format-dart ; 4 validations `--strict`) ; coût permanent ~1 074 tokens (2 skills, 5 agents, 2 hooks), contre ~1 651
 - [x] F.2 — Scénarios headless 1, 6, 10, 11, 13 et 14 réussis (accord du 2026-10-29 : « oui lance ») ; 12 non lancé (en option, dépôt GitHub et minutes de CI) ; détail ci-dessous
 - [x] Publication de l'orchestrateur 0.1.1 (2026-10-30, par vous)
+- [x] ARCHITECTURE.md en APPROVED le 2026-10-30, sur votre « oui » à la question de son approbation
 - [ ] Publication de plugin-flutter 1.0.0, par `/plugin-plugin:release .` (répétition : 0.3.0 → 1.0.0, 12 gestes, exit 0)
 
 ### Phase F.2 v1.0 — Scénarios headless
