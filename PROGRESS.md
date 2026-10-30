@@ -7,7 +7,7 @@ Reprise : « Reprends depuis PROGRESS.md » → lire ce fichier, puis `git log -
 
 Démarrée le 2026-10-29 sur votre demande (« Prépare la version majeure de plugin-flutter qui le rend dépendant de plugin-orchestrator 0.1.0 »), plan proposé puis tranché par vous (« tranche au mieux ») : mes recommandations retenues. Cadre : `../plugin-orchestrator/docs/ARCHITECTURE.md`, sections « Migration de plugin-flutter » et « Contrat de délégation (interface v1) ». Critère : le critère v0.1 du PRD de l'orchestrateur, mesuré les deux plugins publiés et installés ensemble (scénario 14).
 
-Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `plugin-orchestrator--v0.1.0`. Rien n'est poussé. F.2 faite sur votre accord (« oui lance ») ; attendent votre accord : la publication de l'orchestrateur 0.1.1 et celle de plugin-flutter 1.0.0.
+Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `plugin-orchestrator--v0.1.0`. Rien n'est poussé. F.2 faite sur votre accord (« oui lance ») ; orchestrateur 0.1.1 publié par vous le 2026-10-30 (`/plugin-plugin:release`, étiquette `plugin-orchestrator--v0.1.1` sur GitHub) ; plugin-flutter 1.0.0 : `main` avancé sur `feat/v1.0`, répétition de publication à exit 0, publication par vous (`/plugin-plugin:release .`).
 
 | # | Retenu |
 | --- | --- |
@@ -31,7 +31,8 @@ Point de départ : `main` propre à `2b3488c` (v0.3.0), orchestrateur taggé `pl
 - [x] G — Docs, manifestes (1.0.0), CHANGELOG 1.0.0 « en cours » avec la migration des projets 0.x, ARCHITECTURE.md en REVIEW
 - [x] F.1 — `bash tests/run-all.sh` → exit 0 : 14 réussies (10 suites, 710 assertions, 1 saut : `dart` absent pour format-dart ; 4 validations `--strict`) ; coût permanent ~1 074 tokens (2 skills, 5 agents, 2 hooks), contre ~1 651
 - [x] F.2 — Scénarios headless 1, 6, 10, 11, 13 et 14 réussis (accord du 2026-10-29 : « oui lance ») ; 12 non lancé (en option, dépôt GitHub et minutes de CI) ; détail ci-dessous
-- [ ] Publication, sur accord
+- [x] Publication de l'orchestrateur 0.1.1 (2026-10-30, par vous)
+- [ ] Publication de plugin-flutter 1.0.0, par `/plugin-plugin:release .` (répétition : 0.3.0 → 1.0.0, 12 gestes, exit 0)
 
 ### Phase F.2 v1.0 — Scénarios headless
 
