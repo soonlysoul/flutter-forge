@@ -11,3 +11,10 @@ tests/.tmp/
 *.swp
 .idea/
 .vscode/
+
+# Volatile state of a publication by plugin-plugin: its plan, announcement and journals of
+# consents and gestures, written while the tree must stay clean.
+.plugin-plugin/publication.json
+.plugin-plugin/pending
+.plugin-plugin/consents.log
+.plugin-plugin/gestures.log
