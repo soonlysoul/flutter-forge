@@ -2,7 +2,7 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; versionnage [SemVer](https://semver.org/lang/fr/) : correctif pour une consigne, mineure pour un skill ou un agent ajouté, majeure pour un changement de format de `.forge/` qui casse la reprise.
 
-## [1.0.0] — en cours
+## [1.0.0] — 2026-10-31
 
 plugin-flutter devient le plugin Flutter de plugin-orchestrator 0.1.0 : les workflows communs à tous les langages et les garde-fous communs passent à l'orchestrateur, qui confie à plugin-flutter, par des mandats à l'interface 1 de son contrat de délégation, tout ce qui demande de comprendre Flutter. Les deux plugins s'installent ensemble ; démarrer un nouveau projet demande plugin-orchestrator 0.1.1 ou plus. Majeure : des skills, un agent et des hooks partent, et `.forge/config.yaml` passe au format de l'orchestrateur (schéma 2) — un projet 0.x se migre en ajoutant le bloc `parts` à la main ([Installation](docs/INSTALLATION.md#migrer-un-projet-de-plugin-flutter-0x)).
 
@@ -30,6 +30,8 @@ plugin-flutter devient le plugin Flutter de plugin-orchestrator 0.1.0 : les work
 - Skills `create-feature`, `debug-project`, `github-workflow`, `git-workflow`, `recover-session` et `bootstrap-project`, agent `product-architect`, hooks `guard-destructive`, `secret-scan`, `protect-sensitive` et `checkpoint-reminder` : ce sont ceux de plugin-orchestrator. Leurs tests partent avec eux, après vérification que les 382 cas des quatre suites de hooks donnent les mêmes décisions contre les hooks de l'orchestrateur. Le lexer `hooks/scripts/lib/shell-lexer.sh` reste : agent-scope-guard s'en sert.
 - Gabarit `PRD.md` (celui de l'orchestrateur) et `reference/pr-body.md`.
 - Scénarios 2 à 5 et 7 à 9, qui testaient les composants retirés.
+
+Coût en contexte permanent : ~1074 tokens — update-project ~160, adopt-existing-project ~180, flutter-architect ~130, code-reviewer ~140, test-engineer ~130, devops-engineer ~170, scaffold-engineer ~160.
 
 ## [0.3.0] — 2026-10-20
 

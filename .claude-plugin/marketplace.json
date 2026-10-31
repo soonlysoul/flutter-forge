@@ -8,7 +8,7 @@
     {
       "name": "plugin-flutter",
       "source": "./",
-      "description": "Flutter/Dart language plugin of plugin-orchestrator: scaffold, tests, review, architecture, builds and CI by mandate, dependency updates, adoption of an existing app."
+      "description": "Flutter/Dart language plugin of plugin-orchestrator: scaffold of a Flutter app, tests, review, architecture, builds and CI by mandate at interface 1, dependency updates, adoption of an existing app."
     }
   ]
 }
